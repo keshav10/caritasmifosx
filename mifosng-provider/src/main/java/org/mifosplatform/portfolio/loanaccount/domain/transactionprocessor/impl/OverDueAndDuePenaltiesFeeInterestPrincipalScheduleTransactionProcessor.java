@@ -99,13 +99,14 @@ public class OverDueAndDuePenaltiesFeeInterestPrincipalScheduleTransactionProces
             // int loanTerm=loanTransaction.getLoan().getTermFrequency();//new
             // code By Venkat
             for (final LoanRepaymentScheduleInstallment installment : installments) {
-                if (installment.isInterestDue(currency)
+                if ((installment.isInterestDue(currency) || installment.getFeeChargesOutstanding(currency).isGreaterThanZero() || installment
+                        .getPenaltyChargesOutstanding(currency).isGreaterThanZero())
                         && (installment.isTxnDateInCurrentInstallment(loanTransaction.getTransactionDate()) || installment
                                 .getInstallmentNumber().equals(currentInstallmentBasedOnTransactionDate.getInstallmentNumber()))) {
-                    penaltyChargesPortion = currentInstallment.payPenaltyChargesComponent(transactionDate, transactionAmountRemaining);
+                    penaltyChargesPortion = installment.payPenaltyChargesComponent(transactionDate, transactionAmountRemaining);
                     transactionAmountRemaining = transactionAmountRemaining.minus(penaltyChargesPortion);
 
-                    feeChargesPortion = currentInstallment.payFeeChargesComponent(transactionDate, transactionAmountRemaining);
+                    feeChargesPortion = installment.payFeeChargesComponent(transactionDate, transactionAmountRemaining);
                     transactionAmountRemaining = transactionAmountRemaining.minus(feeChargesPortion);
 
                     // Money interestPortion=null;
