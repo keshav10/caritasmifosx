@@ -400,21 +400,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_REPAYMENT_SMS_REMINDER_TO_CLIENT)
     public void loanRepaymentSmsReminder() {
-            String payLoadUrl = null;
+            String payLoadUrl = "http://localhost:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
-            ArrayList<HookConfiguration> hookDetail = new ArrayList<HookConfiguration>();
-            hookDetail = hookConfigurationRepository.retriveDetail();
-            HookConfiguration hookConfiguration = new HookConfiguration();
-            for (int i = 0; i < hookDetail.size(); i++) {
-                    hookConfiguration = hookDetail.get(i);
-                    if (hookConfiguration.getFieldName()
-                                    .equalsIgnoreCase("Payload URL")) {
-                            payLoadUrl = hookConfiguration.getFieldValue();
-                            break;
-                    }
-            }
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost(payLoadUrl);
             httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
@@ -453,21 +442,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_FIRST_OVERDUE_REPAYMENT_REMINDER_SMS)
     public void loanFirstOverdueRepaymentReminder() {
-            String payLoadUrl = null;
+            String payLoadUrl = "http://localhost:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
-            ArrayList<HookConfiguration> hookDetail = new ArrayList<HookConfiguration>();
-            hookDetail = hookConfigurationRepository.retriveDetail();
-            HookConfiguration hookConfiguration = new HookConfiguration();
-            for (int i = 0; i < hookDetail.size(); i++) {
-                    hookConfiguration = hookDetail.get(i);
-                    if (hookConfiguration.getFieldName()
-                                    .equalsIgnoreCase("Payload URL")) {
-                            payLoadUrl = hookConfiguration.getFieldValue();
-                            break;
-                    }
-            }
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost(payLoadUrl);
             httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
@@ -503,21 +481,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_SECOND_OVERDUE_REPAYMENT_REMINDER_SMS)
     public void loanSecondOverdueRepaymentReminder() {
-            String payLoadUrl = null;
+            String payLoadUrl = "http://localhost:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
-            ArrayList<HookConfiguration> hookDetail = new ArrayList<HookConfiguration>();
-            hookDetail = hookConfigurationRepository.retriveDetail();
-            HookConfiguration hookConfiguration = new HookConfiguration();
-            for (int i = 0; i < hookDetail.size(); i++) {
-                    hookConfiguration = hookDetail.get(i);
-                    if (hookConfiguration.getFieldName()
-                                    .equalsIgnoreCase("Payload URL")) {
-                            payLoadUrl = hookConfiguration.getFieldValue();
-                            break;
-                    }
-            }
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost(payLoadUrl);
             httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
@@ -554,21 +521,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_THIRD_OVERDUE_REPAYMENT_REMINDER_SMS)
     public void loanThirdOverdueRepaymentReminder() {
-            String payLoadUrl = null;
+            String payLoadUrl = "http://localhost:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
-            ArrayList<HookConfiguration> hookDetail = new ArrayList<HookConfiguration>();
-            hookDetail = hookConfigurationRepository.retriveDetail();
-            HookConfiguration hookConfiguration = new HookConfiguration();
-            for (int i = 0; i < hookDetail.size(); i++) {
-                    hookConfiguration = hookDetail.get(i);
-                    if (hookConfiguration.getFieldName()
-                                    .equalsIgnoreCase("Payload URL")) {
-                            payLoadUrl = hookConfiguration.getFieldValue();
-                            break;
-                    }
-            }
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost(payLoadUrl);
             httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
@@ -603,21 +559,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_FOURTH_OVERDUE_REPAYMENT_REMINDER_SMS)
     public void loanFourthOverdueRepaymentReminder() {
-            String payLoadUrl = null;
+            String payLoadUrl = "http://localhost:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
-            ArrayList<HookConfiguration> hookDetail = new ArrayList<HookConfiguration>();
-            hookDetail = hookConfigurationRepository.retriveDetail();
-            HookConfiguration hookConfiguration = new HookConfiguration();
-            for (int i = 0; i < hookDetail.size(); i++) {
-                    hookConfiguration = hookDetail.get(i);
-                    if (hookConfiguration.getFieldName()
-                                    .equalsIgnoreCase("Payload URL")) {
-                            payLoadUrl = hookConfiguration.getFieldValue();
-                            break;
-                    }
-            }
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost(payLoadUrl);
             httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
@@ -653,21 +598,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.DEFAULT_WARNING_SMS_TO_CLIENT)
     public void defaultWarningToClients() {
-            String payLoadUrl = null;
+            String payLoadUrl = "http://localhost:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
-            ArrayList<HookConfiguration> hookDetail = new ArrayList<HookConfiguration>();
-            hookDetail = hookConfigurationRepository.retriveDetail();
-            HookConfiguration hookConfiguration = new HookConfiguration();
-            for (int i = 0; i < hookDetail.size(); i++) {
-                    hookConfiguration = hookDetail.get(i);
-                    if (hookConfiguration.getFieldName()
-                                    .equalsIgnoreCase("Payload URL")) {
-                            payLoadUrl = hookConfiguration.getFieldValue();
-                            break;
-                    }
-            }
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost(payLoadUrl);
             httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
@@ -703,21 +637,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.DEFAULT_WARNING_SMS_TO_GURANTOR)
     public void defaultWarningToGuarantors() {
-            String payLoadUrl = null;
+            String payLoadUrl = "http://localhost:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
-            ArrayList<HookConfiguration> hookDetail = new ArrayList<HookConfiguration>();
-            hookDetail = hookConfigurationRepository.retriveDetail();
-            HookConfiguration hookConfiguration = new HookConfiguration();
-            for (int i = 0; i < hookDetail.size(); i++) {
-                    hookConfiguration = hookDetail.get(i);
-                    if (hookConfiguration.getFieldName()
-                                    .equalsIgnoreCase("Payload URL")) {
-                            payLoadUrl = hookConfiguration.getFieldValue();
-                            break;
-                    }
-            }
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost(payLoadUrl);
             httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
@@ -753,21 +676,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.DORMANCY_WARNING_SMS_TO_CLIENT)
     public void dormancyWarningToClients() {
-            String payLoadUrl = null;
+            String payLoadUrl = "http://localhost:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
-            ArrayList<HookConfiguration> hookDetail = new ArrayList<HookConfiguration>();
-            hookDetail = hookConfigurationRepository.retriveDetail();
-            HookConfiguration hookConfiguration = new HookConfiguration();
-            for (int i = 0; i < hookDetail.size(); i++) {
-                    hookConfiguration = hookDetail.get(i);
-                    if (hookConfiguration.getFieldName()
-                                    .equalsIgnoreCase("Payload URL")) {
-                            payLoadUrl = hookConfiguration.getFieldValue();
-                            break;
-                    }
-            }
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost(payLoadUrl);
             httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.mifos.module.sms.domain;
+package org.mifosplatform.infrastructure.hooks.domain;
 
 import javax.persistence.*;
 import java.util.Date;
