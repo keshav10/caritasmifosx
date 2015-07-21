@@ -8,8 +8,10 @@ package org.mifosplatform.portfolio.savings.service;
 import java.util.Collection;
 
 import org.mifosplatform.portfolio.charge.data.ChargeData;
+import org.mifosplatform.portfolio.savings.data.SavingIdListData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountAnnualFeeData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountChargeData;
+import org.mifosplatform.portfolio.savings.data.SavingsIdOfChargeData;
 
 public interface SavingsAccountChargeReadPlatformService {
 
@@ -22,4 +24,7 @@ public interface SavingsAccountChargeReadPlatformService {
     Collection<SavingsAccountAnnualFeeData> retrieveChargesWithAnnualFeeDue();
 
     Collection<SavingsAccountAnnualFeeData> retrieveChargesWithDue();
+    Collection<SavingsIdOfChargeData> retriveAllSavingIdHavingDepositCharge(String startDate, String endDate);
+    Collection<SavingIdListData> retriveSavingAccountForApplySavingDepositeFee(final String startDateofMonth, final String endDateOfMonth);
+
 }

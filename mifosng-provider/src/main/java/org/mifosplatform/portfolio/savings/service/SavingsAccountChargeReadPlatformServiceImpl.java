@@ -24,8 +24,10 @@ import org.mifosplatform.portfolio.charge.exception.SavingsAccountChargeNotFound
 import org.mifosplatform.portfolio.charge.service.ChargeDropdownReadPlatformService;
 import org.mifosplatform.portfolio.charge.service.ChargeEnumerations;
 import org.mifosplatform.portfolio.common.service.DropdownReadPlatformService;
+import org.mifosplatform.portfolio.savings.data.SavingIdListData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountAnnualFeeData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountChargeData;
+import org.mifosplatform.portfolio.savings.data.SavingsIdOfChargeData;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountStatusType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -234,6 +236,60 @@ public class SavingsAccountChargeReadPlatformServiceImpl implements SavingsAccou
 
         return this.jdbcTemplate.query(sql, this.chargeDueMapper, new Object[] {});
 
+    }
+    
+    @Override
+    public Collection<SavingsIdOfChargeData> retriveAllSavingIdHavingDepositCharge(String startDate, String endDate){
+        final SavingsIdOfChargeDataMapper rm = new SavingsIdOfChargeDataMapper();
+        final String sql =  " select a.savingId from " 
+                       + "(select msac.savings_account_id as savingId, max(month(msac.charge_due_date)) as days from m_savings_account_charge msac "
+                       + " where msac.charge_time_enum = 12 "
+                       + " group by msac.savings_account_id )a "
+                       + " where a.days between month(' " + startDate + "') and month('" + endDate + "')"
+                       + " or month(curDate()) ";
+;
+        
+                return this.jdbcTemplate.query(sql, rm, new Object[]{});
+        
+    }
+    
+    
+    @Override
+    public Collection<SavingIdListData> retriveSavingAccountForApplySavingDepositeFee(final String startDateofMonth, final String endDateOfMonth){
+        
+        final SavingIdListDataMapper rm = new SavingIdListDataMapper();
+        
+        final String sql = "select a.savingId as savingId from (select msa.id as savingId, MAX(mst.transaction_date) as days from m_savings_product msp "
+         + " left join m_savings_product_charge mspc on mspc.savings_product_id = msp.id "
+         + " left join m_charge mch on mspc.charge_id = mch.id "
+         + " left join m_savings_account msa on msp.id = msa.product_id "
+         +  " left join m_savings_account_transaction mst on mst.savings_account_id = msa.id "
+             + " group by msa.id ) a "
+         + " where a.days NOT BETWEEN ? AND ? " ;
+        
+        
+        return this.jdbcTemplate.query(sql, rm, new Object[]{startDateofMonth,endDateOfMonth});
+        
+    }
+    
+    private static final class SavingIdListDataMapper implements RowMapper<SavingIdListData>{
+
+        @Override
+        public SavingIdListData mapRow(ResultSet rs, int rowNum) throws SQLException{
+                
+                final Long savingId = rs.getLong("savingId");
+                
+                return SavingIdListData.instance(savingId);
+        }
+}
+
+    private static final class SavingsIdOfChargeDataMapper implements RowMapper<SavingsIdOfChargeData>{
+       
+        @Override
+        public SavingsIdOfChargeData mapRow(ResultSet rs, int rowNum) throws SQLException{
+        final Long savingId = rs.getLong("savingId");
+        return SavingsIdOfChargeData.instance(savingId);
+        }
     }
 
 }

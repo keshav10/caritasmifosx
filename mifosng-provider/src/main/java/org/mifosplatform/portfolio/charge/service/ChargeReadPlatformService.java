@@ -96,5 +96,6 @@ public interface ChargeReadPlatformService {
     
     /** Retrieve savings account charges **/
     Collection<ChargeData> retrieveSavingsAccountApplicableCharges(Long savingsId);
+    Collection<ChargeData> retriveAllChargeOfSavingLateFee();
 
 }

@@ -25,7 +25,9 @@ public enum JobName {
     ADD_PERIODIC_ACCRUAL_ENTRIES("Add Periodic Accrual Transactions"),
     RECALCULATE_INTEREST_FOR_LOAN("Recalculate Interest For Loans"),
     GENERATE_RD_SCEHDULE("Generate Mandatory Savings Schedule"),
-    UPDATE_CLIENT_SUB_STATUS("Update Client Sub-Status");
+    UPDATE_CLIENT_SUB_STATUS("Update Client Sub-Status"),
+    APPY_SAVING_DEPOSITE_LATE_FEE("Apply Saving Deposite Late Fee");
+
 
     private final String name;
 
