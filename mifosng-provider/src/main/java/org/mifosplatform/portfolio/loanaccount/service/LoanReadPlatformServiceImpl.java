@@ -243,6 +243,23 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         }
     }
 
+    
+    @Override
+    public Long retriveLoanAccountId(final Long clientId) {
+
+            try {
+                    final String sql = " select ml.id as loanId from m_loan ml "
+                                    + " left join m_client mc on mc.id = ml.client_id left join m_guarantor mg on ml.id = mg.loan_id  left join m_guarantor_funding_details mgfd on mg.id = mgfd.guarantor_id "
+                                    + " where mgfd.status_enum = 100 " + " and mc.id = " + clientId + " group by mg.loan_id ";
+
+                    return this.jdbcTemplate.queryForLong(sql);
+            } catch (final EmptyResultDataAccessException e) {
+                    return null;
+            }
+
+    }
+    
+    
     @Override
     public Page<LoanAccountData> retrieveAll(final SearchParameters searchParameters) {
 

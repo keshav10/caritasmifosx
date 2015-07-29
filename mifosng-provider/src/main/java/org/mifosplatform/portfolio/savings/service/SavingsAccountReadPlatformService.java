@@ -16,6 +16,7 @@ import org.mifosplatform.portfolio.savings.data.SavingsAccountTransactionData;
 public interface SavingsAccountReadPlatformService {
 
     Page<SavingsAccountData> retrieveAll(SearchParameters searchParameters);
+    Long getIsReleaseGuarantor(Long savingId);
 
     Collection<SavingsAccountData> retrieveAllForLookup(Long clientId);
 

@@ -1387,4 +1387,8 @@ public class LoanAccountData {
         return LoanStatus.fromInt(this.status.id().intValue()).isActive();
     }
 
+    public Long getId() {
+        return this.id;
+    }
+
 }
