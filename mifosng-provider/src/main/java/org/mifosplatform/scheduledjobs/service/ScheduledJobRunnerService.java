@@ -25,4 +25,6 @@ public interface ScheduledJobRunnerService {
 
     void updateClientSubStatus();
 
+    void doAppySavingLateFeeCharge() throws JobExecutionException;
+
 }

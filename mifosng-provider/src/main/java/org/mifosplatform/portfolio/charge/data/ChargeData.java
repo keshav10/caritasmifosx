@@ -226,4 +226,29 @@ public class ChargeData implements Comparable<ChargeData>, Serializable {
         }
         return isOverdueInstallmentCharge;
     }
+    
+    public Long getId() {
+                       return this.id;
+               }
+        
+               public boolean isActive() {
+                       return this.active;
+               }
+        
+               public BigDecimal getAmount() {
+                       return this.amount;
+               }
+        
+              public EnumOptionData getChargeTimeType() {
+                       return this.chargeTimeType;
+               }
+        
+               public Integer getFeeInterval() {
+                       return this.feeInterval;
+               }
+        
+               public EnumOptionData getFeeFrequency() {
+                       return this.feeFrequency;
+               }
+    
 }

@@ -6,15 +6,23 @@
 package org.mifosplatform.scheduledjobs.service;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+import org.joda.time.Days;
 import org.joda.time.LocalDate;
+import org.joda.time.Months;
+import org.joda.time.Weeks;
+import org.joda.time.Years;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.mifosplatform.infrastructure.core.data.ApiParameterError;
+import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSourceServiceFactory;
@@ -22,10 +30,15 @@ import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
 import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
 import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
 import org.mifosplatform.infrastructure.jobs.service.JobName;
+import org.mifosplatform.portfolio.charge.data.ChargeData;
+import org.mifosplatform.portfolio.charge.service.ChargeReadPlatformService;
+import org.mifosplatform.portfolio.common.domain.PeriodFrequencyType;
 import org.mifosplatform.portfolio.savings.DepositAccountType;
 import org.mifosplatform.portfolio.savings.DepositAccountUtils;
 import org.mifosplatform.portfolio.savings.data.DepositAccountData;
+import org.mifosplatform.portfolio.savings.data.SavingIdListData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountAnnualFeeData;
+import org.mifosplatform.portfolio.savings.data.SavingsIdOfChargeData;
 import org.mifosplatform.portfolio.savings.service.DepositAccountReadPlatformService;
 import org.mifosplatform.portfolio.savings.service.DepositAccountWritePlatformService;
 import org.mifosplatform.portfolio.savings.service.SavingsAccountChargeReadPlatformService;
@@ -49,18 +62,21 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     private final SavingsAccountChargeReadPlatformService savingsAccountChargeReadPlatformService;
     private final DepositAccountReadPlatformService depositAccountReadPlatformService;
     private final DepositAccountWritePlatformService depositAccountWritePlatformService;
+    private final ChargeReadPlatformService chargeReadPlatformService;
 
     @Autowired
     public ScheduledJobRunnerServiceImpl(final RoutingDataSourceServiceFactory dataSourceServiceFactory,
             final SavingsAccountWritePlatformService savingsAccountWritePlatformService,
             final SavingsAccountChargeReadPlatformService savingsAccountChargeReadPlatformService,
             final DepositAccountReadPlatformService depositAccountReadPlatformService,
-            final DepositAccountWritePlatformService depositAccountWritePlatformService) {
+            final DepositAccountWritePlatformService depositAccountWritePlatformService,
+            final ChargeReadPlatformService chargeReadPlatformService) {
         this.dataSourceServiceFactory = dataSourceServiceFactory;
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
         this.savingsAccountChargeReadPlatformService = savingsAccountChargeReadPlatformService;
         this.depositAccountReadPlatformService = depositAccountReadPlatformService;
         this.depositAccountWritePlatformService = depositAccountWritePlatformService;
+        this.chargeReadPlatformService = chargeReadPlatformService;
     }
 
     @Transactional
@@ -294,14 +310,14 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
         logger.info(ThreadLocalContextUtil.getTenant().getName() + ": Deposit accounts affected by update: " + depositAccounts.size());
     }
-    
+
     @Transactional
     @Override
     @CronTarget(jobName = JobName.UPDATE_CLIENT_SUB_STATUS)
     public void updateClientSubStatus() {
-        
+
         final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
-        
+
         final int result = jdbcTemplate.update("call doClientSubStatusUpdates()");
 
         logger.info(ThreadLocalContextUtil.getTenant().getName() + ": Results affected by update: " + result);
@@ -361,5 +377,338 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
             jdbcTemplate.update(insertSql + sb.toString());
         }
     }
-    
+
+    @Override
+    @CronTarget(jobName = JobName.APPY_SAVING_DEPOSITE_LATE_FEE)
+    public void doAppySavingLateFeeCharge() throws JobExecutionException {
+        PeriodFrequencyType frequencyType = null;
+
+        String startingDate = new String();
+        String endingDate = new String();
+        SimpleDateFormat formateDate = new SimpleDateFormat("yyyy-MM-dd");
+
+        final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
+
+        final Collection<ChargeData> chargeData = this.chargeReadPlatformService.retriveAllChargeOfSavingLateFee();
+        /**
+         * above method retrun's all available charges for the saving late
+         * deposit fee
+         */
+
+        for (final ChargeData oneCharge : chargeData) {
+            int interval = oneCharge.getFeeInterval();
+            int month = frequencyType.MONTHS.getValue();
+
+            EnumOptionData data = oneCharge.getFeeFrequency();
+            Long frequency = data.getId();
+            Calendar aCalendar = Calendar.getInstance();
+
+            if (month == frequency) {
+
+                // added -interval for any previous month
+                aCalendar.add(Calendar.MONTH, -interval);
+                aCalendar.set(Calendar.DATE, 1);
+                Date startDate = aCalendar.getTime();
+                startingDate = formateDate.format(startDate);
+            }
+
+            final Collection<SavingIdListData> savingIdList = this.savingsAccountChargeReadPlatformService
+                    .retriveAllSavingIdForApplyDepositeLateCharge();
+            final Collection<SavingsIdOfChargeData> savingIdsInCharge = this.savingsAccountChargeReadPlatformService
+                    .retriveAllSavingIdHavingDepositCharge(startingDate, endingDate, frequency);
+            final Collection<SavingIdListData> savingIdsFromTransaction = this.savingsAccountChargeReadPlatformService
+                    .retriveSavingAccountForApplySavingDepositeFee(startingDate, endingDate, frequency);
+
+            for (final SavingIdListData savingId : savingIdList) {
+
+                Long savingIdForGetMaxOfTxn = savingId.getSavingId();
+
+                DateTime start = new DateTime();
+                boolean isPriviousDueDate = false;
+                int totalNoOfInsertion = 0;
+                boolean isSavingIdAvailable = false;
+                Date trasactionDate = new Date();
+                Date startFeeCharge = new Date();
+                LocalDate maxOfTransactionDate = new LocalDate();
+                LocalDate maxOfchargeDueDate = new LocalDate();
+                LocalDate startChargeDate = new LocalDate();
+                boolean isInsert = true;
+                boolean isValideForCharge = false;
+                boolean isMaxOfChargeDue = false;
+                boolean isPreviousTxn = false;
+
+                if (savingId.getStartFeeChargeDate() != null) {
+
+                    if (savingId.getStartFeeChargeDate().isAfter(savingId.getActivateOnDate())
+                            || savingId.getStartFeeChargeDate().equals(savingId.getActivateOnDate())) {
+                        isValideForCharge = true;
+                    }
+                }
+
+                SavingsIdOfChargeData maxOfChargeDueDate = this.savingsAccountChargeReadPlatformService
+                        .retriveOneWithMaxOfDueDate(savingIdForGetMaxOfTxn);
+                if (maxOfChargeDueDate.getDueDate() != null) {
+                    maxOfchargeDueDate = new LocalDate(maxOfChargeDueDate.getDueDate());
+                    isMaxOfChargeDue = true;
+                    isPriviousDueDate = true;
+                }
+
+                for (final SavingIdListData savingIdListData : savingIdsFromTransaction) {
+
+                    if (savingIdListData.getSavingId().equals(savingId.getSavingId())) {
+                        isSavingIdAvailable = true;
+                        LocalDate dateOfTransaction = savingIdListData.getMaxTransactionDate();
+                        if (dateOfTransaction.isAfter(maxOfchargeDueDate) || dateOfTransaction.equals(maxOfChargeDueDate)
+                                || isMaxOfChargeDue == false) {
+                            trasactionDate = dateOfTransaction.toDate();
+                            maxOfTransactionDate = dateOfTransaction;
+                            isPreviousTxn = true;
+
+                        } else {
+                            trasactionDate = maxOfchargeDueDate.toDate();
+                            maxOfTransactionDate = maxOfchargeDueDate;
+                            isPreviousTxn = true;
+                        }
+
+                        LocalDate startFeeChargeDate = savingId.getStartFeeChargeDate();
+
+                        if (isMaxOfChargeDue == true) {
+                            if (dateOfTransaction.isAfter(maxOfchargeDueDate) || dateOfTransaction.equals(maxOfChargeDueDate)) {
+                                startFeeCharge = dateOfTransaction.toDate();
+                                startChargeDate = dateOfTransaction;
+                            } else {
+                                startFeeCharge = maxOfchargeDueDate.toDate();
+                                startChargeDate = maxOfchargeDueDate;
+                            }
+                        } else if (dateOfTransaction.isAfter(startFeeChargeDate)) {
+                            startFeeCharge = dateOfTransaction.toDate();
+                            startChargeDate = dateOfTransaction;
+                        } else {
+                            startFeeCharge = startFeeChargeDate.toDate();
+                            startChargeDate = startFeeChargeDate;
+                        }
+
+                        break;
+                    }
+
+                }
+
+                /**
+                 * if any savingAccount already having charge then isInsert
+                 * become false else it will be true and it will allow to insert
+                 * data
+                 **/
+
+                for (final SavingsIdOfChargeData savingData : savingIdsInCharge) {
+                    if (savingId.getSavingId().equals(savingData.getSavingId())) {
+                        isInsert = false;
+                        break;
+                    }
+                }
+
+                /**
+                 * if there is no any single transaction of saving account then
+                 * start date and number of insertion calculation done here
+                 */
+                if (isSavingIdAvailable == false && isInsert == true && isValideForCharge == true) {
+                    LocalDate startFeeChargeDate = savingId.getStartFeeChargeDate();
+                   
+                    
+                    
+                    if(maxOfchargeDueDate.isAfter(startFeeChargeDate) || maxOfchargeDueDate.equals(startFeeChargeDate)){
+                        startFeeCharge = maxOfchargeDueDate.toDate();
+                    }else{
+                        startFeeCharge = startFeeChargeDate.toDate();
+                    }
+
+                    DateTime startFee = new DateTime(startFeeCharge);
+                    start = new DateTime(startFee);
+                    Date endDateAsCurrDate = new Date();
+                    DateTime end = new DateTime(endDateAsCurrDate);
+
+                    if (isMaxOfChargeDue == true) {
+                        trasactionDate = maxOfchargeDueDate.toDate();
+                        maxOfTransactionDate = maxOfchargeDueDate;
+                        isPriviousDueDate = true;
+                    } else {
+                        trasactionDate = startFeeChargeDate.toDate();
+                        maxOfTransactionDate = startFeeChargeDate;
+                        isPriviousDueDate = false;
+                    }
+
+                    if (frequency == 2) {
+                        Months diffMonth = Months.monthsBetween(start, end);
+                        totalNoOfInsertion = (diffMonth.getMonths()) / interval;
+                    }
+                }
+
+                if (isSavingIdAvailable == true && isInsert == true && isValideForCharge == true) {
+
+                    DateTime transaction = new DateTime(trasactionDate);
+
+                    DateTime startFee = new DateTime(startFeeCharge);
+
+
+                        LocalDate startCharge = new LocalDate(startFeeCharge);
+                        Date endDateAsCurrDate = new Date();
+                        DateTime end = new DateTime(endDateAsCurrDate);
+
+                        if (maxOfTransactionDate.isAfter(startCharge) || maxOfTransactionDate.isEqual(startCharge) && isMaxOfChargeDue == false) {
+                            start = new DateTime(transaction);
+                            Months diffMonth = Months.monthsBetween(start, end);
+                            totalNoOfInsertion = (diffMonth.getMonths() - 1) / interval;
+
+                        } else if(maxOfTransactionDate.isAfter(maxOfchargeDueDate) || maxOfTransactionDate.isEqual(maxOfchargeDueDate) && isMaxOfChargeDue == true){
+
+                            start = new DateTime(transaction);
+                            Months diffMonth = Months.monthsBetween(start, end);
+                            totalNoOfInsertion = (diffMonth.getMonths()) / interval;
+
+                        }
+
+                 
+
+                }
+
+                if (isInsert == true && isValideForCharge == true) {
+
+                    for (int i = 0; i < totalNoOfInsertion; i++) {
+
+                        String insertSql = " INSERT INTO `m_savings_account_charge` (`savings_account_id`, `charge_id`, `is_penalty`, `charge_time_enum`, "
+                                + " `charge_due_date`, `fee_on_month`, `fee_on_day`, `fee_interval`, `charge_calculation_enum`, `calculation_percentage`, "
+                                + " `calculation_on_amount`, `amount`, `amount_paid_derived`, `amount_waived_derived`, `amount_writtenoff_derived`, "
+                                + " `amount_outstanding_derived`, `is_paid_derived`, `waived`, `is_active`, `inactivated_on_date`) VALUES ";
+
+                        StringBuilder sb = new StringBuilder();
+                        final Long savingAccId = savingId.getSavingId();
+                        final Long chargId = oneCharge.getId();
+                        final BigDecimal amount = oneCharge.getAmount();
+                        LocalDate chargeDueDate = new LocalDate();
+                        if (i == 0) {
+                            if (isPriviousDueDate == true) {
+
+                                if (maxOfTransactionDate.isAfter(maxOfchargeDueDate) || isMaxOfChargeDue == false) {
+                                    aCalendar.setTime(trasactionDate);
+                                    if (frequency == 2) {
+
+                                        aCalendar.add(Calendar.MONTH, interval);
+                                        aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+
+                                        Date nextMonthFirstDay = aCalendar.getTime();
+                                        aCalendar.setTime(nextMonthFirstDay);
+                                        chargeDueDate = new LocalDate(nextMonthFirstDay);
+
+                                    }
+                                } else if (maxOfchargeDueDate.isAfter(maxOfTransactionDate) && isMaxOfChargeDue == true
+                                        || maxOfchargeDueDate.equals(maxOfTransactionDate)) {
+
+                                    Date chargeDue = new Date();
+                                    chargeDue = maxOfchargeDueDate.toDate();
+                                    aCalendar.setTime(chargeDue);
+                                    aCalendar.add(Calendar.MONTH, interval);
+                                    aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+
+                                    Date nextMonthFirstDay = aCalendar.getTime();
+                                    aCalendar.setTime(nextMonthFirstDay);
+                                    chargeDueDate = new LocalDate(nextMonthFirstDay);
+                                }
+
+                            }
+
+                            // in this if there is no any previous due date then
+                            // calendar is going to set on availbale date
+
+                            else {
+
+                                if (isPreviousTxn == true) {
+                                    aCalendar.setTime(startFeeCharge);
+
+                                    aCalendar.add(Calendar.MONTH, interval + 1);
+                                    aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+                                    Date nextMonthFirstDay = aCalendar.getTime();
+                                    aCalendar.setTime(nextMonthFirstDay);
+                                    chargeDueDate = new LocalDate(nextMonthFirstDay);
+                                }
+
+                                else {
+
+                                    aCalendar.setTime(startFeeCharge);
+
+                                    aCalendar.add(Calendar.MONTH, interval);
+                                    aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+                                    Date nextMonthFirstDay = aCalendar.getTime();
+                                    aCalendar.setTime(nextMonthFirstDay);
+                                    chargeDueDate = new LocalDate(nextMonthFirstDay);
+
+                                }
+
+                            }
+                        }
+
+                        else {
+                            if (frequency == 2) {
+                                aCalendar.add(Calendar.MONTH, interval);
+                                aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+                                Date nextMonthFirstDay = aCalendar.getTime();
+                                aCalendar.setTime(nextMonthFirstDay);
+                                chargeDueDate = new LocalDate(nextMonthFirstDay);
+
+                            }
+
+                        }
+                        sb.append("(");
+                        sb.append(savingAccId);
+                        sb.append(",");
+                        sb.append(chargId);
+                        sb.append(",");
+                        sb.append("0");
+                        sb.append(",");
+                        sb.append("12");
+                        sb.append(",'");
+                        sb.append(formatter.print(chargeDueDate));
+                        sb.append("',");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("1");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append(amount);
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append(amount);
+                        sb.append(",");
+                        sb.append("0");
+                        sb.append(",");
+                        sb.append("0");
+                        sb.append(",");
+                        sb.append("1");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(")");
+
+                        if (sb.length() > 0) {
+                            jdbcTemplate.update(insertSql + sb.toString());
+                        }
+
+                    }
+                }
+                // //
+            }
+
+        }
+
+    }
+
 }
