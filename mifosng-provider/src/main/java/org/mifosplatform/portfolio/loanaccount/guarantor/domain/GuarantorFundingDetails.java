@@ -105,6 +105,7 @@ public class GuarantorFundingDetails extends AbstractPersistable<Long> {
         this.amountRemaining = getAmountRemaining().subtract(amount);
         if (this.amountRemaining.compareTo(BigDecimal.ZERO) == 0) {
             this.updateStatus(GuarantorFundStatusType.COMPLETED);
+            this.accountAssociations.setActive(false);
         }
     }
 
