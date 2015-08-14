@@ -25,10 +25,9 @@ public interface SavingsAccountChargeReadPlatformService {
 
     Collection<SavingsAccountAnnualFeeData> retrieveChargesWithDue();
 
-    Collection<SavingsIdOfChargeData> retriveAllSavingIdHavingDepositCharge(String startDate, String endDate, Long frequency);
+    Collection<SavingsIdOfChargeData> retriveAllSavingIdHavingDepositCharge(String startDate);
 
-    Collection<SavingIdListData> retriveSavingAccountForApplySavingDepositeFee(final String startDateofMonth, final String endDateOfMonth,
-            Long frequency);
+    Collection<SavingIdListData> retriveSavingAccountForApplySavingDepositeFee(final String startDateofMonth);
 
     Collection<SavingIdListData> retriveAllSavingIdForApplyDepositeLateCharge();
 

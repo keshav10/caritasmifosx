@@ -309,7 +309,7 @@ public class SavingsAccountChargeReadPlatformServiceImpl implements SavingsAccou
     }
 
     @Override
-    public Collection<SavingsIdOfChargeData> retriveAllSavingIdHavingDepositCharge(String startDate, String endDate, Long frequency) {
+    public Collection<SavingsIdOfChargeData> retriveAllSavingIdHavingDepositCharge(final String startDate) {
         final SavingsIdOfChargeDataMapper rm = new SavingsIdOfChargeDataMapper();
         String sql =  " select a.savingId from "
                     + " (select msac.savings_account_id as savingId, max(month(msac.charge_due_date)) as days from m_savings_account_charge msac "
@@ -321,8 +321,7 @@ public class SavingsAccountChargeReadPlatformServiceImpl implements SavingsAccou
     }
 
     @Override
-    public Collection<SavingIdListData> retriveSavingAccountForApplySavingDepositeFee(final String startDate, final String endDate,
-            Long frequency) {
+    public Collection<SavingIdListData> retriveSavingAccountForApplySavingDepositeFee(final String startDate) {
 
         final SavingIdListDataMapper rm = new SavingIdListDataMapper();
 

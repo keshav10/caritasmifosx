@@ -415,9 +415,9 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
             final Collection<SavingIdListData> savingIdList = this.savingsAccountChargeReadPlatformService
                     .retriveAllSavingIdForApplyDepositeLateCharge();
             final Collection<SavingsIdOfChargeData> savingIdsInCharge = this.savingsAccountChargeReadPlatformService
-                    .retriveAllSavingIdHavingDepositCharge(startingDate, endingDate, frequency);
+                    .retriveAllSavingIdHavingDepositCharge(startingDate);
             final Collection<SavingIdListData> savingIdsFromTransaction = this.savingsAccountChargeReadPlatformService
-                    .retriveSavingAccountForApplySavingDepositeFee(startingDate, endingDate, frequency);
+                    .retriveSavingAccountForApplySavingDepositeFee(startingDate);
 
             for (final SavingIdListData savingId : savingIdList) {
 
@@ -443,6 +443,9 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                             || savingId.getStartFeeChargeDate().equals(savingId.getActivateOnDate())) {
                         isValideForCharge = true;
                     }
+                } else if (savingId.getActivateOnDate() != null) {
+                    isValideForCharge = true;
+                    startFeeCharge = savingId.getActivateOnDate().toDate();
                 }
 
                 SavingsIdOfChargeData maxOfChargeDueDate = this.savingsAccountChargeReadPlatformService
@@ -471,6 +474,9 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                         }
 
                         LocalDate startFeeChargeDate = savingId.getStartFeeChargeDate();
+                        if(startFeeChargeDate == null){
+                            startFeeChargeDate = savingId.getActivateOnDate();
+                        }
 
                         if (isMaxOfChargeDue == true) {
                             if (dateOfTransaction.isAfter(maxOfchargeDueDate) || dateOfTransaction.equals(maxOfChargeDueDate)) {
@@ -512,12 +518,13 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                  */
                 if (isSavingIdAvailable == false && isInsert == true && isValideForCharge == true) {
                     LocalDate startFeeChargeDate = savingId.getStartFeeChargeDate();
-                   
-                    
-                    
-                    if(maxOfchargeDueDate.isAfter(startFeeChargeDate) || maxOfchargeDueDate.equals(startFeeChargeDate)){
+                    if(startFeeChargeDate == null){
+                        startFeeChargeDate = savingId.getActivateOnDate();
+                    }
+
+                    if (maxOfchargeDueDate.isAfter(startFeeChargeDate) && isMaxOfChargeDue == true) {
                         startFeeCharge = maxOfchargeDueDate.toDate();
-                    }else{
+                    } else {
                         startFeeCharge = startFeeChargeDate.toDate();
                     }
 
@@ -536,10 +543,9 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                         isPriviousDueDate = false;
                     }
 
-                    if (frequency == 2) {
-                        Months diffMonth = Months.monthsBetween(start, end);
-                        totalNoOfInsertion = (diffMonth.getMonths()) / interval;
-                    }
+                    Months diffMonth = Months.monthsBetween(start, end);
+                    totalNoOfInsertion = (diffMonth.getMonths()) / interval;
+
                 }
 
                 if (isSavingIdAvailable == true && isInsert == true && isValideForCharge == true) {
@@ -548,25 +554,23 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
                     DateTime startFee = new DateTime(startFeeCharge);
 
+                    LocalDate startCharge = new LocalDate(startFeeCharge);
+                    Date endDateAsCurrDate = new Date();
+                    DateTime end = new DateTime(endDateAsCurrDate);
 
-                        LocalDate startCharge = new LocalDate(startFeeCharge);
-                        Date endDateAsCurrDate = new Date();
-                        DateTime end = new DateTime(endDateAsCurrDate);
+                    if (maxOfTransactionDate.isAfter(startCharge) || maxOfTransactionDate.isEqual(startCharge) && isMaxOfChargeDue == true) {
+                        start = new DateTime(transaction);
+                        Months diffMonth = Months.monthsBetween(start, end);
+                        totalNoOfInsertion = (diffMonth.getMonths() - 1) / interval;
 
-                        if (maxOfTransactionDate.isAfter(startCharge) || maxOfTransactionDate.isEqual(startCharge) && isMaxOfChargeDue == false) {
-                            start = new DateTime(transaction);
-                            Months diffMonth = Months.monthsBetween(start, end);
-                            totalNoOfInsertion = (diffMonth.getMonths() - 1) / interval;
+                    } else if (maxOfTransactionDate.isAfter(maxOfchargeDueDate) || maxOfTransactionDate.isEqual(maxOfchargeDueDate)
+                            && isMaxOfChargeDue == true) {
 
-                        } else if(maxOfTransactionDate.isAfter(maxOfchargeDueDate) || maxOfTransactionDate.isEqual(maxOfchargeDueDate) && isMaxOfChargeDue == true){
+                        start = new DateTime(transaction);
+                        Months diffMonth = Months.monthsBetween(start, end);
+                        totalNoOfInsertion = (diffMonth.getMonths()) / interval;
 
-                            start = new DateTime(transaction);
-                            Months diffMonth = Months.monthsBetween(start, end);
-                            totalNoOfInsertion = (diffMonth.getMonths()) / interval;
-
-                        }
-
-                 
+                    }
 
                 }
 
@@ -589,16 +593,14 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
                                 if (maxOfTransactionDate.isAfter(maxOfchargeDueDate) || isMaxOfChargeDue == false) {
                                     aCalendar.setTime(trasactionDate);
-                                    if (frequency == 2) {
 
-                                        aCalendar.add(Calendar.MONTH, interval);
-                                        aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+                                    aCalendar.add(Calendar.MONTH, interval + 1);
+                                    aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
 
-                                        Date nextMonthFirstDay = aCalendar.getTime();
-                                        aCalendar.setTime(nextMonthFirstDay);
-                                        chargeDueDate = new LocalDate(nextMonthFirstDay);
+                                    Date nextMonthFirstDay = aCalendar.getTime();
+                                    aCalendar.setTime(nextMonthFirstDay);
+                                    chargeDueDate = new LocalDate(nextMonthFirstDay);
 
-                                    }
                                 } else if (maxOfchargeDueDate.isAfter(maxOfTransactionDate) && isMaxOfChargeDue == true
                                         || maxOfchargeDueDate.equals(maxOfTransactionDate)) {
 
