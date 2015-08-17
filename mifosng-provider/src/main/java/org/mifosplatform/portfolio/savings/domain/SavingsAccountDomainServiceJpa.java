@@ -164,7 +164,7 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
 
         saveTransactionToGenerateTransactionId(deposit);
 
-        this.savingsAccountRepository.save(account);
+    
 
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
 
@@ -206,6 +206,22 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
 
                 BigDecimal amountLeft = calculateAndRelaseGuarantorFunds(externalGuarantorList, guarantorGuarantee, transactionAmount,
                         deposit, accountOnHoldTransactions);
+                
+                
+                BigDecimal totalGuaranteeAmount = selfGuarantee.add(guarantorGuarantee);
+                BigDecimal availableOnHoladAmount = account.getOnHoldFunds();
+
+                if (transactionAmount.longValue() > totalGuaranteeAmount.longValue()) {
+                    BigDecimal newOnHoldAmount = totalGuaranteeAmount.subtract(availableOnHoladAmount);
+                    account.holdFunds(newOnHoldAmount);
+                } else {
+                    if (availableOnHoladAmount.longValue() <= totalGuaranteeAmount.longValue()) {
+                        account.holdFunds(transactionAmount);
+                    }
+
+                }
+                
+                
                 if (amountLeft.compareTo(BigDecimal.ZERO) == 1) {
                     calculateAndRelaseGuarantorFunds(selfGuarantorList, selfGuarantee, amountLeft, deposit, accountOnHoldTransactions);
                     externalGuarantorList.addAll(selfGuarantorList);
@@ -222,6 +238,7 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
             }
         }
 
+        this.savingsAccountRepository.save(account);
         return deposit;
     }
 
