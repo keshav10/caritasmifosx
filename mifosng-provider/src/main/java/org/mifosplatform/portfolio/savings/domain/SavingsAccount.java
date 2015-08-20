@@ -6,6 +6,7 @@
 package org.mifosplatform.portfolio.savings.domain;
 
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.releaseGuarantorFundParamName;
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.allowOverdraftParamName;
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.dueAsOfDateParamName;
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.enforceMinRequiredBalanceParamName;
@@ -244,6 +245,9 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     @Column(name = "allow_overdraft")
     private boolean allowOverdraft;
 
+    @Column(name = "release_guarantor")
+    private boolean releaseguarantor;
+
     @Column(name = "overdraft_limit", scale = 6, precision = 19, nullable = true)
     private BigDecimal overdraftLimit;
 
@@ -302,6 +306,24 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             final Integer lockinPeriodFrequency, final SavingsPeriodFrequencyType lockinPeriodFrequencyType,
             final boolean withdrawalFeeApplicableForTransfer, final Set<SavingsAccountCharge> savingsAccountCharges,
             final boolean allowOverdraft, final BigDecimal overdraftLimit, final boolean enforceMinRequiredBalance,
+            final BigDecimal minRequiredBalance, final boolean releaseguarantor) {
+        final SavingsAccountStatusType status = SavingsAccountStatusType.SUBMITTED_AND_PENDING_APPROVAL;
+        return new SavingsAccount(client, group, product, fieldOfficer, accountNo, externalId, status, accountType, submittedOnDate,
+                submittedBy, interestRate, interestCompoundingPeriodType, interestPostingPeriodType, interestCalculationType,
+                interestCalculationDaysInYearType, minRequiredOpeningBalance, lockinPeriodFrequency, lockinPeriodFrequencyType,
+                withdrawalFeeApplicableForTransfer, savingsAccountCharges, allowOverdraft, overdraftLimit, enforceMinRequiredBalance,
+                minRequiredBalance, releaseguarantor);
+    }
+
+    public static SavingsAccount createNewApplicationForSubmittal(final Client client, final Group group, final SavingsProduct product,
+            final Staff fieldOfficer, final String accountNo, final String externalId, final AccountType accountType,
+            final LocalDate submittedOnDate, final AppUser submittedBy, final BigDecimal interestRate,
+            final SavingsCompoundingInterestPeriodType interestCompoundingPeriodType,
+            final SavingsPostingInterestPeriodType interestPostingPeriodType, final SavingsInterestCalculationType interestCalculationType,
+            final SavingsInterestCalculationDaysInYearType interestCalculationDaysInYearType, final BigDecimal minRequiredOpeningBalance,
+            final Integer lockinPeriodFrequency, final SavingsPeriodFrequencyType lockinPeriodFrequencyType,
+            final boolean withdrawalFeeApplicableForTransfer, final Set<SavingsAccountCharge> savingsAccountCharges,
+            final boolean allowOverdraft, final BigDecimal overdraftLimit, final boolean enforceMinRequiredBalance,
             final BigDecimal minRequiredBalance) {
 
         final SavingsAccountStatusType status = SavingsAccountStatusType.SUBMITTED_AND_PENDING_APPROVAL;
@@ -310,6 +332,62 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                 interestCalculationDaysInYearType, minRequiredOpeningBalance, lockinPeriodFrequency, lockinPeriodFrequencyType,
                 withdrawalFeeApplicableForTransfer, savingsAccountCharges, allowOverdraft, overdraftLimit, enforceMinRequiredBalance,
                 minRequiredBalance);
+    }
+
+    protected SavingsAccount(final Client client, final Group group, final SavingsProduct product, final Staff savingsOfficer,
+            final String accountNo, final String externalId, final SavingsAccountStatusType status, final AccountType accountType,
+            final LocalDate submittedOnDate, final AppUser submittedBy, final BigDecimal nominalAnnualInterestRate,
+            final SavingsCompoundingInterestPeriodType interestCompoundingPeriodType,
+            final SavingsPostingInterestPeriodType interestPostingPeriodType, final SavingsInterestCalculationType interestCalculationType,
+            final SavingsInterestCalculationDaysInYearType interestCalculationDaysInYearType, final BigDecimal minRequiredOpeningBalance,
+            final Integer lockinPeriodFrequency, final SavingsPeriodFrequencyType lockinPeriodFrequencyType,
+            final boolean withdrawalFeeApplicableForTransfer, final Set<SavingsAccountCharge> savingsAccountCharges,
+            final boolean allowOverdraft, final BigDecimal overdraftLimit, final boolean enforceMinRequiredBalance,
+            final BigDecimal minRequiredBalance, final boolean releaseguarantor) {
+
+        this.releaseguarantor = releaseguarantor;
+        this.client = client;
+        this.group = group;
+        this.product = product;
+        this.savingsOfficer = savingsOfficer;
+        if (StringUtils.isBlank(accountNo)) {
+            this.accountNumber = new RandomPasswordGenerator(19).generate();
+            this.accountNumberRequiresAutoGeneration = true;
+        } else {
+            this.accountNumber = accountNo;
+        }
+
+        this.currency = product.currency();
+        this.externalId = externalId;
+        this.status = status.getValue();
+        this.accountType = accountType.getValue();
+        this.submittedOnDate = submittedOnDate.toDate();
+        this.submittedBy = submittedBy;
+        this.nominalAnnualInterestRate = nominalAnnualInterestRate;
+        this.interestCompoundingPeriodType = interestCompoundingPeriodType.getValue();
+        this.interestPostingPeriodType = interestPostingPeriodType.getValue();
+        this.interestCalculationType = interestCalculationType.getValue();
+        this.interestCalculationDaysInYearType = interestCalculationDaysInYearType.getValue();
+        this.minRequiredOpeningBalance = minRequiredOpeningBalance;
+        this.lockinPeriodFrequency = lockinPeriodFrequency;
+        if (lockinPeriodFrequencyType != null) {
+            this.lockinPeriodFrequencyType = lockinPeriodFrequencyType.getValue();
+        }
+        this.withdrawalFeeApplicableForTransfer = withdrawalFeeApplicableForTransfer;
+
+        if (!CollectionUtils.isEmpty(savingsAccountCharges)) {
+            this.charges = associateChargesWithThisSavingsAccount(savingsAccountCharges);
+        }
+
+        this.summary = new SavingsAccountSummary();
+        this.allowOverdraft = allowOverdraft;
+        this.overdraftLimit = overdraftLimit;
+
+        this.enforceMinRequiredBalance = enforceMinRequiredBalance;
+        this.minRequiredBalance = minRequiredBalance;
+        this.minBalanceForInterestCalculation = product.minBalanceForInterestCalculation();
+        this.savingsOfficerHistory = null;
+
     }
 
     protected SavingsAccount(final Client client, final Group group, final SavingsProduct product, final Staff fieldOfficer,
@@ -1083,6 +1161,12 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(allowOverdraftParamName);
             actualChanges.put(allowOverdraftParamName, newValue);
             this.allowOverdraft = newValue;
+        }
+
+        if (command.isChangeInBooleanParameterNamed(releaseGuarantorFundParamName, this.releaseguarantor)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(releaseGuarantorFundParamName);
+            actualChanges.put(releaseGuarantorFundParamName, newValue);
+            this.releaseguarantor = newValue;
         }
 
         if (command.isChangeInBigDecimalParameterNamedDefaultingZeroToNull(overdraftLimitParamName, this.overdraftLimit)) {

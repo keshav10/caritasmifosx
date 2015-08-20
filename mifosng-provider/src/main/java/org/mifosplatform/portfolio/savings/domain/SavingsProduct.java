@@ -29,6 +29,7 @@ import static org.mifosplatform.portfolio.savings.SavingsApiConstants.nominalAnn
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.overdraftLimitParamName;
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.shortNameParamName;
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.withdrawalFeeForTransfersParamName;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.releaseGuarantorFundParamName;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -147,6 +148,9 @@ public class SavingsProduct extends AbstractPersistable<Long> {
     @Column(name = "allow_overdraft")
     private boolean allowOverdraft;
 
+    @Column(name = "release_guarantor")
+    private boolean releaseguarantor;
+
     @Column(name = "overdraft_limit", scale = 6, precision = 19, nullable = true)
     private BigDecimal overdraftLimit;
 
@@ -167,17 +171,67 @@ public class SavingsProduct extends AbstractPersistable<Long> {
             final Integer lockinPeriodFrequency, final SavingsPeriodFrequencyType lockinPeriodFrequencyType,
             final boolean withdrawalFeeApplicableForTransfer, final AccountingRuleType accountingRuleType, final Set<Charge> charges,
             final boolean allowOverdraft, final BigDecimal overdraftLimit, final boolean enforceMinRequiredBalance,
-            final BigDecimal minRequiredBalance, final BigDecimal minBalanceForInterestCalculation) {
+            final BigDecimal minRequiredBalance, final BigDecimal minBalanceForInterestCalculation, final boolean releaseguarantor) {
 
         return new SavingsProduct(name, shortName, description, currency, interestRate, interestCompoundingPeriodType,
                 interestPostingPeriodType, interestCalculationType, interestCalculationDaysInYearType, minRequiredOpeningBalance,
                 lockinPeriodFrequency, lockinPeriodFrequencyType, withdrawalFeeApplicableForTransfer, accountingRuleType, charges,
-                allowOverdraft, overdraftLimit, enforceMinRequiredBalance, minRequiredBalance, minBalanceForInterestCalculation);
+                allowOverdraft, overdraftLimit, enforceMinRequiredBalance, minRequiredBalance, minBalanceForInterestCalculation,
+                releaseguarantor);
     }
 
     protected SavingsProduct() {
         this.name = null;
         this.description = null;
+    }
+
+    protected SavingsProduct(final String name, final String shortName, final String description, final MonetaryCurrency currency,
+            final BigDecimal interestRate, final SavingsCompoundingInterestPeriodType interestCompoundingPeriodType,
+            final SavingsPostingInterestPeriodType interestPostingPeriodType, final SavingsInterestCalculationType interestCalculationType,
+            final SavingsInterestCalculationDaysInYearType interestCalculationDaysInYearType, final BigDecimal minRequiredOpeningBalance,
+            final Integer lockinPeriodFrequency, final SavingsPeriodFrequencyType lockinPeriodFrequencyType,
+            final boolean withdrawalFeeApplicableForTransfer, final AccountingRuleType accountingRuleType, final Set<Charge> charges,
+            final boolean allowOverdraft, final BigDecimal overdraftLimit, final boolean enforceMinRequiredBalance,
+            final BigDecimal minRequiredBalance, BigDecimal minBalanceForInterestCalculation, final boolean releaseguarantor) {
+
+        this.name = name;
+        this.shortName = shortName;
+        this.description = description;
+
+        this.currency = currency;
+        this.nominalAnnualInterestRate = interestRate;
+        this.interestCompoundingPeriodType = interestCompoundingPeriodType.getValue();
+        this.interestPostingPeriodType = interestPostingPeriodType.getValue();
+        this.interestCalculationType = interestCalculationType.getValue();
+        this.interestCalculationDaysInYearType = interestCalculationDaysInYearType.getValue();
+
+        if (minRequiredOpeningBalance != null) {
+            this.minRequiredOpeningBalance = Money.of(currency, minRequiredOpeningBalance).getAmount();
+        }
+
+        this.lockinPeriodFrequency = lockinPeriodFrequency;
+        if (lockinPeriodFrequency != null && lockinPeriodFrequencyType != null) {
+            this.lockinPeriodFrequencyType = lockinPeriodFrequencyType.getValue();
+        }
+
+        this.withdrawalFeeApplicableForTransfer = withdrawalFeeApplicableForTransfer;
+        this.releaseguarantor = releaseguarantor;
+
+        if (accountingRuleType != null) {
+            this.accountingRule = accountingRuleType.getValue();
+        }
+
+        if (charges != null) {
+            this.charges = charges;
+        }
+
+        validateLockinDetails();
+        this.allowOverdraft = allowOverdraft;
+        this.overdraftLimit = overdraftLimit;
+
+        this.enforceMinRequiredBalance = enforceMinRequiredBalance;
+        this.minRequiredBalance = minRequiredBalance;
+        this.minBalanceForInterestCalculation = minBalanceForInterestCalculation;
     }
 
     protected SavingsProduct(final String name, final String shortName, final String description, final MonetaryCurrency currency,
@@ -415,6 +469,12 @@ public class SavingsProduct extends AbstractPersistable<Long> {
             this.allowOverdraft = newValue;
         }
 
+        if (command.isChangeInBooleanParameterNamed(releaseGuarantorFundParamName, this.releaseguarantor)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(releaseGuarantorFundParamName);
+            actualChanges.put(releaseGuarantorFundParamName, newValue);
+            this.releaseguarantor = newValue;
+        }
+
         if (command.isChangeInBigDecimalParameterNamedDefaultingZeroToNull(overdraftLimitParamName, this.overdraftLimit)) {
             final BigDecimal newValue = command.bigDecimalValueOfParameterNamedDefaultToNullIfZero(overdraftLimitParamName);
             actualChanges.put(overdraftLimitParamName, newValue);
@@ -555,6 +615,14 @@ public class SavingsProduct extends AbstractPersistable<Long> {
 
     public String getShortName() {
         return this.shortName;
+    }
+
+    public boolean isReleaseguarantor() {
+        return this.releaseguarantor;
+    }
+
+    public void setReleaseguarantor(boolean releaseguarantor) {
+        this.releaseguarantor = releaseguarantor;
     }
 
 }

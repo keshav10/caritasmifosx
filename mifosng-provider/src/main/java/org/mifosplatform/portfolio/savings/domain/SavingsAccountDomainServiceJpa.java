@@ -7,8 +7,11 @@ package org.mifosplatform.portfolio.savings.domain;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,10 +24,19 @@ import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext
 import org.mifosplatform.organisation.monetary.domain.ApplicationCurrency;
 import org.mifosplatform.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
 import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
+import org.mifosplatform.portfolio.loanaccount.domain.Loan;
+import org.mifosplatform.portfolio.loanaccount.guarantor.domain.Guarantor;
+import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingDetails;
+import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingRepository;
+import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingTransaction;
+import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorRepository;
+import org.mifosplatform.portfolio.loanaccount.service.LoanAssembler;
+import org.mifosplatform.portfolio.loanaccount.service.LoanReadPlatformService;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
 import org.mifosplatform.portfolio.savings.SavingsTransactionBooleanValues;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountTransactionDTO;
 import org.mifosplatform.portfolio.savings.exception.DepositAccountTransactionNotAllowedException;
+import org.mifosplatform.portfolio.savings.service.SavingsAccountReadPlatformService;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,18 +52,35 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
     private final JournalEntryWritePlatformService journalEntryWritePlatformService;
     private final ConfigurationDomainService configurationDomainService;
 
+    private final LoanReadPlatformService loanReadPlatformService;
+    private final LoanAssembler loanAssembler;
+    private final GuarantorRepository guarantorRepository;
+    private final RoundingMode roundingMode = RoundingMode.HALF_EVEN;
+    private final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository;
+    private final GuarantorFundingRepository guarantorFundingRepository;
+    private final SavingsAccountReadPlatformService savingsAccountReadPlatformService;
+
     @Autowired
-    public SavingsAccountDomainServiceJpa(final SavingsAccountRepositoryWrapper savingsAccountRepository,
-            final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
-            final JournalEntryWritePlatformService journalEntryWritePlatformService,
-            final ConfigurationDomainService configurationDomainService, final PlatformSecurityContext context) {
+    public SavingsAccountDomainServiceJpa(PlatformSecurityContext context, SavingsAccountRepositoryWrapper savingsAccountRepository,
+            SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+            ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+            JournalEntryWritePlatformService journalEntryWritePlatformService, ConfigurationDomainService configurationDomainService,
+            LoanReadPlatformService loanReadPlatformService, LoanAssembler loanAssembler, GuarantorRepository guarantorRepository,
+            DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+            GuarantorFundingRepository guarantorFundingRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService) {
+        super();
+        this.context = context;
         this.savingsAccountRepository = savingsAccountRepository;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
         this.applicationCurrencyRepositoryWrapper = applicationCurrencyRepositoryWrapper;
         this.journalEntryWritePlatformService = journalEntryWritePlatformService;
         this.configurationDomainService = configurationDomainService;
-        this.context = context;
+        this.loanReadPlatformService = loanReadPlatformService;
+        this.loanAssembler = loanAssembler;
+        this.guarantorRepository = guarantorRepository;
+        this.depositAccountOnHoldTransactionRepository = depositAccountOnHoldTransactionRepository;
+        this.guarantorFundingRepository = guarantorFundingRepository;
+        this.savingsAccountReadPlatformService = savingsAccountReadPlatformService;
     }
 
     @Transactional
@@ -135,11 +164,112 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
 
         saveTransactionToGenerateTransactionId(deposit);
 
-        this.savingsAccountRepository.save(account);
+    
 
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
 
+        Long clientId = account.clientId();
+        long savingId = account.getId();
+
+        long isReleaseGuarantor = this.savingsAccountReadPlatformService.getIsReleaseGuarantor(savingId);
+
+        Long loanId = this.loanReadPlatformService.retriveLoanAccountId(clientId);
+
+        if (!(loanId == null) && isReleaseGuarantor == 1) {
+
+            final Loan loan = this.loanAssembler.assembleFrom(loanId);
+            final List<Guarantor> existGuarantorList = this.guarantorRepository.findByLoan(loan);
+
+            List<GuarantorFundingDetails> externalGuarantorList = new ArrayList<>();
+            List<GuarantorFundingDetails> selfGuarantorList = new ArrayList<>();
+            BigDecimal selfGuarantee = BigDecimal.ZERO;
+            BigDecimal guarantorGuarantee = BigDecimal.ZERO;
+            List<DepositAccountOnHoldTransaction> accountOnHoldTransactions = new ArrayList<>();
+            for (Guarantor guarantor : existGuarantorList) {
+                final List<GuarantorFundingDetails> fundingDetails = guarantor.getGuarantorFundDetails();
+                for (GuarantorFundingDetails guarantorFundingDetails : fundingDetails) {
+                    if (guarantorFundingDetails.getStatus().isActive()) {
+                        if (guarantor.isSelfGuarantee()) {
+
+                            selfGuarantorList.add(guarantorFundingDetails);
+                            selfGuarantee = selfGuarantee.add(guarantorFundingDetails.getAmountRemaining());
+
+                        } else if (guarantor.isExistingCustomer()) {
+                            externalGuarantorList.add(guarantorFundingDetails);
+                            guarantorGuarantee = guarantorGuarantee.add(guarantorFundingDetails.getAmountRemaining());
+                        }
+                    }
+
+                }
+            }
+            if (transactionAmount != null) {
+
+                BigDecimal amountLeft = calculateAndRelaseGuarantorFunds(externalGuarantorList, guarantorGuarantee, transactionAmount,
+                        deposit, accountOnHoldTransactions);
+                
+                
+                BigDecimal totalGuaranteeAmount = selfGuarantee.add(guarantorGuarantee);
+                BigDecimal availableOnHoladAmount = account.getOnHoldFunds();
+
+                if (transactionAmount.longValue() > totalGuaranteeAmount.longValue()) {
+                    BigDecimal newOnHoldAmount = totalGuaranteeAmount.subtract(availableOnHoladAmount);
+                    account.holdFunds(newOnHoldAmount);
+                } else {
+                    if (availableOnHoladAmount.longValue() <= totalGuaranteeAmount.longValue()) {
+                        account.holdFunds(transactionAmount);
+                    }
+
+                }
+                
+                
+                if (amountLeft.compareTo(BigDecimal.ZERO) == 1) {
+                    calculateAndRelaseGuarantorFunds(selfGuarantorList, selfGuarantee, amountLeft, deposit, accountOnHoldTransactions);
+                    externalGuarantorList.addAll(selfGuarantorList);
+                }
+
+                calculateAndIncrementSelfGuarantorFunds(selfGuarantorList, transactionAmount);
+
+                if (!externalGuarantorList.isEmpty()) {
+                    this.depositAccountOnHoldTransactionRepository.save(accountOnHoldTransactions);
+                    this.guarantorFundingRepository.save(externalGuarantorList);
+
+                }
+
+            }
+        }
+
+        this.savingsAccountRepository.save(account);
         return deposit;
+    }
+
+    private void calculateAndIncrementSelfGuarantorFunds(List<GuarantorFundingDetails> guarantorList, BigDecimal amountForAdd) {
+        for (GuarantorFundingDetails fundingDetails : guarantorList) {
+            fundingDetails.addSelfAmmount(amountForAdd);
+        }
+    }
+
+    private BigDecimal calculateAndRelaseGuarantorFunds(List<GuarantorFundingDetails> guarantorList, BigDecimal totalGuaranteeAmount,
+            BigDecimal amountForRelease, SavingsAccountTransaction deposite,
+            final List<DepositAccountOnHoldTransaction> accountOnHoldTransactions) {
+        BigDecimal amountLeft = amountForRelease;
+        for (GuarantorFundingDetails fundingDetails : guarantorList) {
+            BigDecimal guarantorAmount = amountForRelease.multiply(fundingDetails.getAmountRemaining()).divide(totalGuaranteeAmount,
+                    roundingMode);
+            if (fundingDetails.getAmountRemaining().compareTo(guarantorAmount) < 1) {
+                guarantorAmount = fundingDetails.getAmountRemaining();
+            }
+            fundingDetails.releaseFunds(guarantorAmount);
+            SavingsAccount savingsAccount = fundingDetails.getLinkedSavingsAccount();
+            savingsAccount.releaseFunds(guarantorAmount);
+            DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction.release(savingsAccount, guarantorAmount,
+                    deposite.transactionLocalDate());
+            accountOnHoldTransactions.add(onHoldTransaction);
+            GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(fundingDetails, null,
+                    onHoldTransaction);
+            fundingDetails.addGuarantorFundingTransactions(guarantorFundingTransaction);
+            amountLeft = amountLeft.subtract(guarantorAmount);
+        }
+        return amountLeft;
     }
 
     private Long saveTransactionToGenerateTransactionId(final SavingsAccountTransaction transaction) {
