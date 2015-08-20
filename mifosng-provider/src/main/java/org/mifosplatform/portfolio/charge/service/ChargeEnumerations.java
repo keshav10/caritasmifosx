@@ -49,9 +49,9 @@ public class ChargeEnumerations {
                         "Monthly Fee");
             break;
             case WEEKLY_FEE:
-            	optionData = new EnumOptionData(ChargeTimeType.WEEKLY_FEE.getValue().longValue(), ChargeTimeType.WEEKLY_FEE.getCode(),
-            			"Weekly Fee");
-            break;	
+                optionData = new EnumOptionData(ChargeTimeType.WEEKLY_FEE.getValue().longValue(), ChargeTimeType.WEEKLY_FEE.getCode(),
+                        "Weekly Fee");
+            break;
             case INSTALMENT_FEE:
                 optionData = new EnumOptionData(ChargeTimeType.INSTALMENT_FEE.getValue().longValue(),
                         ChargeTimeType.INSTALMENT_FEE.getCode(), "Installment Fee");
@@ -64,6 +64,11 @@ public class ChargeEnumerations {
                 optionData = new EnumOptionData(ChargeTimeType.OVERDRAFT_FEE.getValue().longValue(),
                         ChargeTimeType.OVERDRAFT_FEE.getCode(), "Overdraft Fee");
             break;
+            case LATE_DEPOSITE_FEE:
+                optionData = new EnumOptionData(ChargeTimeType.LATE_DEPOSITE_FEE.getValue().longValue(),
+                        ChargeTimeType.LATE_DEPOSITE_FEE.getCode(), "Savings Late Fee");
+            break;
+
             default:
                 optionData = new EnumOptionData(ChargeTimeType.INVALID.getValue().longValue(), ChargeTimeType.INVALID.getCode(), "Invalid");
             break;
