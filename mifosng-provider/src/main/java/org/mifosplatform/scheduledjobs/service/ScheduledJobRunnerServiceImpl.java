@@ -8,10 +8,30 @@ package org.mifosplatform.scheduledjobs.service;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
+import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
+import org.mifosplatform.infrastructure.hooks.domain.HookConfiguration;
+import org.mifosplatform.infrastructure.hooks.domain.HookConfigurationRepository;
+import org.mifosplatform.infrastructure.hooks.domain.HookRepository;
+import org.mifosplatform.infrastructure.hooks.service.HookReadPlatformServiceImpl;
+import com.amazonaws.util.json.JSONException;
+import com.amazonaws.util.json.JSONObject;
+import org.springframework.context.ApplicationContext;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -63,6 +83,13 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     private final DepositAccountReadPlatformService depositAccountReadPlatformService;
     private final DepositAccountWritePlatformService depositAccountWritePlatformService;
     private final ChargeReadPlatformService chargeReadPlatformService;
+    private final ToApiJsonSerializer<CommandProcessingResult> toApiResultJsonSerializer;
+   	private final HookReadPlatformServiceImpl hookReadPlatformServiceImpl;
+   	private final HookRepository hookRepository;
+   	private final HookConfigurationRepository hookConfigurationRepository;
+   
+    
+
 
     @Autowired
     public ScheduledJobRunnerServiceImpl(final RoutingDataSourceServiceFactory dataSourceServiceFactory,
@@ -70,13 +97,21 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
             final SavingsAccountChargeReadPlatformService savingsAccountChargeReadPlatformService,
             final DepositAccountReadPlatformService depositAccountReadPlatformService,
             final DepositAccountWritePlatformService depositAccountWritePlatformService,
-            final ChargeReadPlatformService chargeReadPlatformService) {
+            final ChargeReadPlatformService chargeReadPlatformService,
+            final ToApiJsonSerializer<CommandProcessingResult> toApiResultJsonSerializer,
+            			final HookReadPlatformServiceImpl hookReadPlatformServiceImpl,
+            			final HookRepository hookRepository,
+            			final HookConfigurationRepository hookConfigurationRepository) {
         this.dataSourceServiceFactory = dataSourceServiceFactory;
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
         this.savingsAccountChargeReadPlatformService = savingsAccountChargeReadPlatformService;
         this.depositAccountReadPlatformService = depositAccountReadPlatformService;
         this.depositAccountWritePlatformService = depositAccountWritePlatformService;
         this.chargeReadPlatformService = chargeReadPlatformService;
+        this.toApiResultJsonSerializer = toApiResultJsonSerializer;
+        this.hookReadPlatformServiceImpl = hookReadPlatformServiceImpl;
+        this.hookRepository = hookRepository;
+        this.hookConfigurationRepository = hookConfigurationRepository;
     }
 
     @Transactional
@@ -713,4 +748,322 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
     }
 
+
+   
+    @Override
+    @CronTarget(jobName = JobName.LOAN_REPAYMENT_SMS_REMINDER_TO_CLIENT)
+    public void loanRepaymentSmsReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"Loan Repayment Reminders\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.LOAN_FIRST_OVERDUE_REPAYMENT_REMINDER_SMS)
+    public void loanFirstOverdueRepaymentReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"Loan First Overdue Repayment Reminder\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.LOAN_SECOND_OVERDUE_REPAYMENT_REMINDER_SMS)
+    public void loanSecondOverdueRepaymentReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                                
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"Loan Second Overdue Repayment Reminder\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.LOAN_THIRD_OVERDUE_REPAYMENT_REMINDER_SMS)
+    public void loanThirdOverdueRepaymentReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject("{\"reportName\":\"Loan Third Overdue Repayment Reminder\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.LOAN_FOURTH_OVERDUE_REPAYMENT_REMINDER_SMS)
+    public void loanFourthOverdueRepaymentReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"Loan Fourth Overdue Repayment Reminder\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.DEFAULT_WARNING_SMS_TO_CLIENT)
+    public void defaultWarningToClients() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"DefaultWarning - Clients\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.DEFAULT_WARNING_SMS_TO_GURANTOR)
+    public void defaultWarningToGuarantors() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"DefaultWarning -  guarantors\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.DORMANCY_WARNING_SMS_TO_CLIENT)
+    public void dormancyWarningToClients() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"DormancyWarning - Clients\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    
 }
