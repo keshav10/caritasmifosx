@@ -2,6 +2,7 @@ CREATE TABLE `m_investment` (
  `id` INT(10) NOT NULL AUTO_INCREMENT,
  `saving_id` BIGINT(20) NOT NULL,
  `loan_id` BIGINT(20) NOT NULL,
+ `invested_amount` DECIMAL(10,0),
  PRIMARY KEY (`id`, `saving_id`, `loan_id`),
  CONSTRAINT `FK__m_savings_account` FOREIGN KEY (`saving_id`) REFERENCES `m_savings_account` (`id`),
  CONSTRAINT `FK__m_loan` FOREIGN KEY (`loan_id`) REFERENCES `m_loan` (`id`)

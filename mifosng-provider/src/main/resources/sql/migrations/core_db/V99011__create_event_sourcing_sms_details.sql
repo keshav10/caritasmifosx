@@ -1,0 +1,20 @@
+CREATE TABLE `event_sourcing_details` (
+	`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+	`event_id` BIGINT(20) NOT NULL DEFAULT '0',
+	`tenant_id` VARCHAR(32) NOT NULL,
+	`entity_id` BIGINT(20) NOT NULL,
+	`entity_description` VARCHAR(4096) NOT NULL,
+	`entity` VARCHAR(32) NOT NULL,
+	`entity_name` VARCHAR(255) NOT NULL,
+	`entity_mobile_no` VARCHAR(255) NOT NULL,
+	`action` VARCHAR(32) NOT NULL,
+	`payload` VARCHAR(4096) NOT NULL,
+	`processed` TINYINT(1) NOT NULL,
+	`error_message` VARCHAR(256) NULL DEFAULT NULL,
+	`created_on` DATETIME NOT NULL,
+	`last_modified_on` DATETIME NOT NULL,
+	`report_name` VARCHAR(255) NULL DEFAULT NULL,
+	PRIMARY KEY (`id`),
+	INDEX `FK_event_sourcing_details_event_sourcing` (`event_id`),
+	CONSTRAINT `FK_event_sourcing_details_event_sourcing` FOREIGN KEY (`event_id`) REFERENCES `event_sourcing` (`id`)
+)
