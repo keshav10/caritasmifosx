@@ -19,4 +19,6 @@ public interface AccountDetailsReadPlatformService {
     public Collection<LoanAccountSummaryData> retrieveClientLoanAccountsByLoanOfficerId(final Long clientId, final Long loanOfficerId);
 
     public Collection<LoanAccountSummaryData> retrieveGroupLoanAccountsByLoanOfficerId(final Long groupId, final Long loanOfficerId);
+
+    public AccountSummaryCollectionData retriveClientAccountAndChargeDetails(final Long clientId,final String chargeonDate);
 }

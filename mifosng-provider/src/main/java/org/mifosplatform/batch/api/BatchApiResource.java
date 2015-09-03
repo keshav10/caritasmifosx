@@ -23,6 +23,7 @@ import org.mifosplatform.batch.domain.BatchResponse;
 import org.mifosplatform.batch.serialization.BatchRequestJsonHelper;
 import org.mifosplatform.batch.service.BatchApiService;
 import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
+import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -89,10 +90,12 @@ public class BatchApiResource {
 
         // Handles user authentication
         this.context.authenticatedUser();
-
-        // Converts request array into BatchRequest List
+        Thread td =new Thread();
+        
+        
+                  // Converts request array into BatchRequest List
         final List<BatchRequest> requestList = this.batchRequestJsonHelper.extractList(jsonRequestString);
-
+        
         // Gets back the consolidated BatchResponse from BatchApiservice
         List<BatchResponse> result = new ArrayList<>();
 

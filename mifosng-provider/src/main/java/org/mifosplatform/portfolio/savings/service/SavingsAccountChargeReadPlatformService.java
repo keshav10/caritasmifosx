@@ -10,6 +10,7 @@ import java.util.Collection;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountAnnualFeeData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountChargeData;
+import org.mifosplatform.portfolio.savings.data.SavingsChargesSummaryData;
 
 public interface SavingsAccountChargeReadPlatformService {
 
@@ -22,4 +23,6 @@ public interface SavingsAccountChargeReadPlatformService {
     Collection<SavingsAccountAnnualFeeData> retrieveChargesWithAnnualFeeDue();
 
     Collection<SavingsAccountAnnualFeeData> retrieveChargesWithDue();
+    
+    Collection<SavingsChargesSummaryData> retriveCharge(Long savings_account_id,String chargeonDate);
 }
