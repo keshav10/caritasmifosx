@@ -43,263 +43,365 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainService {
+public class SavingsAccountDomainServiceJpa implements
+		SavingsAccountDomainService {
 
-    private final PlatformSecurityContext context;
-    private final SavingsAccountRepositoryWrapper savingsAccountRepository;
-    private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
-    private final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper;
-    private final JournalEntryWritePlatformService journalEntryWritePlatformService;
-    private final ConfigurationDomainService configurationDomainService;
+	private final PlatformSecurityContext context;
+	private final SavingsAccountRepositoryWrapper savingsAccountRepository;
+	private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
+	private final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper;
+	private final JournalEntryWritePlatformService journalEntryWritePlatformService;
+	private final ConfigurationDomainService configurationDomainService;
 
-    private final LoanReadPlatformService loanReadPlatformService;
-    private final LoanAssembler loanAssembler;
-    private final GuarantorRepository guarantorRepository;
-    private final RoundingMode roundingMode = RoundingMode.HALF_EVEN;
-    private final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository;
-    private final GuarantorFundingRepository guarantorFundingRepository;
-    private final SavingsAccountReadPlatformService savingsAccountReadPlatformService;
+	private final LoanReadPlatformService loanReadPlatformService;
+	private final LoanAssembler loanAssembler;
+	private final GuarantorRepository guarantorRepository;
+	private final RoundingMode roundingMode = RoundingMode.HALF_EVEN;
+	private final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository;
+	private final GuarantorFundingRepository guarantorFundingRepository;
+	private final SavingsAccountReadPlatformService savingsAccountReadPlatformService;
 
-    @Autowired
-    public SavingsAccountDomainServiceJpa(PlatformSecurityContext context, SavingsAccountRepositoryWrapper savingsAccountRepository,
-            SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-            ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
-            JournalEntryWritePlatformService journalEntryWritePlatformService, ConfigurationDomainService configurationDomainService,
-            LoanReadPlatformService loanReadPlatformService, LoanAssembler loanAssembler, GuarantorRepository guarantorRepository,
-            DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
-            GuarantorFundingRepository guarantorFundingRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService) {
-        super();
-        this.context = context;
-        this.savingsAccountRepository = savingsAccountRepository;
-        this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
-        this.applicationCurrencyRepositoryWrapper = applicationCurrencyRepositoryWrapper;
-        this.journalEntryWritePlatformService = journalEntryWritePlatformService;
-        this.configurationDomainService = configurationDomainService;
-        this.loanReadPlatformService = loanReadPlatformService;
-        this.loanAssembler = loanAssembler;
-        this.guarantorRepository = guarantorRepository;
-        this.depositAccountOnHoldTransactionRepository = depositAccountOnHoldTransactionRepository;
-        this.guarantorFundingRepository = guarantorFundingRepository;
-        this.savingsAccountReadPlatformService = savingsAccountReadPlatformService;
-    }
+	@Autowired
+	public SavingsAccountDomainServiceJpa(
+			PlatformSecurityContext context,
+			SavingsAccountRepositoryWrapper savingsAccountRepository,
+			SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+			ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+			JournalEntryWritePlatformService journalEntryWritePlatformService,
+			ConfigurationDomainService configurationDomainService,
+			LoanReadPlatformService loanReadPlatformService,
+			LoanAssembler loanAssembler,
+			GuarantorRepository guarantorRepository,
+			DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+			GuarantorFundingRepository guarantorFundingRepository,
+			SavingsAccountReadPlatformService savingsAccountReadPlatformService) {
+		super();
+		this.context = context;
+		this.savingsAccountRepository = savingsAccountRepository;
+		this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
+		this.applicationCurrencyRepositoryWrapper = applicationCurrencyRepositoryWrapper;
+		this.journalEntryWritePlatformService = journalEntryWritePlatformService;
+		this.configurationDomainService = configurationDomainService;
+		this.loanReadPlatformService = loanReadPlatformService;
+		this.loanAssembler = loanAssembler;
+		this.guarantorRepository = guarantorRepository;
+		this.depositAccountOnHoldTransactionRepository = depositAccountOnHoldTransactionRepository;
+		this.guarantorFundingRepository = guarantorFundingRepository;
+		this.savingsAccountReadPlatformService = savingsAccountReadPlatformService;
+	}
 
-    @Transactional
-    @Override
-    public SavingsAccountTransaction handleWithdrawal(final SavingsAccount account, final DateTimeFormatter fmt,
-            final LocalDate transactionDate, final BigDecimal transactionAmount, final PaymentDetail paymentDetail,
-            final SavingsTransactionBooleanValues transactionBooleanValues) {
+	@Transactional
+	@Override
+	public SavingsAccountTransaction handleWithdrawal(
+			final SavingsAccount account, final DateTimeFormatter fmt,
+			final LocalDate transactionDate,
+			final BigDecimal transactionAmount,
+			final PaymentDetail paymentDetail,
+			final SavingsTransactionBooleanValues transactionBooleanValues) {
 
-        AppUser user = getAppUserIfPresent();
-        final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
-                .isSavingsInterestPostingAtCurrentPeriodEnd();
-        final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
+		AppUser user = getAppUserIfPresent();
+		final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
+				.isSavingsInterestPostingAtCurrentPeriodEnd();
+		final Integer financialYearBeginningMonth = this.configurationDomainService
+				.retrieveFinancialYearBeginningMonth();
 
-        if (transactionBooleanValues.isRegularTransaction() && !account.allowWithdrawal()) { throw new DepositAccountTransactionNotAllowedException(
-                account.getId(), "withdraw", account.depositAccountType()); }
-        final Set<Long> existingTransactionIds = new HashSet<>();
-        final Set<Long> existingReversedTransactionIds = new HashSet<>();
-        updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
-        final SavingsAccountTransactionDTO transactionDTO = new SavingsAccountTransactionDTO(fmt, transactionDate, transactionAmount,
-                paymentDetail, new Date(), user);
-        final SavingsAccountTransaction withdrawal = account.withdraw(transactionDTO, transactionBooleanValues.isApplyWithdrawFee());
+		if (transactionBooleanValues.isRegularTransaction()
+				&& !account.allowWithdrawal()) {
+			throw new DepositAccountTransactionNotAllowedException(
+					account.getId(), "withdraw", account.depositAccountType());
+		}
+		final Set<Long> existingTransactionIds = new HashSet<>();
+		final Set<Long> existingReversedTransactionIds = new HashSet<>();
+		updateExistingTransactionsDetails(account, existingTransactionIds,
+				existingReversedTransactionIds);
+		final SavingsAccountTransactionDTO transactionDTO = new SavingsAccountTransactionDTO(
+				fmt, transactionDate, transactionAmount, paymentDetail,
+				new Date(), user);
+		final SavingsAccountTransaction withdrawal = account.withdraw(
+				transactionDTO, transactionBooleanValues.isApplyWithdrawFee());
 
-        final MathContext mc = MathContext.DECIMAL64;
-        if (account.isBeforeLastPostingPeriod(transactionDate)) {
-            final LocalDate today = DateUtils.getLocalDateOfTenant();
-            account.postInterest(mc, today, transactionBooleanValues.isInterestTransfer(), isSavingsInterestPostingAtCurrentPeriodEnd,
-                    financialYearBeginningMonth);
-        } else {
-            final LocalDate today = DateUtils.getLocalDateOfTenant();
-            account.calculateInterestUsing(mc, today, transactionBooleanValues.isInterestTransfer(),
-                    isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
-        }
-        account.validateAccountBalanceDoesNotBecomeNegative(transactionAmount, transactionBooleanValues.isExceptionForBalanceCheck());
-        saveTransactionToGenerateTransactionId(withdrawal);
-        this.savingsAccountRepository.save(account);
+		final MathContext mc = MathContext.DECIMAL64;
+		if (account.isBeforeLastPostingPeriod(transactionDate)) {
+			final LocalDate today = DateUtils.getLocalDateOfTenant();
+			account.postInterest(mc, today,
+					transactionBooleanValues.isInterestTransfer(),
+					isSavingsInterestPostingAtCurrentPeriodEnd,
+					financialYearBeginningMonth);
+		} else {
+			final LocalDate today = DateUtils.getLocalDateOfTenant();
+			account.calculateInterestUsing(mc, today,
+					transactionBooleanValues.isInterestTransfer(),
+					isSavingsInterestPostingAtCurrentPeriodEnd,
+					financialYearBeginningMonth);
+		}
+		account.validateAccountBalanceDoesNotBecomeNegative(transactionAmount,
+				transactionBooleanValues.isExceptionForBalanceCheck());
+		saveTransactionToGenerateTransactionId(withdrawal);
+		this.savingsAccountRepository.save(account);
 
-        postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, transactionBooleanValues.isAccountTransfer());
+		postJournalEntries(account, existingTransactionIds,
+				existingReversedTransactionIds,
+				transactionBooleanValues.isAccountTransfer());
 
-        return withdrawal;
-    }
+		return withdrawal;
+	}
 
-    private AppUser getAppUserIfPresent() {
-        AppUser user = null;
-        if (this.context != null) {
-            user = this.context.getAuthenticatedUserIfPresent();
-        }
-        return user;
-    }
+	private AppUser getAppUserIfPresent() {
+		AppUser user = null;
+		if (this.context != null) {
+			user = this.context.getAuthenticatedUserIfPresent();
+		}
+		return user;
+	}
 
-    @Transactional
-    @Override
-    public SavingsAccountTransaction handleDeposit(final SavingsAccount account, final DateTimeFormatter fmt,
-            final LocalDate transactionDate, final BigDecimal transactionAmount, final PaymentDetail paymentDetail,
-            final boolean isAccountTransfer, final boolean isRegularTransaction) {
+	@Transactional
+	@Override
+	public SavingsAccountTransaction handleDeposit(
+			final SavingsAccount account, final DateTimeFormatter fmt,
+			final LocalDate transactionDate,
+			final BigDecimal transactionAmount,
+			final PaymentDetail paymentDetail, final boolean isAccountTransfer,
+			final boolean isRegularTransaction) {
 
-        AppUser user = getAppUserIfPresent();
-        final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
-                .isSavingsInterestPostingAtCurrentPeriodEnd();
-        final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
+		AppUser user = getAppUserIfPresent();
+		final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
+				.isSavingsInterestPostingAtCurrentPeriodEnd();
+		final Integer financialYearBeginningMonth = this.configurationDomainService
+				.retrieveFinancialYearBeginningMonth();
 
-        if (isRegularTransaction && !account.allowDeposit()) { throw new DepositAccountTransactionNotAllowedException(account.getId(),
-                "deposit", account.depositAccountType()); }
+		if (isRegularTransaction && !account.allowDeposit()) {
+			throw new DepositAccountTransactionNotAllowedException(
+					account.getId(), "deposit", account.depositAccountType());
+		}
 
-        boolean isInterestTransfer = false;
-        final Set<Long> existingTransactionIds = new HashSet<>();
-        final Set<Long> existingReversedTransactionIds = new HashSet<>();
-        updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
-        final SavingsAccountTransactionDTO transactionDTO = new SavingsAccountTransactionDTO(fmt, transactionDate, transactionAmount,
-                paymentDetail, new Date(), user);
-        final SavingsAccountTransaction deposit = account.deposit(transactionDTO);
+		boolean isInterestTransfer = false;
+		final Set<Long> existingTransactionIds = new HashSet<>();
+		final Set<Long> existingReversedTransactionIds = new HashSet<>();
+		updateExistingTransactionsDetails(account, existingTransactionIds,
+				existingReversedTransactionIds);
+		final SavingsAccountTransactionDTO transactionDTO = new SavingsAccountTransactionDTO(
+				fmt, transactionDate, transactionAmount, paymentDetail,
+				new Date(), user);
+		final SavingsAccountTransaction deposit = account
+				.deposit(transactionDTO);
 
-        final MathContext mc = MathContext.DECIMAL64;
-        if (account.isBeforeLastPostingPeriod(transactionDate)) {
-            final LocalDate today = DateUtils.getLocalDateOfTenant();
-            account.postInterest(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
-        } else {
-            final LocalDate today = DateUtils.getLocalDateOfTenant();
-            account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
-                    financialYearBeginningMonth);
-        }
+		final MathContext mc = MathContext.DECIMAL64;
+		if (account.isBeforeLastPostingPeriod(transactionDate)) {
+			final LocalDate today = DateUtils.getLocalDateOfTenant();
+			account.postInterest(mc, today, isInterestTransfer,
+					isSavingsInterestPostingAtCurrentPeriodEnd,
+					financialYearBeginningMonth);
+		} else {
+			final LocalDate today = DateUtils.getLocalDateOfTenant();
+			account.calculateInterestUsing(mc, today, isInterestTransfer,
+					isSavingsInterestPostingAtCurrentPeriodEnd,
+					financialYearBeginningMonth);
+		}
 
-        saveTransactionToGenerateTransactionId(deposit);
+		saveTransactionToGenerateTransactionId(deposit);
 
-    
+		postJournalEntries(account, existingTransactionIds,
+				existingReversedTransactionIds, isAccountTransfer);
 
-        postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
+		Long clientId = account.clientId();
+		long savingId = account.getId();
 
-        Long clientId = account.clientId();
-        long savingId = account.getId();
+		long isReleaseGuarantor = this.savingsAccountReadPlatformService
+				.getIsReleaseGuarantor(savingId);
 
-        long isReleaseGuarantor = this.savingsAccountReadPlatformService.getIsReleaseGuarantor(savingId);
+		Long loanId = this.loanReadPlatformService
+				.retriveLoanAccountId(clientId);
 
-        Long loanId = this.loanReadPlatformService.retriveLoanAccountId(clientId);
+		if (!(loanId == null) && isReleaseGuarantor == 1) {
 
-        if (!(loanId == null) && isReleaseGuarantor == 1) {
+			final Loan loan = this.loanAssembler.assembleFrom(loanId);
+			final List<Guarantor> existGuarantorList = this.guarantorRepository
+					.findByLoan(loan);
+			boolean allowToInsert = false;
+			boolean allowToOnHold = false;
+			BigDecimal loanAmount = loan.getApprovedPrincipal();
 
-            final Loan loan = this.loanAssembler.assembleFrom(loanId);
-            final List<Guarantor> existGuarantorList = this.guarantorRepository.findByLoan(loan);
+			List<GuarantorFundingDetails> externalGuarantorList = new ArrayList<>();
+			List<GuarantorFundingDetails> selfGuarantorList = new ArrayList<>();
+			BigDecimal selfGuarantee = BigDecimal.ZERO;
+			BigDecimal guarantorGuarantee = BigDecimal.ZERO;
+			List<DepositAccountOnHoldTransaction> accountOnHoldTransactions = new ArrayList<>();
 
-            List<GuarantorFundingDetails> externalGuarantorList = new ArrayList<>();
-            List<GuarantorFundingDetails> selfGuarantorList = new ArrayList<>();
-            BigDecimal selfGuarantee = BigDecimal.ZERO;
-            BigDecimal guarantorGuarantee = BigDecimal.ZERO;
-            List<DepositAccountOnHoldTransaction> accountOnHoldTransactions = new ArrayList<>();
-            for (Guarantor guarantor : existGuarantorList) {
-                final List<GuarantorFundingDetails> fundingDetails = guarantor.getGuarantorFundDetails();
-                for (GuarantorFundingDetails guarantorFundingDetails : fundingDetails) {
-                    if (guarantorFundingDetails.getStatus().isActive()) {
-                        if (guarantor.isSelfGuarantee()) {
+			for (Guarantor guarantor1 : existGuarantorList) {
+				if (guarantor1.isExistingCustomer()) {
+					allowToOnHold = true;
+				}
+			}
 
-                            selfGuarantorList.add(guarantorFundingDetails);
-                            selfGuarantee = selfGuarantee.add(guarantorFundingDetails.getAmountRemaining());
+			for (Guarantor guarantor : existGuarantorList) {
+				final List<GuarantorFundingDetails> fundingDetails = guarantor
+						.getGuarantorFundDetails();
+				for (GuarantorFundingDetails guarantorFundingDetails : fundingDetails) {
+					if (guarantorFundingDetails.getStatus().isActive()) {
 
-                        } else if (guarantor.isExistingCustomer()) {
-                            externalGuarantorList.add(guarantorFundingDetails);
-                            guarantorGuarantee = guarantorGuarantee.add(guarantorFundingDetails.getAmountRemaining());
-                        }
-                    }
+						if (guarantor.isSelfGuarantee()) {
 
-                }
-            }
-            if (transactionAmount != null) {
+							selfGuarantorList.add(guarantorFundingDetails);
+							selfGuarantee = selfGuarantee
+									.add(guarantorFundingDetails
+											.getAmountRemaining());
+							if (allowToOnHold == true) {
+								DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction
+										.hold(account, transactionAmount,
+												transactionDate);
 
-                BigDecimal amountLeft = calculateAndRelaseGuarantorFunds(externalGuarantorList, guarantorGuarantee, transactionAmount,
-                        deposit, accountOnHoldTransactions);
-                
-                
-                BigDecimal totalGuaranteeAmount = selfGuarantee.add(guarantorGuarantee);
-                BigDecimal availableOnHoladAmount = account.getOnHoldFunds();
+								accountOnHoldTransactions
+										.add(onHoldTransaction);
+								GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(
+										guarantorFundingDetails, null,
+										onHoldTransaction);
+								guarantorFundingDetails
+										.addGuarantorFundingTransactions(guarantorFundingTransaction);
+							}
 
-                if (transactionAmount.longValue() > totalGuaranteeAmount.longValue()) {
-                    BigDecimal newOnHoldAmount = totalGuaranteeAmount.subtract(availableOnHoladAmount);
-                    account.holdFunds(newOnHoldAmount);
-                } else {
-                    if (availableOnHoladAmount.longValue() <= totalGuaranteeAmount.longValue()) {
-                        account.holdFunds(transactionAmount);
-                    }
+						} else if (guarantor.isExistingCustomer()) {
+							externalGuarantorList.add(guarantorFundingDetails);
+							guarantorGuarantee = guarantorGuarantee
+									.add(guarantorFundingDetails
+											.getAmountRemaining());
+							allowToInsert = true;
 
-                }
-                
-                
-                if (amountLeft.compareTo(BigDecimal.ZERO) == 1) {
-                    calculateAndRelaseGuarantorFunds(selfGuarantorList, selfGuarantee, amountLeft, deposit, accountOnHoldTransactions);
-                    externalGuarantorList.addAll(selfGuarantorList);
-                }
+						}
+					}
 
-                calculateAndIncrementSelfGuarantorFunds(selfGuarantorList, transactionAmount);
+				}
+			}
+			if (transactionAmount != null) {
 
-                if (!externalGuarantorList.isEmpty()) {
-                    this.depositAccountOnHoldTransactionRepository.save(accountOnHoldTransactions);
-                    this.guarantorFundingRepository.save(externalGuarantorList);
+				BigDecimal amountLeft = calculateAndRelaseGuarantorFunds(
+						externalGuarantorList, guarantorGuarantee,
+						transactionAmount, deposit, accountOnHoldTransactions);
 
-                }
+				BigDecimal totalGuaranteeAmount = selfGuarantee
+						.add(guarantorGuarantee);
+				BigDecimal availableOnHoladAmount = account.getOnHoldFunds();
 
-            }
-        }
+				// BigDecimal addRemainingAmount =
+				// loanAmount.subtract(totalGuaranteeAmount);
 
-        this.savingsAccountRepository.save(account);
-        return deposit;
-    }
+				if (transactionAmount.longValue() > totalGuaranteeAmount
+						.longValue()) {
+					BigDecimal newOnHoldAmount = totalGuaranteeAmount
+							.subtract(availableOnHoladAmount);
+					account.holdFunds(newOnHoldAmount);
+				} else {
+					if (availableOnHoladAmount.longValue() <= totalGuaranteeAmount
+							.longValue()) {
+						account.holdFunds(transactionAmount);
+					}
 
-    private void calculateAndIncrementSelfGuarantorFunds(List<GuarantorFundingDetails> guarantorList, BigDecimal amountForAdd) {
-        for (GuarantorFundingDetails fundingDetails : guarantorList) {
-            fundingDetails.addSelfAmmount(amountForAdd);
-        }
-    }
+				}
 
-    private BigDecimal calculateAndRelaseGuarantorFunds(List<GuarantorFundingDetails> guarantorList, BigDecimal totalGuaranteeAmount,
-            BigDecimal amountForRelease, SavingsAccountTransaction deposite,
-            final List<DepositAccountOnHoldTransaction> accountOnHoldTransactions) {
-        BigDecimal amountLeft = amountForRelease;
-        for (GuarantorFundingDetails fundingDetails : guarantorList) {
-            BigDecimal guarantorAmount = amountForRelease.multiply(fundingDetails.getAmountRemaining()).divide(totalGuaranteeAmount,
-                    roundingMode);
-            if (fundingDetails.getAmountRemaining().compareTo(guarantorAmount) < 1) {
-                guarantorAmount = fundingDetails.getAmountRemaining();
-            }
-            fundingDetails.releaseFunds(guarantorAmount);
-            SavingsAccount savingsAccount = fundingDetails.getLinkedSavingsAccount();
-            savingsAccount.releaseFunds(guarantorAmount);
-            DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction.release(savingsAccount, guarantorAmount,
-                    deposite.transactionLocalDate());
-            accountOnHoldTransactions.add(onHoldTransaction);
-            GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(fundingDetails, null,
-                    onHoldTransaction);
-            fundingDetails.addGuarantorFundingTransactions(guarantorFundingTransaction);
-            amountLeft = amountLeft.subtract(guarantorAmount);
-        }
-        return amountLeft;
-    }
+				/*
+				 * if (amountLeft.compareTo(BigDecimal.ZERO) == 1) {
+				 * calculateAndRelaseGuarantorFunds(selfGuarantorList,
+				 * selfGuarantee, amountLeft, deposit,
+				 * accountOnHoldTransactions);
+				 * externalGuarantorList.addAll(selfGuarantorList); }
+				 */
 
-    private Long saveTransactionToGenerateTransactionId(final SavingsAccountTransaction transaction) {
-        this.savingsAccountTransactionRepository.save(transaction);
-        return transaction.getId();
-    }
+				if (allowToInsert == true) {
+					calculateAndIncrementSelfGuarantorFunds(selfGuarantorList,
+							transactionAmount, loanAmount);
+				}
 
-    private void updateExistingTransactionsDetails(SavingsAccount account, Set<Long> existingTransactionIds,
-            Set<Long> existingReversedTransactionIds) {
-        existingTransactionIds.addAll(account.findExistingTransactionIds());
-        existingReversedTransactionIds.addAll(account.findExistingReversedTransactionIds());
-    }
+				if (!externalGuarantorList.isEmpty()) {
+					this.depositAccountOnHoldTransactionRepository
+							.save(accountOnHoldTransactions);
+					this.guarantorFundingRepository.save(externalGuarantorList);
 
-    private void postJournalEntries(final SavingsAccount savingsAccount, final Set<Long> existingTransactionIds,
-            final Set<Long> existingReversedTransactionIds, boolean isAccountTransfer) {
+				}
 
-        final MonetaryCurrency currency = savingsAccount.getCurrency();
-        final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepositoryWrapper.findOneWithNotFoundDetection(currency);
+			}
+		}
 
-        final Map<String, Object> accountingBridgeData = savingsAccount.deriveAccountingBridgeData(applicationCurrency.toData(),
-                existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
-        this.journalEntryWritePlatformService.createJournalEntriesForSavings(accountingBridgeData);
-    }
+		this.savingsAccountRepository.save(account);
+		return deposit;
+	}
 
-    @Transactional
-    @Override
-    public void postJournalEntries(final SavingsAccount account, final Set<Long> existingTransactionIds,
-            final Set<Long> existingReversedTransactionIds) {
+	private void calculateAndIncrementSelfGuarantorFunds(
+			List<GuarantorFundingDetails> guarantorList,
+			BigDecimal amountForAdd, BigDecimal loanAmount) {
+		for (GuarantorFundingDetails fundingDetails : guarantorList) {
+			fundingDetails.addSelfAmmount(amountForAdd, loanAmount);
+		}
+	}
 
-        final boolean isAccountTransfer = false;
-        postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
-    }
+	private BigDecimal calculateAndRelaseGuarantorFunds(
+			List<GuarantorFundingDetails> guarantorList,
+			BigDecimal totalGuaranteeAmount,
+			BigDecimal amountForRelease,
+			SavingsAccountTransaction deposite,
+			final List<DepositAccountOnHoldTransaction> accountOnHoldTransactions) {
+		BigDecimal amountLeft = amountForRelease;
+		for (GuarantorFundingDetails fundingDetails : guarantorList) {
+			BigDecimal guarantorAmount = amountForRelease.multiply(
+					fundingDetails.getAmountRemaining()).divide(
+					totalGuaranteeAmount, roundingMode);
+			if (fundingDetails.getAmountRemaining().compareTo(guarantorAmount) < 1) {
+				guarantorAmount = fundingDetails.getAmountRemaining();
+			}
+			fundingDetails.releaseFunds(guarantorAmount);
+			SavingsAccount savingsAccount = fundingDetails
+					.getLinkedSavingsAccount();
+			savingsAccount.releaseFunds(guarantorAmount);
+			DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction
+					.release(savingsAccount, guarantorAmount,
+							deposite.transactionLocalDate());
+			accountOnHoldTransactions.add(onHoldTransaction);
+			GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(
+					fundingDetails, null, onHoldTransaction);
+			fundingDetails
+					.addGuarantorFundingTransactions(guarantorFundingTransaction);
+			amountLeft = amountLeft.subtract(guarantorAmount);
+		}
+		return amountLeft;
+	}
+
+	private Long saveTransactionToGenerateTransactionId(
+			final SavingsAccountTransaction transaction) {
+		this.savingsAccountTransactionRepository.save(transaction);
+		return transaction.getId();
+	}
+
+	private void updateExistingTransactionsDetails(SavingsAccount account,
+			Set<Long> existingTransactionIds,
+			Set<Long> existingReversedTransactionIds) {
+		existingTransactionIds.addAll(account.findExistingTransactionIds());
+		existingReversedTransactionIds.addAll(account
+				.findExistingReversedTransactionIds());
+	}
+
+	private void postJournalEntries(final SavingsAccount savingsAccount,
+			final Set<Long> existingTransactionIds,
+			final Set<Long> existingReversedTransactionIds,
+			boolean isAccountTransfer) {
+
+		final MonetaryCurrency currency = savingsAccount.getCurrency();
+		final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepositoryWrapper
+				.findOneWithNotFoundDetection(currency);
+
+		final Map<String, Object> accountingBridgeData = savingsAccount
+				.deriveAccountingBridgeData(applicationCurrency.toData(),
+						existingTransactionIds, existingReversedTransactionIds,
+						isAccountTransfer);
+		this.journalEntryWritePlatformService
+				.createJournalEntriesForSavings(accountingBridgeData);
+	}
+
+	@Transactional
+	@Override
+	public void postJournalEntries(final SavingsAccount account,
+			final Set<Long> existingTransactionIds,
+			final Set<Long> existingReversedTransactionIds) {
+
+		final boolean isAccountTransfer = false;
+		postJournalEntries(account, existingTransactionIds,
+				existingReversedTransactionIds, isAccountTransfer);
+	}
 }

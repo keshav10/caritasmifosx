@@ -69,6 +69,15 @@ public class SavingsAccountChargeReadPlatformServiceImpl implements SavingsAccou
         }
     }
 
+    private static final class SavingIdListDataMapperForTxnDate implements RowMapper<SavingIdListData>{
+    	@Override
+    	public SavingIdListData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
+    		final LocalDate txnDate = JdbcSupport.getLocalDate(rs, "transactionDate");
+    		 return SavingIdListData.instaceForTransactionDate(txnDate);
+    	}
+    }
+    
+    
     private static final class SavingIdListForDepositeLateChargeDataMapper implements RowMapper<SavingIdListData> {
 
         @Override
@@ -294,6 +303,21 @@ public class SavingsAccountChargeReadPlatformServiceImpl implements SavingsAccou
         }
 
     }
+    
+    
+    @Override
+    public SavingIdListData retriveMaxOfTransaction (Long savingId){
+        final SavingIdListDataMapperForTxnDate rm = new SavingIdListDataMapperForTxnDate();
+        try{
+        	String sql = "select max(ms.transaction_date) as transactionDate "
+             + " from m_savings_account_transaction ms where ms.savings_account_id = " + savingId;
+        	
+        	return this.jdbcTemplate.queryForObject(sql, rm, new Object[]{});
+        }catch (final EmptyResultDataAccessException e){
+        	return null;
+        }
+    }
+    
 
     @Override
     public Collection<SavingIdListData> retriveAllSavingIdForApplyDepositeLateCharge() {

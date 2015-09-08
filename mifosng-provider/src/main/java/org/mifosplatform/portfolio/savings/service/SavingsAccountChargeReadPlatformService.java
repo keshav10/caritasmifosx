@@ -32,4 +32,6 @@ public interface SavingsAccountChargeReadPlatformService {
     Collection<SavingIdListData> retriveAllSavingIdForApplyDepositeLateCharge();
 
     SavingsIdOfChargeData retriveOneWithMaxOfDueDate(Long savingId);
+    
+   SavingIdListData retriveMaxOfTransaction(Long savingId);
 }

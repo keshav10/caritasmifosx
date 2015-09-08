@@ -419,7 +419,6 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         PeriodFrequencyType frequencyType = null;
 
         String startingDate = new String();
-        String endingDate = new String();
         SimpleDateFormat formateDate = new SimpleDateFormat("yyyy-MM-dd");
 
         final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
@@ -459,9 +458,6 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                 Long savingIdForGetMaxOfTxn = savingId.getSavingId();
 
                 DateTime start = new DateTime();
-                boolean isPriviousDueDate = false;
-                int totalNoOfInsertion = 0;
-                boolean isSavingIdAvailable = false;
                 Date trasactionDate = new Date();
                 Date startFeeCharge = new Date();
                 LocalDate maxOfTransactionDate = new LocalDate();
@@ -471,7 +467,16 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                 boolean isValideForCharge = false;
                 boolean isMaxOfChargeDue = false;
                 boolean isPreviousTxn = false;
-
+                boolean isAllowInsert = false;
+                boolean isPriviousDueDate = false;
+                boolean isSavingIdAvailable = false;
+                int totalNoOfInsertion = 0;
+                
+                /**
+                 * Following code will check if the start date of charge calculation is there or is saving account is active
+                 * then it will return valid for apply charge 
+                 */
+                
                 if (savingId.getStartFeeChargeDate() != null) {
 
                     if (savingId.getStartFeeChargeDate().isAfter(savingId.getActivateOnDate())
@@ -482,6 +487,12 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                     isValideForCharge = true;
                     startFeeCharge = savingId.getActivateOnDate().toDate();
                 }
+                
+             
+                /**
+                 * Following code will return the boolean value true if there is any previous charge on 
+                 * on saving id 
+                 */
 
                 SavingsIdOfChargeData maxOfChargeDueDate = this.savingsAccountChargeReadPlatformService
                         .retriveOneWithMaxOfDueDate(savingIdForGetMaxOfTxn);
@@ -490,11 +501,51 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                     isMaxOfChargeDue = true;
                     isPriviousDueDate = true;
                 }
+               
 
+             
+                /**
+                 * if any savingAccount already having charge then isInsert
+                 * become false else it will be true and it will allow to insert
+                 * data
+                 **/
+
+                for (final SavingsIdOfChargeData savingData : savingIdsInCharge) {
+                    if (savingId.getSavingId().equals(savingData.getSavingId())) {
+                        isInsert = false;
+                        break;
+                    }
+                }
+                
+ 
+             /** 
+              * It checks the last transaction of saving Id is not in previous month those saving Id only
+              * eligible to apply charge    
+              */
+                
+                for(final SavingIdListData savingIdListData : savingIdsFromTransaction){
+                	if(savingId.getSavingId().equals(savingIdListData.getSavingId())){
+                		isAllowInsert = true;
+                	}	
+                }  	
+                
+                
+                
+                        
+                     
+                /** 
+                 * Following loop condition it will just adjust the dates based on some condition  for the charge calculation
+                 */
+                
+                
+              
+                
+                
                 for (final SavingIdListData savingIdListData : savingIdsFromTransaction) {
 
                     if (savingIdListData.getSavingId().equals(savingId.getSavingId())) {
                         isSavingIdAvailable = true;
+                     
                         LocalDate dateOfTransaction = savingIdListData.getMaxTransactionDate();
                         if (dateOfTransaction.isAfter(maxOfchargeDueDate) || dateOfTransaction.equals(maxOfChargeDueDate)
                                 || isMaxOfChargeDue == false) {
@@ -534,24 +585,21 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
                 }
 
-                /**
-                 * if any savingAccount already having charge then isInsert
-                 * become false else it will be true and it will allow to insert
-                 * data
-                 **/
 
-                for (final SavingsIdOfChargeData savingData : savingIdsInCharge) {
-                    if (savingId.getSavingId().equals(savingData.getSavingId())) {
-                        isInsert = false;
-                        break;
-                    }
-                }
-
+                                
                 /**
                  * if there is no any single transaction of saving account then
                  * start date and number of insertion calculation done here
                  */
+                
+                SavingIdListData maxTransactionDate = this.savingsAccountChargeReadPlatformService.retriveMaxOfTransaction(savingIdForGetMaxOfTxn);
+                if(maxTransactionDate.getMaxTransactionDate() == null){
+                	isAllowInsert = true;
+                }
+                
+                
                 if (isSavingIdAvailable == false && isInsert == true && isValideForCharge == true) {
+                	
                     LocalDate startFeeChargeDate = savingId.getStartFeeChargeDate();
                     if(startFeeChargeDate == null){
                         startFeeChargeDate = savingId.getActivateOnDate();
@@ -580,8 +628,12 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
                     Months diffMonth = Months.monthsBetween(start, end);
                     totalNoOfInsertion = (diffMonth.getMonths()) / interval;
-
                 }
+                
+                /** If there is previous transaction of saving Id then 
+                 * here it will check how many charges will need be applied
+                 * 
+                 */
 
                 if (isSavingIdAvailable == true && isInsert == true && isValideForCharge == true) {
 
@@ -598,7 +650,12 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                         Months diffMonth = Months.monthsBetween(start, end);
                         totalNoOfInsertion = (diffMonth.getMonths() - 1) / interval;
 
-                    } else if (maxOfTransactionDate.isAfter(maxOfchargeDueDate) || maxOfTransactionDate.isEqual(maxOfchargeDueDate)
+                    }else if(maxOfTransactionDate.isEqual(startCharge) && isMaxOfChargeDue == false){
+                    	start = new DateTime(transaction);
+                    	Months diffMonth = Months.monthsBetween(startFee, end);
+                        totalNoOfInsertion = (diffMonth.getMonths() - 1)/ interval;	
+                    }
+                    else if (maxOfTransactionDate.isAfter(maxOfchargeDueDate) || maxOfTransactionDate.isEqual(maxOfchargeDueDate)
                             && isMaxOfChargeDue == true) {
 
                         start = new DateTime(transaction);
@@ -609,7 +666,12 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
                 }
 
-                if (isInsert == true && isValideForCharge == true) {
+                
+             /**
+              * If all boolean values are true then it will insert the charge into the m_savings_account_charge   
+              */
+                
+                if (isInsert == true && isValideForCharge == true && isAllowInsert == true) {
 
                     for (int i = 0; i < totalNoOfInsertion; i++) {
 
@@ -653,7 +715,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                             }
 
                             // in this if there is no any previous due date then
-                            // calendar is going to set on availbale date
+                            // calendar is going to set on available date
 
                             else {
 
@@ -683,14 +745,12 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                         }
 
                         else {
-                            if (frequency == 2) {
+                           
                                 aCalendar.add(Calendar.MONTH, interval);
                                 aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
                                 Date nextMonthFirstDay = aCalendar.getTime();
                                 aCalendar.setTime(nextMonthFirstDay);
                                 chargeDueDate = new LocalDate(nextMonthFirstDay);
-
-                            }
 
                         }
                         sb.append("(");
