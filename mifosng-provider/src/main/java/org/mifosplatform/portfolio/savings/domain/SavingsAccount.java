@@ -76,6 +76,7 @@ import org.mifosplatform.portfolio.charge.exception.SavingsAccountChargeNotFound
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.common.domain.PeriodFrequencyType;
 import org.mifosplatform.portfolio.group.domain.Group;
+import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
 import org.mifosplatform.portfolio.savings.DepositAccountType;
 import org.mifosplatform.portfolio.savings.SavingsApiConstants;
 import org.mifosplatform.portfolio.savings.SavingsCompoundingInterestPeriodType;
@@ -2273,7 +2274,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
         } else if (savingsAccountCharge.isAnnualFee()) {
             chargeTransaction = SavingsAccountTransaction.annualFee(this, office(), transactionDate, transactionAmount, user);
         } else {
-            chargeTransaction = SavingsAccountTransaction.charge(this, office(), transactionDate, transactionAmount, user);
+            chargeTransaction = SavingsAccountTransaction.charge(this,office(), transactionDate, transactionAmount, user);
         }
 
         handleChargeTransactions(savingsAccountCharge, chargeTransaction);

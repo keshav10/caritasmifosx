@@ -916,7 +916,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     }
 
     @Override
-    public CommandProcessingResult payCharge(final Long savingsAccountId, final Long savingsAccountChargeId, final JsonCommand command) {
+    public CommandProcessingResult payCharge(final Long savingsAccountId,final Long savingsAccountChargeId, final JsonCommand command) {
 
         AppUser user = getAppUserIfPresent();
 
@@ -925,8 +925,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat()).withLocale(locale);
         final BigDecimal amountPaid = command.bigDecimalValueOfParameterNamed(amountParamName);
         final LocalDate transactionDate = command.localDateValueOfParameterNamed(dueAsOfDateParamName);
-
-        final SavingsAccountCharge savingsAccountCharge = this.savingsAccountChargeRepository.findOneWithNotFoundDetection(
+         final SavingsAccountCharge savingsAccountCharge = this.savingsAccountChargeRepository.findOneWithNotFoundDetection(
                 savingsAccountChargeId, savingsAccountId);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
@@ -948,7 +947,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
         }
 
-        this.payCharge(savingsAccountCharge, transactionDate, amountPaid, fmt, user);
+        this.payCharge(savingsAccountCharge,  transactionDate, amountPaid, fmt, user);
         return new CommandProcessingResultBuilder() //
                 .withEntityId(savingsAccountCharge.getId()) //
                 .withOfficeId(savingsAccountCharge.savingsAccount().officeId()) //
@@ -973,7 +972,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         fmt.withZone(DateUtils.getDateTimeZoneOfTenant());
 
         while (transactionDate.isAfter(savingsAccountCharge.getDueLocalDate()) && savingsAccountCharge.isNotFullyPaid()) {
-            payCharge(savingsAccountCharge, transactionDate, savingsAccountCharge.amoutOutstanding(), fmt, user);
+            payCharge(savingsAccountCharge,transactionDate, savingsAccountCharge.amoutOutstanding(), fmt, user);
         }
     }
 
@@ -991,7 +990,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final Set<Long> existingTransactionIds = new HashSet<>();
         final Set<Long> existingReversedTransactionIds = new HashSet<>();
         updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
-        account.payCharge(savingsAccountCharge, amountPaid, transactionDate, formatter, user);
+        account.payCharge(savingsAccountCharge, amountPaid,transactionDate, formatter, user);
         boolean isInterestTransfer = false;
         final MathContext mc = MathContext.DECIMAL64;
         if (account.isBeforeLastPostingPeriod(transactionDate)) {
