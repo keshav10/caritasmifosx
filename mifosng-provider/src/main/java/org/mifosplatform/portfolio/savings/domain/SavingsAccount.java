@@ -2268,13 +2268,14 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     private void handlePayChargeTransactions(SavingsAccountCharge savingsAccountCharge, Money transactionAmount,
             final LocalDate transactionDate, final AppUser user,final PaymentDetail paymentDetail) {
         SavingsAccountTransaction chargeTransaction = null;
+        Date dt =new Date();
 
         if (savingsAccountCharge.isWithdrawalFee()) {
-            chargeTransaction = SavingsAccountTransaction.withdrawalFee(this, office(), transactionDate, transactionAmount, user);
+            chargeTransaction = SavingsAccountTransaction.withdrawalFee(this, office(),paymentDetail, transactionDate, transactionAmount,dt, user);
         } else if (savingsAccountCharge.isAnnualFee()) {
-            chargeTransaction = SavingsAccountTransaction.annualFee(this, office(), transactionDate, transactionAmount, user);
+            chargeTransaction = SavingsAccountTransaction.annualFee(this, office(),paymentDetail, transactionDate, transactionAmount,dt, user);
         } else {
-            chargeTransaction = SavingsAccountTransaction.charge(this, office(), transactionDate, transactionAmount, user);
+            chargeTransaction = SavingsAccountTransaction.charge(this, office(),paymentDetail, transactionDate, transactionAmount,dt, user);
         }
 
         handleChargeTransactions(savingsAccountCharge, chargeTransaction);
