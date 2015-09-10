@@ -52,6 +52,7 @@ public class InvestmentReadPlatformServiceImpl implements
 
 	@Override
 	public Long retriveSavingInvestmentId(Long savingId, Long loanId) {
+		try{
 
 		final String schema = "select ms.id from m_investment ms "
 				+ " where ms.saving_id = " + savingId + " and ms.loan_id = "
@@ -60,10 +61,14 @@ public class InvestmentReadPlatformServiceImpl implements
 		Long data = this.jdbcTemplate.queryForLong(schema);
 
 		return data;
+		}catch(Exception e){
+		return null;
+		}
 	}
 
 	@Override
 	public Long retriveLoanInvestmentId(Long loanId, Long savingId) {
+		try{
 
 		final String schema = "select ms.id from m_investment ms "
 				+ " where ms.loan_id = " + loanId + " and ms.saving_id = "
@@ -71,6 +76,9 @@ public class InvestmentReadPlatformServiceImpl implements
 
 		Long data = this.jdbcTemplate.queryForLong(schema);
 		return data;
+		}catch(Exception e){
+			return null;
+		}
 
 	}
 
@@ -85,6 +93,16 @@ public class InvestmentReadPlatformServiceImpl implements
 				Long.class);
 		return data;
 	}
+	
+	@Override
+	public List<Long>  retriveInvestedAmountBySavingId(Long savingId){
+		final String schema = "select ms.invested_amount from m_investment ms"
+				+ " where ms.saving_id = " + savingId;
+
+		List<Long> data = this.jdbcTemplate.queryForList(schema, null,
+				Long.class);
+		return data;	
+	}
 
 	@Override
 	public List<Long> retriveSavingIdByLoanId(Long loanId) {
@@ -96,12 +114,25 @@ public class InvestmentReadPlatformServiceImpl implements
 
 		return data;
 	}
+	
+	@Override
+	public List<Long>  retriveInvestedAmountByLoanId(Long loanId){
+		final String schema = "select ms.invested_amount from m_investment ms"
+				+ " where ms.loan_id = " + loanId;
+
+		List<Long> data = this.jdbcTemplate.queryForList(schema, null,
+				Long.class);
+		return data;	
+	}
+
+	
+	
 
 	private static final class SavingInvestmentDataMapper implements
 			RowMapper<SavingInvestmentData> {
 
 		public String savingAccountsSchema() {
-			return "ml.id as loan_id, ml.account_no as accountno, cl.display_name as name, ml.approved_principal as loanammount, mpl.name as productname, ms.invested_amount as investedAmount"
+			return "ml.id as loan_id,cl.id as client_id, ml.account_no as accountno, cl.display_name as name, ml.approved_principal as loanammount, mpl.name as productname, ms.invested_amount as investedAmount"
 					+ " from m_investment ms "
 					+ " left join m_loan ml on ms.loan_id = ml.id left join m_client cl on ml.client_id = cl.id left join m_product_loan mpl on ml.product_id = mpl.id ";
 		}
@@ -116,6 +147,7 @@ public class InvestmentReadPlatformServiceImpl implements
 				throws SQLException {
 
 			final Long loan_id = rs.getLong("loan_id");
+			final Long client_id = rs.getLong("client_id");
 			final String accountno = rs.getString("accountno");
 			final String name = rs.getString("name");
 			final Long loanammount = rs.getLong("loanammount");
@@ -124,7 +156,7 @@ public class InvestmentReadPlatformServiceImpl implements
 
 			List<SavingInvestmentData> savingInvestmentData = null;
 			final SavingInvestmentData data = SavingInvestmentData.instance(
-					loan_id, accountno, name, loanammount, productname, null,
+					loan_id,client_id, accountno, name, loanammount, productname, null,
 					null, investedAmount);
 			// TODO Auto-generated method stub
 			return data;
@@ -137,7 +169,7 @@ public class InvestmentReadPlatformServiceImpl implements
 
 		public String loanAccountSchema() {
 
-			return "msi.saving_id as saving_id , mp.display_name as name, msp.name as productname, msa.account_no as accountno, msa.account_balance_derived as savingammount, msi.invested_amount as investedamount  from m_investment msi "
+			return "msi.saving_id as saving_id,mp.id as group_id , mp.display_name as name, msp.name as productname, msa.account_no as accountno, msa.account_balance_derived as savingammount, msi.invested_amount as investedamount  from m_investment msi "
 					+ " left join m_savings_account msa on msi.saving_id = msa.id "
 					+ " left join m_savings_product msp on msa.product_id = msp.id left join m_group mp on msa.group_id = mp.id";
 		}
@@ -147,6 +179,7 @@ public class InvestmentReadPlatformServiceImpl implements
 				throws SQLException {
 
 			final Long saving_id = rs.getLong("saving_id");
+			final Long group_id = rs.getLong("group_id");
 			final String accountno = rs.getString("accountno");
 			final String name = rs.getString("name");
 			final Long savingammount = rs.getLong("savingammount");
@@ -154,7 +187,7 @@ public class InvestmentReadPlatformServiceImpl implements
 			final Long investedAmount = rs.getLong("investedamount");
 
 			final LoanInvestmentData data = LoanInvestmentData.intance(
-					saving_id, name, accountno, savingammount, productname,
+					saving_id,group_id, name, accountno, savingammount, productname,
 					investedAmount);
 
 			return data;

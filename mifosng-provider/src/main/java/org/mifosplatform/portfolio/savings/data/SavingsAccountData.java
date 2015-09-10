@@ -55,7 +55,8 @@ public class SavingsAccountData {
 
     // associations
     private final SavingsAccountSummaryData summary;
-    @SuppressWarnings("unused")
+    
+	@SuppressWarnings("unused")
     private final Collection<SavingsAccountTransactionData> transactions;
 
     private final Collection<SavingsAccountChargeData> charges;
@@ -425,7 +426,12 @@ public class SavingsAccountData {
         this.releaseguarantor = releaseguarantor;
     }
 
-    private SavingsAccountChargeData getWithdrawalFee() {
+    public SavingsAccountSummaryData getSummary() {
+    	
+		return this.summary;
+	}
+
+	private SavingsAccountChargeData getWithdrawalFee() {
         for (SavingsAccountChargeData charge : this.charges()) {
             if (charge.isWithdrawalFee()) return charge;
         }

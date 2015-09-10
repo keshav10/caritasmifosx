@@ -5,11 +5,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 
+
 public class InvestmentConstants {
     
     public static final String savingIdParamName = "savingId";
     public static final String loanIdParamName = "loanId";
-    public static final String SAVINGINVESTMENT_RESOURCE_NAME = "saving_investment";
-    public static final String LOANINVESTMENT_RESOURCE_NAME = "loan_investment";
+    public static final String SAVINGINVESTMENT_RESOURCE_NAME = "investedAmounts";
+    public static final String LOANINVESTMENT_RESOURCE_NAME = "investedAmounts";
    
 }

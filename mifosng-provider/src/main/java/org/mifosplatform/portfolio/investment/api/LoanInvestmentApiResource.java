@@ -6,6 +6,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -94,6 +95,22 @@ public class LoanInvestmentApiResource {
         final CommandProcessingResult result = this.commandSourceWritePlatformService.logCommandSource(commandRequest);
         return this.apiJsonSerializerService.serialize(result);
         
+    }
+    
+    @PUT
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String updateLoanInvestment(@PathParam("loanId") final Long loanId, final String apiRequestBodyAsJson) {
+
+        this.context.authenticatedUser().validateHasReadPermission(InvestmentConstants.LOANINVESTMENT_RESOURCE_NAME);
+
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateLoanInvestment(loanId)
+                .withJson(apiRequestBodyAsJson).build();
+
+        final CommandProcessingResult result = this.commandSourceWritePlatformService.logCommandSource(commandRequest);
+
+        return this.apiJsonSerializerService.serialize(result);
+
     }
     
 }

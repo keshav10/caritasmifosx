@@ -1174,6 +1174,14 @@ public class CommandWrapperBuilder {
     	        this.href = "/savingsaccounts/" + savingsAccountId + "/savingInvestment";
     	        return this;
     	    }
+    public CommandWrapperBuilder updateSavingInvestment(final Long savingsAccountId){
+    	this.actionName = "UPDATE";
+    	this.entityName = "SAVINGINVESTMENT";
+        this.savingsId = savingsAccountId;
+        this.entityId = savingsAccountId;
+        this.href = "/savingsaccounts/" + savingsAccountId + "/savingInvestment";
+        return this;
+    }
     	    
     	    public CommandWrapperBuilder deleteInvestmentBasedOnMapping(final Long savingsAccountId, final Long loanId){
     	        
@@ -1205,6 +1213,15 @@ public class CommandWrapperBuilder {
     	        this.href = "/loans/" + loanId + "/loanInvestment";
     	       return this;
     	  }
+    	    
+    	    public CommandWrapperBuilder updateLoanInvestment(final Long loanId){
+    	    	this.actionName = "UPDATE";
+    	    	this.entityName = "LOANINVESTMENT";
+    	    	this.loanId = loanId;
+    	    	this.entityId = loanId;
+    	    	this.href = "/loans/" + loanId + "/loanInvestments";
+    	    	return this;
+    	    }
     
     
     

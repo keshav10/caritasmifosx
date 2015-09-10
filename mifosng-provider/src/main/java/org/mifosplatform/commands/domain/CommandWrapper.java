@@ -1044,6 +1044,9 @@ public class CommandWrapper {
     public boolean isDeleteLoanInvestment(){
     	return this.actionName.equalsIgnoreCase("DELETE") && this.entityName.equalsIgnoreCase("LOANINVESTMENT");
     }
+    public boolean isUpdateLoanInvestment(){
+    	return this.actionName.equalsIgnoreCase("UPDATE") && this.entityName.equalsIgnoreCase("LOANINVESTMENT");
+    }
     
     public boolean isSavingInvestment(){
     	return this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
@@ -1055,6 +1058,10 @@ public class CommandWrapper {
     
     public boolean isDeleteSavingInvestment(){
     	return this.actionName.equalsIgnoreCase("DELETE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
+    }
+    
+    public boolean isUpdateSavingInvestment(){
+    	return this.actionName.equalsIgnoreCase("UPDATE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
     }
     
 

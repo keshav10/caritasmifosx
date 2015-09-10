@@ -5,6 +5,7 @@ import java.util.List;
 public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
 
     final Long loan_id;
+    final Long client_id;
     final String name;
     final String accountno;
     final Long loanammount;
@@ -14,10 +15,11 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
     final Long investedAmount;
 
     
-    public SavingInvestmentData(Long loan_id, String name, String accountno, Long loanammount, String productname, Long savigId,
+    public SavingInvestmentData(Long loan_id,Long client_id, String name, String accountno, Long loanammount, String productname, Long savigId,
             List<Long> loanId,  Long investedAmount) {
         super();
         this.loan_id = loan_id;
+        this.client_id = client_id;
         this.name = name;
         this.accountno = accountno;
         this.loanammount = loanammount;
@@ -28,7 +30,12 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
     }
 
     
-    public Long getSavigId() {
+    public Long getClient_id() {
+		return this.client_id;
+	}
+
+
+	public Long getSavigId() {
         return this.savigId;
     }
 
@@ -68,10 +75,10 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
        
         return 0;
     }
-    public static SavingInvestmentData instance(Long loan_id, String name, String accountno, Long loanammount, String productname, Long savingId,
+    public static SavingInvestmentData instance(Long loan_id,Long client_id, String name, String accountno, Long loanammount, String productname, Long savingId,
             List<Long> loanId,  Long investedAmount) {
        
-        return new SavingInvestmentData(loan_id, accountno, name, loanammount, productname, savingId, loanId, investedAmount);
+        return new SavingInvestmentData(loan_id,client_id, accountno, name, loanammount, productname, savingId, loanId, investedAmount);
     }
 
 

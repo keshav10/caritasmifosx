@@ -13,5 +13,7 @@ public interface InvestmentWritePlatformService {
     CommandProcessingResult deleteInvestmentBasedOnMapping(Long savingId, Long loanId);
     CommandProcessingResult deleteLoanInvestment(Long loanId, Long savingId);
     CommandProcessingResult addLoanInvestment(Long loanId, JsonCommand command);
+    CommandProcessingResult updateSavingInvestment(Long savingsAccountId,JsonCommand command);
+    CommandProcessingResult updateLoanInvestment(Long loanId,JsonCommand command);
     
 }
