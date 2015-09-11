@@ -770,7 +770,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
         return startInterestCalculationLocalDate;
     }
 
-    public SavingsAccountTransaction withdraw(final SavingsAccountTransactionDTO transactionDTO, final boolean applyWithdrawFee) {
+    public SavingsAccountTransaction withdraw(final SavingsAccountTransactionDTO transactionDTO, final boolean applyWithdrawFee,final PaymentDetail paymentDetail) {
 
         if (!isTransactionsAllowed()) {
 
@@ -831,16 +831,16 @@ public class SavingsAccount extends AbstractPersistable<Long> {
 
         if (applyWithdrawFee) {
             // auto pay withdrawal fee
-            payWithdrawalFee(transactionDTO.getTransactionAmount(), transactionDTO.getTransactionDate(), transactionDTO.getAppUser());
+            payWithdrawalFee(transactionDTO.getTransactionAmount(), transactionDTO.getTransactionDate(), transactionDTO.getAppUser(),paymentDetail);
         }
         return transaction;
     }
 
-    private void payWithdrawalFee(final BigDecimal transactionAmoount, final LocalDate transactionDate, final AppUser user) {
+    private void payWithdrawalFee(final BigDecimal transactionAmoount, final LocalDate transactionDate, final AppUser user,final PaymentDetail paymentDetail) {
         for (SavingsAccountCharge charge : this.charges()) {
             if (charge.isWithdrawalFee() && charge.isActive()) {
                 charge.updateWithdralFeeAmount(transactionAmoount);
-                this.payCharge(charge, charge.getAmountOutstanding(this.getCurrency()), transactionDate, user);
+                this.payCharge(charge, charge.getAmountOutstanding(this.getCurrency()), transactionDate, user, paymentDetail);
             }
         }
     }
@@ -1830,7 +1830,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     }
 
     public void processAccountUponActivation(final boolean isSavingsInterestPostingAtCurrentPeriodEnd,
-            final Integer financialYearBeginningMonth, final AppUser user) {
+            final Integer financialYearBeginningMonth, final AppUser user,final PaymentDetail paymentDetail) {
 
         // update annual fee due date
         for (SavingsAccountCharge charge : this.charges()) {
@@ -1838,7 +1838,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
         }
 
         // auto pay the activation time charges
-        this.payActivationCharges(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, user);
+        this.payActivationCharges(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, user, paymentDetail);
         // TODO : AA add activation charges to actual changes list
     }
 
@@ -1862,12 +1862,12 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     }
 
     private void payActivationCharges(final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth,
-            final AppUser user) {
+            final AppUser user,final PaymentDetail paymentDetail) {
         boolean isSavingsChargeApplied = false;
         for (SavingsAccountCharge savingsAccountCharge : this.charges()) {
             if (savingsAccountCharge.isSavingsActivation()) {
                 isSavingsChargeApplied = true;
-                payCharge(savingsAccountCharge, savingsAccountCharge.getAmountOutstanding(getCurrency()), getActivationLocalDate(), user);
+                payCharge(savingsAccountCharge, savingsAccountCharge.getAmountOutstanding(getCurrency()), getActivationLocalDate(), user, paymentDetail);
             }
         }
 
@@ -2181,7 +2181,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     }
 
     public void payCharge(final SavingsAccountCharge savingsAccountCharge, final BigDecimal amountPaid, final LocalDate transactionDate,
-            final DateTimeFormatter formatter, final AppUser user) {
+            final DateTimeFormatter formatter, final AppUser user,final PaymentDetail paymentDetail) {
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
         final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
@@ -2256,25 +2256,28 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
         }
 
-        this.payCharge(savingsAccountCharge, chargePaid, transactionDate, user);
+        this.payCharge(savingsAccountCharge, chargePaid, transactionDate, user, paymentDetail);
     }
 
     public void payCharge(final SavingsAccountCharge savingsAccountCharge, final Money amountPaid, final LocalDate transactionDate,
-            final AppUser user) {
+            final AppUser user,final PaymentDetail paymentDetail) {
         savingsAccountCharge.pay(getCurrency(), amountPaid);
-        handlePayChargeTransactions(savingsAccountCharge, amountPaid, transactionDate, user);
+        handlePayChargeTransactions(savingsAccountCharge, amountPaid, transactionDate, user, paymentDetail);
     }
 
     private void handlePayChargeTransactions(SavingsAccountCharge savingsAccountCharge, Money transactionAmount,
-            final LocalDate transactionDate, final AppUser user) {
+            final LocalDate transactionDate, final AppUser user,final PaymentDetail paymentDetail) {
         SavingsAccountTransaction chargeTransaction = null;
+        Date dt =new Date();
 
         if (savingsAccountCharge.isWithdrawalFee()) {
-            chargeTransaction = SavingsAccountTransaction.withdrawalFee(this, office(), transactionDate, transactionAmount, user);
+            chargeTransaction = SavingsAccountTransaction.withdrawalFee(this, office(),paymentDetail, transactionDate, transactionAmount,dt, user);
         } else if (savingsAccountCharge.isAnnualFee()) {
-            chargeTransaction = SavingsAccountTransaction.annualFee(this, office(), transactionDate, transactionAmount, user);
+            chargeTransaction = SavingsAccountTransaction.annualFee(this, office(),paymentDetail, transactionDate, transactionAmount,dt, user);
         } else {
-            chargeTransaction = SavingsAccountTransaction.charge(this,office(), transactionDate, transactionAmount, user);
+
+            chargeTransaction = SavingsAccountTransaction.charge(this, office(),paymentDetail, transactionDate, transactionAmount,dt, user);
+
         }
 
         handleChargeTransactions(savingsAccountCharge, chargeTransaction);
