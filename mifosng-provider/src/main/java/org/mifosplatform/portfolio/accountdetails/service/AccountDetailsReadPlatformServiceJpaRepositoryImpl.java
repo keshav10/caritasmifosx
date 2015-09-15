@@ -18,6 +18,7 @@ import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
+import org.mifosplatform.portfolio.accountdetails.PaymentDetailCollectionData;
 import org.mifosplatform.portfolio.accountdetails.data.AccountSummaryCollectionData;
 import org.mifosplatform.portfolio.accountdetails.data.LoanAccountSummaryData;
 import org.mifosplatform.portfolio.accountdetails.data.SavingsAccountSummaryData;
@@ -116,6 +117,50 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
         return this.jdbcTemplate.query(savingsSql, savingsAccountSummaryDataMapper, inputs);
     }
 
+    private Collection<PaymentDetailCollectionData> retrievePaymentDetails( final Object[] inputs) {
+        final PaymentDetailDataMapper rm = new PaymentDetailDataMapper();
+        final String sql = rm.schemaSql;
+        return this.jdbcTemplate.query(sql, rm, inputs);
+    }
+    private static final class PaymentDetailDataMapper implements RowMapper<PaymentDetailCollectionData> {
+      final String schemaSql;
+      public PaymentDetailDataMapper(){
+          final StringBuilder paymentdetail = new StringBuilder();
+          paymentdetail.append("select a.transaction_date,a.receipt_number,(a.amount+b.amount)as amount from ");
+          paymentdetail.append("(select mlt.transaction_date ,mpd.receipt_number,sum(mlt.amount) as amount ");
+          paymentdetail.append("from m_client mc ");
+          paymentdetail.append("inner join m_loan l on mc.id=l.client_id ");
+          paymentdetail.append("inner join m_loan_transaction mlt on mlt.loan_id=l.id ");
+          paymentdetail.append("inner join m_payment_detail mpd on mpd.id=mlt.payment_detail_id ");
+          paymentdetail.append("where mc.id=? ");
+          paymentdetail.append("group by mpd.receipt_number)a ");
+          paymentdetail.append("left join ");
+          paymentdetail.append("(select mst.transaction_date ,mpd.receipt_number,sum(mst.amount) as amount ");
+          paymentdetail.append("from m_client mc ");
+          paymentdetail.append("inner join m_savings_account s on mc.id=s.client_id ");
+          paymentdetail.append("inner join m_savings_account_transaction mst on mst.savings_account_id=s.id ");
+          paymentdetail.append("inner join m_payment_detail mpd on mpd.id=mst.payment_detail_id ");
+          paymentdetail.append("where mc.id=? ");
+          paymentdetail.append("and mst.transaction_type_enum=1 ");
+          paymentdetail.append("group by mpd.receipt_number)b ");
+          paymentdetail.append("on a.receipt_number=b.receipt_number");
+          this.schemaSql = paymentdetail.toString();
+      }
+      public String schema() {
+          return this.schemaSql;
+      }
+	@Override
+	public PaymentDetailCollectionData mapRow(ResultSet rs, int rowNum)
+			throws SQLException {
+		final String date = rs.getString("transaction_date");
+        final BigDecimal amount = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs,"amount");
+
+        final String receiptNumber = rs.getString("receipt_number");
+        return new PaymentDetailCollectionData(amount, date, receiptNumber);                
+       
+	}
+    	
+    }
     private static final class SavingsAccountSummaryDataMapper implements RowMapper<SavingsAccountSummaryData> {
 
         final String schemaSql;
@@ -359,5 +404,14 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     timeline, inArrears,originalLoan,loanBalance,amountPaid);
         }
     }
+
+	@Override
+	public Collection<PaymentDetailCollectionData> retrivePaymentDetail(
+			Long clientId) {
+		this.clientReadPlatformService.retrieveOne(clientId);
+		return retrievePaymentDetails(new Object[] { clientId, clientId });
+        
+   
+	}
 
 }
