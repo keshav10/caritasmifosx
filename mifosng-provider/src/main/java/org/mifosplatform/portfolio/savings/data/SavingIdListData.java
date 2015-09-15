@@ -28,7 +28,8 @@ public class SavingIdListData {
     public static SavingIdListData insatanceForAllSavingId(Long savingId, LocalDate activateOnDate, LocalDate startFeeChargDate) {
         return new SavingIdListData(savingId, null, startFeeChargDate, activateOnDate);
     }
-
+    
+ 
     public LocalDate getMaxTransactionDate() {
         return this.maxTransactionDate;
     }
@@ -44,4 +45,8 @@ public class SavingIdListData {
     public Long getSavingId() {
         return this.savingId;
     }
+
+	public static SavingIdListData instaceForTransactionDate(LocalDate txnDate) {
+		return new SavingIdListData(null, txnDate,null, null);
+	}
 }
