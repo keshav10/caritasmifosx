@@ -37,6 +37,7 @@ import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.mifosplatform.infrastructure.core.service.Page;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.accountdetails.PaymentDetailCollectionData;
+import org.mifosplatform.portfolio.accountdetails.SharesAccountBalanceCollectionData;
 import org.mifosplatform.portfolio.accountdetails.data.AccountSummaryCollectionData;
 import org.mifosplatform.portfolio.accountdetails.service.AccountDetailsReadPlatformService;
 import org.mifosplatform.portfolio.client.data.ClientData;
@@ -292,6 +293,18 @@ public class ClientsApiResource {
        ArrayList<PaymentDetailCollectionData> PaymentDetail =  (ArrayList<PaymentDetailCollectionData>) this.accountDetailsReadPlatformService.retrivePaymentDetail(clientId);
        // final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.clientAccountSummaryToApiJsonSerializer.serialize(PaymentDetail);
+    }
+    
+    @GET
+    @Path("{clientId}/sharesAccount")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String retrieveSharesAccountBalance(@PathParam("clientId") final Long clientId, @Context final UriInfo uriInfo) {
+
+        this.context.authenticatedUser().validateHasReadPermission(ClientApiConstants.CLIENT_RESOURCE_NAME);
+       ArrayList<SharesAccountBalanceCollectionData> sharesAccountBalance =  (ArrayList<SharesAccountBalanceCollectionData>) this.accountDetailsReadPlatformService.retriveSharesBalance(clientId);
+       // final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.clientAccountSummaryToApiJsonSerializer.serialize(sharesAccountBalance);
     }
     
     

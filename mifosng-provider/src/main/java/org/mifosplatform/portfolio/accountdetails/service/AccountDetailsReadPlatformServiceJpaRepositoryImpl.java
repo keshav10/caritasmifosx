@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import org.joda.time.LocalDate;
@@ -19,6 +20,7 @@ import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
 import org.mifosplatform.portfolio.accountdetails.PaymentDetailCollectionData;
+import org.mifosplatform.portfolio.accountdetails.SharesAccountBalanceCollectionData;
 import org.mifosplatform.portfolio.accountdetails.data.AccountSummaryCollectionData;
 import org.mifosplatform.portfolio.accountdetails.data.LoanAccountSummaryData;
 import org.mifosplatform.portfolio.accountdetails.data.SavingsAccountSummaryData;
@@ -126,24 +128,34 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
       final String schemaSql;
       public PaymentDetailDataMapper(){
           final StringBuilder paymentdetail = new StringBuilder();
-          paymentdetail.append("select a.transaction_date,a.receipt_number,(a.amount+b.amount)as amount from ");
-          paymentdetail.append("(select mlt.transaction_date ,mpd.receipt_number,sum(mlt.amount) as amount ");
+          paymentdetail.append("select date_format(c.transaction_date,'%d' '-%b' '-%y') as transaction_date , c. receipt_number,sum(c.amount) as amount,c.loan_id ,c.PaymentType1 from ( ");
+          paymentdetail.append("select mlt.transaction_date ,IF (LENGTH(mpd.receipt_number) >0 , mpd.receipt_number , CONCAT('dummy_', mpd.id) )  receipt_number, ");
+          paymentdetail.append(" sum(mlt.amount) as amount,mlt.transaction_type_enum,mlt.loan_id, ");
+          paymentdetail.append("if(mlt.transaction_type_enum =1,'D','R')as paymentType, ");
+          paymentdetail.append("if(mlt.transaction_type_enum=1,'DS','P') as PaymentType1 ");
           paymentdetail.append("from m_client mc ");
           paymentdetail.append("inner join m_loan l on mc.id=l.client_id ");
           paymentdetail.append("inner join m_loan_transaction mlt on mlt.loan_id=l.id ");
-          paymentdetail.append("inner join m_payment_detail mpd on mpd.id=mlt.payment_detail_id ");
-          paymentdetail.append("where mc.id=? ");
-          paymentdetail.append("group by mpd.receipt_number)a ");
-          paymentdetail.append("left join ");
-          paymentdetail.append("(select mst.transaction_date ,mpd.receipt_number,sum(mst.amount) as amount ");
-          paymentdetail.append("from m_client mc ");
+          paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mlt.payment_detail_id ");
+          paymentdetail.append(" where mc.id=? ");
+          paymentdetail.append("and mlt.is_reversed=0 ");
+          paymentdetail.append("and mlt.transaction_type_enum in (1,2) ");
+          paymentdetail.append("group by mpd.receipt_number,mlt.transaction_type_enum,mlt.transaction_date,mlt.loan_id ");
+          paymentdetail.append("union ");
+          paymentdetail.append("select mst.transaction_date ,IF (LENGTH( mpd.receipt_number) >0 , mpd.receipt_number , CONCAT('dummy_', mpd.id) )  receipt_number, ");
+          paymentdetail.append("sum(amount) as amount,mst.transaction_type_enum,mst.savings_account_id, ");
+          paymentdetail.append("if(mst.transaction_type_enum=1,'R','W')paymentType, ");
+          paymentdetail.append("if (mst.transaction_type_enum=1,'DP','W') paymentType1 ");
+          paymentdetail.append("from m_client mc  ");
           paymentdetail.append("inner join m_savings_account s on mc.id=s.client_id ");
           paymentdetail.append("inner join m_savings_account_transaction mst on mst.savings_account_id=s.id ");
-          paymentdetail.append("inner join m_payment_detail mpd on mpd.id=mst.payment_detail_id ");
-          paymentdetail.append("where mc.id=? ");
-          paymentdetail.append("and mst.transaction_type_enum=1 ");
-          paymentdetail.append("group by mpd.receipt_number)b ");
-          paymentdetail.append("on a.receipt_number=b.receipt_number");
+          paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mst.payment_detail_id ");
+          paymentdetail.append("where mc.id=?  ");
+          paymentdetail.append("and transaction_type_enum in(1,2) ");
+          paymentdetail.append(" group by mpd.receipt_number,mst.transaction_type_enum,mst.transaction_date,mst.savings_account_id ");
+          paymentdetail.append(" )c group by c.transaction_date,c.receipt_number ");
+          paymentdetail.append("  order by c.transaction_date desc "); 
+          paymentdetail.append(" LIMIT 4");
           this.schemaSql = paymentdetail.toString();
       }
       public String schema() {
@@ -153,10 +165,10 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	public PaymentDetailCollectionData mapRow(ResultSet rs, int rowNum)
 			throws SQLException {
 		final String date = rs.getString("transaction_date");
-        final BigDecimal amount = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs,"amount");
-
+        final Long amount = rs.getLong("amount");
+        final String type=rs.getString("PaymentType1");
         final String receiptNumber = rs.getString("receipt_number");
-        return new PaymentDetailCollectionData(amount, date, receiptNumber);                
+        return new PaymentDetailCollectionData(amount, date, receiptNumber,type);                
        
 	}
     	
@@ -412,6 +424,39 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 		return retrievePaymentDetails(new Object[] { clientId, clientId });
         
    
+	}
+	private Collection<SharesAccountBalanceCollectionData> retrieveShareAccountBalance( final Object[] inputs) {
+        final shareAccountBalanceDataaMapper rm = new shareAccountBalanceDataaMapper();
+        final String sql = rm.schemaSql;
+        return this.jdbcTemplate.query(sql, rm, inputs);
+    }
+	private static final class shareAccountBalanceDataaMapper implements RowMapper<SharesAccountBalanceCollectionData> {
+	      final String schemaSql;
+	      public shareAccountBalanceDataaMapper(){
+	          final StringBuilder shareAccountBalance = new StringBuilder();
+	          shareAccountBalance.append("select msa.account_no ,msa.account_balance_derived  from   ");
+	          shareAccountBalance.append("m_client mc left join m_savings_account msa on mc.id=msa.client_id  ");
+	          shareAccountBalance.append("where mc.id=? ");
+	          shareAccountBalance.append("and msa.product_id in (select distinct default_savings_product from m_client) ");
+	          this.schemaSql = shareAccountBalance.toString();
+	      }
+	      public String schema() {
+	          return this.schemaSql;
+	      }
+		@Override
+		public SharesAccountBalanceCollectionData mapRow(ResultSet rs,
+				int rowNum) throws SQLException {
+			final String accountNo = rs.getString("account_no");
+			final BigDecimal accountBalance = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "account_balance_derived");
+	         return  new SharesAccountBalanceCollectionData(accountNo, accountBalance);                
+	       
+		}
+	}
+	@Override
+	public Collection<SharesAccountBalanceCollectionData> retriveSharesBalance(
+			Long clientId) {
+		this.clientReadPlatformService.retrieveOne(clientId);
+		return retrieveShareAccountBalance(new Object[] { clientId});
 	}
 
 }
