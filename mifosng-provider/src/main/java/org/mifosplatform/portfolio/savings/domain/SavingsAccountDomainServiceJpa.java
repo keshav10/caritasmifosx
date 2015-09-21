@@ -118,7 +118,7 @@ public class SavingsAccountDomainServiceJpa implements
 				fmt, transactionDate, transactionAmount, paymentDetail,
 				new Date(), user);
 		final SavingsAccountTransaction withdrawal = account.withdraw(
-				transactionDTO, transactionBooleanValues.isApplyWithdrawFee());
+				transactionDTO, transactionBooleanValues.isApplyWithdrawFee(),paymentDetail);
 
 		final MathContext mc = MathContext.DECIMAL64;
 		if (account.isBeforeLastPostingPeriod(transactionDate)) {
