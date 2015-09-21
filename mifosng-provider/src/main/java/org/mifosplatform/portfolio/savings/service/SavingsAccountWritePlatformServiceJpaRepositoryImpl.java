@@ -91,6 +91,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 @Service
+
 public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements SavingsAccountWritePlatformService {
 
     private final PlatformSecurityContext context;
@@ -1178,5 +1179,6 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         }
         return user;
     }
+
 
 }

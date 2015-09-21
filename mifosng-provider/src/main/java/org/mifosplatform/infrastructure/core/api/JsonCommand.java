@@ -239,6 +239,7 @@ public final class JsonCommand {
     public boolean parameterExists(final String parameterName) {
         return this.fromApiJsonHelper.parameterExists(parameterName, this.parsedCommand);
     }
+    
 
     public boolean hasParameter(final String parameterName) {
         return parameterExists(parameterName);

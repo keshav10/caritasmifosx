@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -202,12 +203,12 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
      * releases guarantor)
      */
     @Override
-    public void transaferFundsFromGuarantor(final Loan loan) {
+    public void transaferFundsFromGuarantor(final Loan loan,final LocalDate guarantorRecoveryDate) {
         if (loan.getGuaranteeAmount().compareTo(BigDecimal.ZERO) != 1) { return; }
         final List<Guarantor> existGuarantorList = this.guarantorRepository.findByLoan(loan);
         final boolean isRegularTransaction = true;
         final boolean isExceptionForBalanceCheck = true;
-        LocalDate transactionDate = LocalDate.now();
+        LocalDate transactionDate;
         PortfolioAccountType fromAccountType = PortfolioAccountType.SAVINGS;
         PortfolioAccountType toAccountType = PortfolioAccountType.LOAN;
         final Long toAccountId = loan.getId();
@@ -225,6 +226,11 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
 
         final String txnExternalId = null;
         final SavingsAccount toSavingsAccount = null;
+        if(guarantorRecoveryDate!=null){
+            transactionDate=guarantorRecoveryDate;
+        }else{
+            transactionDate=new LocalDate();
+        }
 
         Long loanId = loan.getId();
 

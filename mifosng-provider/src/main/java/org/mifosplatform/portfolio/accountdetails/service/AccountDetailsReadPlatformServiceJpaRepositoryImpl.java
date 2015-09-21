@@ -276,7 +276,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     .append(" l.loan_status_id as statusId, l.loan_type_enum as loanType,")
                     
                     .append("l.principal_disbursed_derived as originalLoan,")
-                    .append("l.total_outstanding_derived as loanBalance,")
+                    .append("l.principal_outstanding_derived as loanBalance,")
                     .append("l.total_repayment_derived as amountPaid,")
                     
                     .append(" l.loan_product_counter as loanCycle,")

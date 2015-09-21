@@ -216,6 +216,13 @@ public class SavingsAccountAssembler {
             allowOverdraft = product.isAllowOverdraft();
         }
 
+        boolean releaseguarantor = false;
+                if(command.parameterExists("releaseguarantor")){
+                       releaseguarantor = command.booleanPrimitiveValueOfParameterNamed("releaseguarantor");
+                }else{
+                       releaseguarantor = product.isReleaseguarantor();
+                }
+        
         BigDecimal overdraftLimit = null;
         if (command.parameterExists(overdraftLimitParamName)) {
             overdraftLimit = command.bigDecimalValueOfParameterNamedDefaultToNullIfZero(overdraftLimitParamName);
@@ -241,7 +248,7 @@ public class SavingsAccountAssembler {
                 externalId, accountType, submittedOnDate, submittedBy, interestRate, interestCompoundingPeriodType,
                 interestPostingPeriodType, interestCalculationType, interestCalculationDaysInYearType, minRequiredOpeningBalance,
                 lockinPeriodFrequency, lockinPeriodFrequencyType, iswithdrawalFeeApplicableForTransfer, charges, allowOverdraft,
-                overdraftLimit, enforceMinRequiredBalance, minRequiredBalance);
+                overdraftLimit, enforceMinRequiredBalance, minRequiredBalance, releaseguarantor);
         account.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
 
         account.validateNewApplicationState(DateUtils.getLocalDateOfTenant(), SAVINGS_ACCOUNT_RESOURCE_NAME);
@@ -295,7 +302,7 @@ public class SavingsAccountAssembler {
                 product.interestPostingPeriodType(), product.interestCalculationType(), product.interestCalculationDaysInYearType(),
                 product.minRequiredOpeningBalance(), product.lockinPeriodFrequency(), product.lockinPeriodFrequencyType(),
                 product.isWithdrawalFeeApplicableForTransfer(), charges, product.isAllowOverdraft(), product.overdraftLimit(),
-                product.isMinRequiredBalanceEnforced(), product.minRequiredBalance());
+                product.isMinRequiredBalanceEnforced(), product.minRequiredBalance(), product.isAccrualBasedAccountingEnabled() );
         account.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
 
         account.validateNewApplicationState(DateUtils.getLocalDateOfTenant(), SAVINGS_ACCOUNT_RESOURCE_NAME);

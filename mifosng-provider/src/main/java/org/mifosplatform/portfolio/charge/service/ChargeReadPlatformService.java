@@ -12,6 +12,8 @@ import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
 
 public interface ChargeReadPlatformService {
 
+    Collection<ChargeData> retriveAllChargeOfSavingLateFee();
+
     Collection<ChargeData> retrieveAllCharges();
 
     Collection<ChargeData> retrieveAllChargesForCurrency(String currencyCode);
@@ -93,7 +95,7 @@ public interface ChargeReadPlatformService {
      * @return
      */
     Collection<ChargeData> retrieveSavingsProductCharges(Long savingsProductId);
-    
+
     /** Retrieve savings account charges **/
     Collection<ChargeData> retrieveSavingsAccountApplicableCharges(Long savingsId);
 
