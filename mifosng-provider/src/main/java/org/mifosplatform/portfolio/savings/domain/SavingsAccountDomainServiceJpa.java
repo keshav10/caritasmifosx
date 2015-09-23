@@ -211,6 +211,7 @@ public class SavingsAccountDomainServiceJpa implements
 
 		Long loanId = this.loanReadPlatformService
 				.retriveLoanAccountId(clientId);
+	    BigDecimal totalTransactionAmount = null;
 
 		if (!(loanId == null) && isReleaseGuarantor == 1) {
 
@@ -220,6 +221,8 @@ public class SavingsAccountDomainServiceJpa implements
 			boolean allowToInsert = false;
 			boolean allowToOnHold = false;
 			BigDecimal loanAmount = loan.getApprovedPrincipal();
+			BigDecimal onHoldAmount = account.getOnHoldFunds();
+			if(onHoldAmount.compareTo(loanAmount)<1){
 
 			List<GuarantorFundingDetails> externalGuarantorList = new ArrayList<>();
 			List<GuarantorFundingDetails> selfGuarantorList = new ArrayList<>();
@@ -245,9 +248,27 @@ public class SavingsAccountDomainServiceJpa implements
 							selfGuarantee = selfGuarantee
 									.add(guarantorFundingDetails
 											.getAmountRemaining());
-							if (allowToOnHold == true) {
-								DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction
-										.hold(account, transactionAmount,
+							BigDecimal  totalOnHoldAmount = account.getOnHoldFunds();
+							BigDecimal remainingOnHoldAmount = loanAmount.subtract(totalOnHoldAmount);
+							boolean allowToAddOnHold = false;
+						    if(totalOnHoldAmount.compareTo(loanAmount)<1){
+						    	allowToAddOnHold = true;
+						    }
+						    
+						    if(transactionAmount.compareTo(remainingOnHoldAmount)==1){
+							  totalTransactionAmount = remainingOnHoldAmount;	
+							}else{
+								totalTransactionAmount = transactionAmount;
+							}
+							
+							
+							
+						if (allowToOnHold == true && allowToAddOnHold == true) {
+							
+							
+							
+							 DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction
+										.hold(account, totalTransactionAmount,
 												transactionDate);
 
 								accountOnHoldTransactions
@@ -292,7 +313,7 @@ public class SavingsAccountDomainServiceJpa implements
 				} else {
 					if (availableOnHoladAmount.longValue() <= totalGuaranteeAmount
 							.longValue()) {
-						account.holdFunds(transactionAmount);
+						account.holdFunds(totalTransactionAmount);
 					}
 
 				}
@@ -307,7 +328,7 @@ public class SavingsAccountDomainServiceJpa implements
 
 				if (allowToInsert == true) {
 					calculateAndIncrementSelfGuarantorFunds(selfGuarantorList,
-							transactionAmount, loanAmount);
+							totalTransactionAmount, loanAmount);
 				}
 
 				if (!externalGuarantorList.isEmpty()) {
@@ -318,7 +339,8 @@ public class SavingsAccountDomainServiceJpa implements
 				}
 
 			}
-		}
+	    	}
+		}		
 
 		this.savingsAccountRepository.save(account);
 		return deposit;
