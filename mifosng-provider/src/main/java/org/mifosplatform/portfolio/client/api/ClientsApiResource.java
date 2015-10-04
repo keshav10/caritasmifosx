@@ -5,9 +5,12 @@
  */
 package org.mifosplatform.portfolio.client.api;
 
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -39,6 +42,7 @@ import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext
 import org.mifosplatform.portfolio.accountdetails.PaymentDetailCollectionData;
 import org.mifosplatform.portfolio.accountdetails.SharesAccountBalanceCollectionData;
 import org.mifosplatform.portfolio.accountdetails.data.AccountSummaryCollectionData;
+import org.mifosplatform.portfolio.accountdetails.data.MpesaTransactionSummaryData;
 import org.mifosplatform.portfolio.accountdetails.service.AccountDetailsReadPlatformService;
 import org.mifosplatform.portfolio.client.data.ClientData;
 import org.mifosplatform.portfolio.client.service.ClientReadPlatformService;
@@ -307,7 +311,15 @@ public class ClientsApiResource {
         return this.clientAccountSummaryToApiJsonSerializer.serialize(sharesAccountBalance);
     }
     
-    
+    @GET
+    @Path("{clientId}/Mpesa")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String retriveMpesaTransactionDetail(@PathParam("clientId") final Long clientId, @QueryParam("TransactionDate") final String TransactionDate, @QueryParam("ReceiptNo") final String ReceiptNo,@Context final UriInfo uriInfo) {
+    	this.context.authenticatedUser().validateHasReadPermission(ClientApiConstants.CLIENT_RESOURCE_NAME);
+		   	ArrayList<MpesaTransactionSummaryData> mpesaTxnDetails = (ArrayList<MpesaTransactionSummaryData>) this.accountDetailsReadPlatformService.retriveMpesaTransactionDetail(clientId,TransactionDate,ReceiptNo);
+            return this.clientAccountSummaryToApiJsonSerializer.serialize(mpesaTxnDetails);
+    }
     
     
     
