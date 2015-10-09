@@ -648,6 +648,7 @@ public class CommandWrapper {
         return this.actionName.equalsIgnoreCase("REMOVESAVINGSOFFICER") && this.entityName.equalsIgnoreCase("SAVINGSACCOUNT");
     }
 
+    
     public boolean isSavingsAccountChargeResource() {
         return this.entityName.equalsIgnoreCase("SAVINGSACCOUNTCHARGE");
     }
@@ -1031,4 +1032,37 @@ public class CommandWrapper {
     public boolean isPaymentTypeResource() {
         return this.entityName.equalsIgnoreCase("PAYMENTTYPE");
     }
+    
+    
+    public boolean isLoanInvestment(){
+        
+    	return this.entityName.equalsIgnoreCase("LOANINVESTMENT");
+    }
+    public boolean isAddLoanInvestment(){
+    	return this.actionName.equalsIgnoreCase("CREATE")  && this.entityName.equalsIgnoreCase("LOANINVESTMENT");
+    }
+    public boolean isDeleteLoanInvestment(){
+    	return this.actionName.equalsIgnoreCase("DELETE") && this.entityName.equalsIgnoreCase("LOANINVESTMENT");
+    }
+    public boolean isUpdateLoanInvestment(){
+    	return this.actionName.equalsIgnoreCase("UPDATE") && this.entityName.equalsIgnoreCase("LOANINVESTMENT");
+    }
+    
+    public boolean isSavingInvestment(){
+    	return this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
+    }
+    
+    public boolean isAddSavingInvestment(){
+    	return this.actionName.equalsIgnoreCase("CREATE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
+    }
+    
+    public boolean isDeleteSavingInvestment(){
+    	return this.actionName.equalsIgnoreCase("DELETE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
+    }
+    
+    public boolean isUpdateSavingInvestment(){
+    	return this.actionName.equalsIgnoreCase("UPDATE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
+    }
+    
+
 }

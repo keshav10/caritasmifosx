@@ -524,7 +524,7 @@ public class Loan extends AbstractPersistable<Long> {
                     getId(), loanCharge.name());
         }
 
-        validateChargeHasValidSpecifiedDateIfApplicable(loanCharge, getDisbursementDate(), getLastRepaymentPeriodDueDate());
+        validateChargeHasValidSpecifiedDateIfApplicable(loanCharge, getDisbursementDate(), getLastRepaymentPeriodDueDateForCharges());
 
         loanCharge.update(this);
 
@@ -673,15 +673,25 @@ public class Loan extends AbstractPersistable<Long> {
     }
 
     private void validateChargeHasValidSpecifiedDateIfApplicable(final LoanCharge loanCharge, final LocalDate disbursementDate,
-            final LocalDate lastRepaymentPeriodDueDate) {
+            final LocalDate lastRepaymentPeriodDueDateForCharges) {
         if (loanCharge.isSpecifiedDueDate()
-                && !loanCharge.isDueForCollectionFromAndUpToAndIncluding(disbursementDate, lastRepaymentPeriodDueDate)) {
+                && !loanCharge.isDueForCollectionFromAndUpToAndIncluding(disbursementDate, lastRepaymentPeriodDueDateForCharges)) {
             final String defaultUserMessage = "This charge with specified due date cannot be added as the it is not in schedule range.";
             throw new LoanChargeCannotBeAddedException("loanCharge", "specified.due.date.outside.range", defaultUserMessage,
-                    getDisbursementDate(), lastRepaymentPeriodDueDate, loanCharge.name());
+                    getDisbursementDate(), lastRepaymentPeriodDueDateForCharges, loanCharge.name());
         }
     }
 
+    private LocalDate getLastRepaymentPeriodDueDateForCharges() {
+        LocalDate lastRepaymentDate = getDisbursementDate();
+        for (LoanRepaymentScheduleInstallment installment : this.repaymentScheduleInstallments) {
+            if (installment.getDueDate().isAfter(lastRepaymentDate)) {
+                lastRepaymentDate = installment.getDueDate();
+            }
+        }
+        return lastRepaymentDate;
+    }
+    
     private LocalDate getLastRepaymentPeriodDueDate() {
         LocalDate lastRepaymentDate = getDisbursementDate();
         for (LoanRepaymentScheduleInstallment installment : this.repaymentScheduleInstallments) {
@@ -1504,7 +1514,7 @@ public class Loan extends AbstractPersistable<Long> {
         if (loanCharge.isActive()) {
             loanCharge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, repaymentScheduleDetail().getNumberOfRepayments(),
                     totalChargeAmt);
-            validateChargeHasValidSpecifiedDateIfApplicable(loanCharge, getDisbursementDate(), getLastRepaymentPeriodDueDate());
+            validateChargeHasValidSpecifiedDateIfApplicable(loanCharge, getDisbursementDate(), getLastRepaymentPeriodDueDateForCharges());
         }
 
     }
@@ -4666,7 +4676,7 @@ public class Loan extends AbstractPersistable<Long> {
         final LoanScheduleModel loanSchedule = getRecalculatedSchedule(generatorDTO);
         if (loanSchedule == null) { return; }
         updateLoanSchedule(loanSchedule, currentUser);
-        LocalDate lastRepaymentDate = this.getLastRepaymentPeriodDueDate();
+        LocalDate lastRepaymentDate = this.getLastRepaymentPeriodDueDateForCharges();
         Set<LoanCharge> charges = this.charges();
         for (LoanCharge loanCharge : charges) {
             if (!loanCharge.isDueAtDisbursement()) {

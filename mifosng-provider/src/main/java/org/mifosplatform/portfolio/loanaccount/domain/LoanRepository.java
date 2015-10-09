@@ -126,5 +126,8 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
 
     @Query(DOES_CLIENT_HAVE_NON_CLOSED_LOANS)
     boolean doNonClosedLoanAccountsExistForClient(@Param("clientId") Long clientId);
+    
+    @Query("select loan.id from Loan loan where loan.client.id=:clientId")		
+    List<Long> findLoanIdByClientId(@Param("clientId") Long clientId);
 
 }

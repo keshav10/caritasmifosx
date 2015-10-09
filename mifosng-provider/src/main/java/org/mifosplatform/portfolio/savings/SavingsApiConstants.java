@@ -96,6 +96,7 @@ public class SavingsApiConstants {
     public static final String receiptNumberParamName = "receiptNumber";
     public static final String bankNumberParamName = "bankNumber";
     public static final String allowOverdraftParamName = "allowOverdraft";
+    public static final String releaseGuarantorFundParamName = "releaseguarantor";
     public static final String overdraftLimitParamName = "overdraftLimit";
     public static final String minRequiredBalanceParamName = "minRequiredBalance";
     public static final String enforceMinRequiredBalanceParamName = "enforceMinRequiredBalance";
@@ -162,7 +163,7 @@ public class SavingsApiConstants {
             SAVINGS_PRODUCT_ACCOUNTING_PARAMS.OVERDRAFT_PORTFOLIO_CONTROL.getValue(),
             SAVINGS_PRODUCT_ACCOUNTING_PARAMS.LOSSES_WRITTEN_OFF.getValue(),
             SAVINGS_PRODUCT_ACCOUNTING_PARAMS.INCOME_FROM_INTEREST.getValue(), allowOverdraftParamName, overdraftLimitParamName,
-            minRequiredBalanceParamName, enforceMinRequiredBalanceParamName, minBalanceForInterestCalculationParamName));
+            minRequiredBalanceParamName, enforceMinRequiredBalanceParamName, minBalanceForInterestCalculationParamName, releaseGuarantorFundParamName));
 
     /**
      * These parameters will match the class level parameters of
@@ -186,7 +187,7 @@ public class SavingsApiConstants {
             lockinPeriodFrequencyTypeParamName,
             // withdrawalFeeAmountParamName, withdrawalFeeTypeParamName,
             withdrawalFeeForTransfersParamName, feeAmountParamName, feeOnMonthDayParamName, chargesParamName, allowOverdraftParamName,
-            overdraftLimitParamName, minRequiredBalanceParamName, enforceMinRequiredBalanceParamName));
+            overdraftLimitParamName, minRequiredBalanceParamName, enforceMinRequiredBalanceParamName, releaseGuarantorFundParamName));
 
     /**
      * These parameters will match the class level parameters of
@@ -229,7 +230,8 @@ public class SavingsApiConstants {
             feeIntervalParamName));
 
     public static final Set<String> SAVINGS_ACCOUNT_CHARGES_PAY_CHARGE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(
-            amountParamName, dueAsOfDateParamName, dateFormatParamName, localeParamName));
+            amountParamName, dueAsOfDateParamName, dateFormatParamName, localeParamName,paymentTypeIdParamName,
+            transactionAccountNumberParamName, checkNumberParamName, routingCodeParamName, receiptNumberParamName, bankNumberParamName));
 
     public static final Set<String> SAVINGS_ACCOUNT_ON_HOLD_RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList(idParamName,
             amountParamName, onHoldTransactionTypeParamName, onHoldTransactionDateParamName, onHoldReversedParamName));

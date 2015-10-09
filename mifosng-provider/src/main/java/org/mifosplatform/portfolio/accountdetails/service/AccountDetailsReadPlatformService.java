@@ -29,4 +29,7 @@ public interface AccountDetailsReadPlatformService {
     public Collection<SharesAccountBalanceCollectionData> retriveSharesBalance(final Long clientId);
 
     public Collection<MpesaTransactionSummaryData>retriveMpesaTransactionDetail(Long clientId,String TxnDate,String ReceiptNo);
+
+    public AccountSummaryCollectionData retriveClientAccountAndChargeDetails(final Long clientId,final String chargeonDate);
+
 }

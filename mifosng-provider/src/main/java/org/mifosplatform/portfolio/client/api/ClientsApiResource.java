@@ -6,8 +6,10 @@
 package org.mifosplatform.portfolio.client.api;
 
 
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -29,6 +31,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang.StringUtils;
+import org.mifosplatform.accounting.journalentry.api.DateParam;
 import org.mifosplatform.commands.domain.CommandWrapper;
 import org.mifosplatform.commands.service.CommandWrapperBuilder;
 import org.mifosplatform.commands.service.PortfolioCommandSourceWritePlatformService;
@@ -321,8 +324,25 @@ public class ClientsApiResource {
             return this.clientAccountSummaryToApiJsonSerializer.serialize(mpesaTxnDetails);
     }
     
-    
-    
-    
-    
+    @GET
+    @Path("{clientId}/clientsPayments")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String retriveAssociateAccountsAndCharges(@PathParam("clientId") final Long clientId, @QueryParam("submittedOnDate") final Date submittedOnDate ,@Context final UriInfo uriInfo) {
+
+    	this.context.authenticatedUser().validateHasReadPermission(ClientApiConstants.CLIENT_RESOURCE_NAME);
+    	Date currentdate = new Date();    	
+    	DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+    	String chargeonDate= formatter.format(currentdate);
+    	if(submittedOnDate!=null){
+    	chargeonDate = formatter.format(submittedOnDate); 
+    	}
+    	final AccountSummaryCollectionData clientAccount = this.accountDetailsReadPlatformService.retriveClientAccountAndChargeDetails(clientId,chargeonDate);
+        final Set<String> CLIENT_ACCOUNTS_DATA_PARAMETERS = new HashSet<String>(Arrays.asList("loanAccounts", "savingsAccounts",
+                "paymentTypeOptions","loanCharges","savingsCharges"));
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.clientAccountSummaryToApiJsonSerializer.serialize(settings, clientAccount, CLIENT_ACCOUNTS_DATA_PARAMETERS);
+
+    }
+
 }
