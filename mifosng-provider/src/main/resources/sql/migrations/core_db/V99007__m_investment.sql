@@ -15,9 +15,13 @@ ENGINE=InnoDB
 
 INSERT INTO m_permission (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'CREATE_SAVINGINVESTMENT', 'SAVINGINVESTMENT', 'CREATE', 0);
 
+INSERT INTO m_permission (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'UPDATE_SAVINGINVESTMENT', 'SAVINGINVESTMENT', 'UPDATE', 0);
+
 INSERT INTO m_permission (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'DELETE_SAVINGINVESTMENT', 'SAVINGINVESTMENT', 'DELETE', 0);
 
 INSERT INTO m_permission (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'DELETE_LOANINVESTMENT', 'LOANINVESTMENT', 'DELETE', 0);
+
+INSERT INTO m_permission (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'UPDATE_LOANINVESTMENT', 'LOANINVESTMENT', 'UPDATE', 0);
 
 INSERT INTO m_permission (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'CREATE_LOANINVESTMENT', 'LOANINVESTMENT', 'CREATE', 0);
 
