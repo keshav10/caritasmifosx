@@ -129,27 +129,26 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
                 amount, isReversed, null);
     }
 
-    public static SavingsAccountTransaction withdrawalFee(final SavingsAccount savingsAccount, final Office office, final LocalDate date,
-            final Money amount, final AppUser appUser) {
+    public static SavingsAccountTransaction withdrawalFee(final SavingsAccount savingsAccount, final Office office,final PaymentDetail paymentDetail, final LocalDate date,
+            final Money amount,Date createdDate, final AppUser appUser) {
         final boolean isReversed = false;
-        return new SavingsAccountTransaction(savingsAccount, office, SavingsAccountTransactionType.WITHDRAWAL_FEE.getValue(), date, amount,
+        return new SavingsAccountTransaction(savingsAccount, office,paymentDetail, SavingsAccountTransactionType.WITHDRAWAL_FEE.getValue(), date,createdDate, amount,
                 isReversed, appUser);
     }
 
-    public static SavingsAccountTransaction annualFee(final SavingsAccount savingsAccount, final Office office, final LocalDate date,
-            final Money amount, final AppUser appUser) {
+    public static SavingsAccountTransaction annualFee(final SavingsAccount savingsAccount, final Office office,final PaymentDetail paymentDetail, final LocalDate date,
+            final Money amount,Date createdDate, final AppUser appUser) {
         final boolean isReversed = false;
-        return new SavingsAccountTransaction(savingsAccount, office, SavingsAccountTransactionType.ANNUAL_FEE.getValue(), date, amount,
+        return new SavingsAccountTransaction(savingsAccount, office,paymentDetail, SavingsAccountTransactionType.ANNUAL_FEE.getValue(), date,createdDate, amount,
                 isReversed, appUser);
     }
 
-    public static SavingsAccountTransaction charge(final SavingsAccount savingsAccount, final Office office, final LocalDate date,
-            final Money amount, final AppUser appUser) {
+    public static SavingsAccountTransaction charge(final SavingsAccount savingsAccount, final Office office, final PaymentDetail paymentDetail, final LocalDate date,
+            final Money amount,Date createdDate, final AppUser appUser) {
         final boolean isReversed = false;
-        return new SavingsAccountTransaction(savingsAccount, office, SavingsAccountTransactionType.PAY_CHARGE.getValue(), date, amount,
+        return new SavingsAccountTransaction(savingsAccount, office,paymentDetail, SavingsAccountTransactionType.PAY_CHARGE.getValue(), date,createdDate, amount,
                 isReversed, appUser);
-    }
-
+    }    
     public static SavingsAccountTransaction waiver(final SavingsAccount savingsAccount, final Office office, final LocalDate date,
             final Money amount, final AppUser appUser) {
         final boolean isReversed = false;
@@ -214,6 +213,7 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
         this.createdDate = createdDate;
         this.appUser = appUser;
     }
+   
 
     public LocalDate transactionLocalDate() {
         return new LocalDate(this.dateOf);

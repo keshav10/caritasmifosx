@@ -8,6 +8,8 @@ package org.mifosplatform.portfolio.accountdetails.data;
 import java.util.Collection;
 
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanChargeSummaryData;
+import org.mifosplatform.portfolio.savings.data.SavingsChargesSummaryData;
 
 /**
  * Immutable data object representing a summary of various accounts.
@@ -23,7 +25,13 @@ public class AccountSummaryCollectionData {
     @SuppressWarnings("unused")
     private final Collection<SavingsAccountSummaryData> memberSavingsAccounts;
     @SuppressWarnings("unused")
-    private final Collection<CodeValueData> paymentTypeOptions; 
+    private final Collection<CodeValueData> paymentTypeOptions;    
+    @SuppressWarnings("unused")
+	private final Collection<LoanChargeSummaryData>loanCharges;    
+    @SuppressWarnings("unused")
+	private final Collection<SavingsChargesSummaryData>savingsCharges;
+    
+   
 
     public AccountSummaryCollectionData(final Collection<LoanAccountSummaryData> loanAccounts,
             final Collection<SavingsAccountSummaryData> savingsAccounts, final Collection<CodeValueData> paymentTypeOptions) {
@@ -32,6 +40,8 @@ public class AccountSummaryCollectionData {
         this.memberLoanAccounts = null;
         this.memberSavingsAccounts = null;
         this.paymentTypeOptions = defaultPaymentTypeIfEmpty(paymentTypeOptions);
+        this.loanCharges = null;
+		this.savingsCharges = null;
     }
 
     public AccountSummaryCollectionData(final Collection<LoanAccountSummaryData> loanAccounts,
@@ -42,9 +52,30 @@ public class AccountSummaryCollectionData {
         this.memberLoanAccounts = defaultLoanAccountsIfEmpty(memberLoanAccounts);
         this.memberSavingsAccounts = defaultSavingsAccountsIfEmpty(memberSavingsAccounts);
         this.paymentTypeOptions = defaultPaymentTypeIfEmpty(paymentTypeOptions);
+        this.loanCharges = null;
+		this.savingsCharges = null;
     }
+    
 
-    private Collection<LoanAccountSummaryData> defaultLoanAccountsIfEmpty(final Collection<LoanAccountSummaryData> collection) {
+    public AccountSummaryCollectionData(
+		final Collection<LoanAccountSummaryData> loanAccounts,
+		final Collection<SavingsAccountSummaryData> savingsAccounts,
+		final Collection<CodeValueData> paymentTypeOptions,
+		final Collection<LoanChargeSummaryData> loanCharges,
+		final Collection<SavingsChargesSummaryData> savingsCharges,
+		final Collection<LoanAccountSummaryData> memberLoanAccounts,
+        final Collection<SavingsAccountSummaryData> memberSavingsAccounts) {
+		super();
+		this.loanAccounts = defaultLoanAccountsIfEmpty(loanAccounts);
+		this.savingsAccounts = defaultSavingsAccountsIfEmpty(savingsAccounts);
+		this.paymentTypeOptions = defaultPaymentTypeIfEmpty(paymentTypeOptions);		   
+		this.loanCharges = loanCharges;
+		this.savingsCharges = savingsCharges;
+		this.memberLoanAccounts = null;
+        this.memberSavingsAccounts = null;  
+	}
+
+	private Collection<LoanAccountSummaryData> defaultLoanAccountsIfEmpty(final Collection<LoanAccountSummaryData> collection) {
         Collection<LoanAccountSummaryData> returnCollection = null;
         if (collection != null && !collection.isEmpty()) {
             returnCollection = collection;

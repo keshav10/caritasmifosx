@@ -230,7 +230,8 @@ public class SavingsApiConstants {
             feeIntervalParamName));
 
     public static final Set<String> SAVINGS_ACCOUNT_CHARGES_PAY_CHARGE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(
-            amountParamName, dueAsOfDateParamName, dateFormatParamName, localeParamName));
+            amountParamName, dueAsOfDateParamName, dateFormatParamName, localeParamName,paymentTypeIdParamName,
+            transactionAccountNumberParamName, checkNumberParamName, routingCodeParamName, receiptNumberParamName, bankNumberParamName));
 
     public static final Set<String> SAVINGS_ACCOUNT_ON_HOLD_RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList(idParamName,
             amountParamName, onHoldTransactionTypeParamName, onHoldTransactionDateParamName, onHoldReversedParamName));

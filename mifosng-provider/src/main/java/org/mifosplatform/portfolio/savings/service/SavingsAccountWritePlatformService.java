@@ -13,6 +13,7 @@ import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.organisation.staff.domain.Staff;
+import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
 
@@ -54,7 +55,7 @@ public interface SavingsAccountWritePlatformService {
 
     CommandProcessingResult waiveCharge(Long savingsAccountId, Long savingsAccountChargeId);
 
-    CommandProcessingResult payCharge(Long savingsAccountId, Long savingsAccountChargeId, JsonCommand command);
+    CommandProcessingResult payCharge( Long savingsAccountId,Long savingsAccountChargeId, JsonCommand command);
 
     CommandProcessingResult inactivateCharge(Long savingsAccountId, Long savingsAccountChargeId);
 

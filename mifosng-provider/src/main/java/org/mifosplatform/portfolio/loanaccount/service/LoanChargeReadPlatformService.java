@@ -5,11 +5,14 @@
  */
 package org.mifosplatform.portfolio.loanaccount.service;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargePaidByData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanChargeSummaryData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanInstallmentChargeData;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionType;
 
@@ -30,4 +33,6 @@ public interface LoanChargeReadPlatformService {
     Collection<LoanChargeData> retrieveLoanChargesForAccural(Long loanId);
 
     Collection<LoanChargePaidByData> retriveLoanChargesPaidBy(Long chargeId, LoanTransactionType transactionType, Integer installmentNumber);
+    
+    Collection<LoanChargeSummaryData> retriveLoanCharge(Long loanId,String chargeonDate);
 }
