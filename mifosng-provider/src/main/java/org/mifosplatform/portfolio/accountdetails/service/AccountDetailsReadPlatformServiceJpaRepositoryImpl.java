@@ -468,10 +468,10 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	      final String schemaSql;
 	      public shareAccountBalanceDataaMapper(){
 	          final StringBuilder shareAccountBalance = new StringBuilder();
-	          shareAccountBalance.append("select msa.account_no ,msa.account_balance_derived  from   ");
+	          shareAccountBalance.append("select msa.id ,msa.account_balance_derived  from   ");
 	          shareAccountBalance.append("m_client mc left join m_savings_account msa on mc.id=msa.client_id  ");
 	          shareAccountBalance.append("where mc.id=? ");
-	          shareAccountBalance.append("and msa.product_id in (select distinct default_savings_product from m_client) ");
+	          shareAccountBalance.append(" and msa.id in (select  default_savings_account from m_client where mc.id=?) ");
 	          this.schemaSql = shareAccountBalance.toString();
 	      }
 	      public String schema() {
@@ -480,7 +480,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 		@Override
 		public SharesAccountBalanceCollectionData mapRow(ResultSet rs,
 				int rowNum) throws SQLException {
-			final String accountNo = rs.getString("account_no");
+			final String accountNo = rs.getString("id");
 			final BigDecimal accountBalance = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "account_balance_derived");
 	         return  new SharesAccountBalanceCollectionData(accountNo, accountBalance);                
 	       
@@ -490,7 +490,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	public Collection<SharesAccountBalanceCollectionData> retriveSharesBalance(
 			Long clientId) {
 		this.clientReadPlatformService.retrieveOne(clientId);
-		return retrieveShareAccountBalance(new Object[] { clientId});
+		return retrieveShareAccountBalance(new Object[] { clientId,clientId});
 	}
 	private Collection<MpesaTransactionSummaryData>retriveMpesaSummary(final Object[] inputs){
 		final MpesaTransactionSummaryDataMapper rm = new MpesaTransactionSummaryDataMapper();
