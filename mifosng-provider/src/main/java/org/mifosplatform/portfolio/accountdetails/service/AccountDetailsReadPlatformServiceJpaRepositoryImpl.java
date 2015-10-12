@@ -503,7 +503,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	      public MpesaTransactionSummaryDataMapper(){
 	          final StringBuilder sb = new StringBuilder();
 	          sb.append("(select mlt.id as transaction_id ");
-			  sb.append(",mlt.loan_id account_no ");
+	          sb.append(", concat('Loan-',mlt.loan_id) account_no ");
 			  sb.append(" , mlt.transaction_date t_date ");
 			  sb.append(" ,rev.enum_value payment_type ");
 			  sb.append(" ,mpl.name product_name ");
@@ -523,7 +523,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 			  sb.append("  and mlt.transaction_date =? ");
 			  sb.append("  and mlt.is_reversed=0)  ");
 			  sb.append("  union  ");
-			  sb.append("  (select a.transaction_id,a.account_no,a.t_date as t_date,a.payment_type,a.product_name,a.client_id,a.client_name,b.charge_amount,(a.amount-ifnull(b.charge_amount,0))as amount ");
+			  sb.append("  (select a.transaction_id,concat('Savings-',a.account_no)as account_no, a.t_date as t_date,a.payment_type,a.product_name,a.client_id,a.client_name,b.charge_amount,(a.amount-ifnull(b.charge_amount,0))as amount ");
 			  sb.append("   from  ");
 			  sb.append("  (select msat.id transaction_id ");
 			  sb.append("  ,msat.savings_account_id as account_no ");
