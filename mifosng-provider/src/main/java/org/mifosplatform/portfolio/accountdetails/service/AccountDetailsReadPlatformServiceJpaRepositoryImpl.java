@@ -148,34 +148,33 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
       final String schemaSql;
       public PaymentDetailDataMapper(){
           final StringBuilder paymentdetail = new StringBuilder();
-          paymentdetail.append("select date_format(c.transaction_date,'%d' '-%b' '-%y') as transaction_date , c. receipt_number,sum(c.amount) as amount,c.loan_id ,c.PaymentType1 from ( ");
+          paymentdetail.append("select date_format(c.transaction_date,'%d' '-%b' '-%y') as transaction_date , c. receipt_number,sum(c.amount) as amount,c.loan_id ,c.firstname,c.branch from ( ");
           paymentdetail.append("select mlt.transaction_date ,IF (LENGTH(mpd.receipt_number) >0 , mpd.receipt_number , CONCAT('dummy_', mpd.id) )  receipt_number, ");
-          paymentdetail.append(" sum(mlt.amount) as amount,mlt.transaction_type_enum,mlt.loan_id, ");
-          paymentdetail.append("if(mlt.transaction_type_enum =1,'D','R')as paymentType, ");
-          paymentdetail.append("if(mlt.transaction_type_enum=1,'DS','P') as PaymentType1 ");
-          paymentdetail.append("from m_client mc ");
-          paymentdetail.append("inner join m_loan l on mc.id=l.client_id ");
+          paymentdetail.append(" sum(mlt.amount) as amount,mlt.transaction_type_enum,mlt.loan_id,mc.firstname,mo.name as branch ");
+          paymentdetail.append("from m_office mo ");
+          paymentdetail.append("inner join m_client mc on mc.office_id=mo.id ");
+          paymentdetail.append("inner join m_loan l on mc.id=l.client_id  ");
           paymentdetail.append("inner join m_loan_transaction mlt on mlt.loan_id=l.id ");
           paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mlt.payment_detail_id ");
           paymentdetail.append(" where mc.id=? ");
           paymentdetail.append("and mlt.is_reversed=0 ");
-          paymentdetail.append("and mlt.transaction_type_enum in (1,2) ");
+          paymentdetail.append("and mlt.transaction_type_enum in (2) ");
           paymentdetail.append("group by mpd.receipt_number,mlt.transaction_type_enum,mlt.transaction_date,mlt.loan_id ");
           paymentdetail.append("union ");
           paymentdetail.append("select mst.transaction_date ,IF (LENGTH( mpd.receipt_number) >0 , mpd.receipt_number , CONCAT('dummy_', mpd.id) )  receipt_number, ");
-          paymentdetail.append("sum(amount) as amount,mst.transaction_type_enum,mst.savings_account_id, ");
-          paymentdetail.append("if(mst.transaction_type_enum=1,'R','W')paymentType, ");
-          paymentdetail.append("if (mst.transaction_type_enum=1,'DP','W') paymentType1 ");
-          paymentdetail.append("from m_client mc  ");
-          paymentdetail.append("inner join m_savings_account s on mc.id=s.client_id ");
+          paymentdetail.append("sum(amount) as amount,mst.transaction_type_enum,mst.savings_account_id,mc.firstname,mo.name as branch ");
+          paymentdetail.append("from m_office mo  ");
+          paymentdetail.append("inner join m_client mc on mc.office_id=mo.id ");
+          paymentdetail.append("inner join m_savings_account s on mc.id=s.client_id  ");
           paymentdetail.append("inner join m_savings_account_transaction mst on mst.savings_account_id=s.id ");
           paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mst.payment_detail_id ");
           paymentdetail.append("where mc.id=?  ");
-          paymentdetail.append("and transaction_type_enum in(1,2) ");
+          paymentdetail.append("and mst.is_reversed=0   ");
+          paymentdetail.append("and transaction_type_enum in(1) ");
           paymentdetail.append(" group by mpd.receipt_number,mst.transaction_type_enum,mst.transaction_date,mst.savings_account_id ");
           paymentdetail.append(" )c group by c.transaction_date,c.receipt_number ");
           paymentdetail.append("  order by c.transaction_date desc "); 
-          paymentdetail.append(" LIMIT 4");
+          paymentdetail.append(" LIMIT 3");
           this.schemaSql = paymentdetail.toString();
       }
       public String schema() {
@@ -186,9 +185,10 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 			throws SQLException {
 		final String date = rs.getString("transaction_date");
         final Long amount = rs.getLong("amount");
-        final String type=rs.getString("PaymentType1");
+        final String firstname=rs.getString("firstname");
         final String receiptNumber = rs.getString("receipt_number");
-        return new PaymentDetailCollectionData(amount, date, receiptNumber,type);                
+        final String branch=rs.getString("branch");
+        return new PaymentDetailCollectionData(amount, date, receiptNumber,firstname,branch);                
        
 	}
     	
@@ -468,8 +468,8 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	      final String schemaSql;
 	      public shareAccountBalanceDataaMapper(){
 	          final StringBuilder shareAccountBalance = new StringBuilder();
-	          shareAccountBalance.append("select msa.id ,msa.account_balance_derived  from   ");
-	          shareAccountBalance.append("m_client mc left join m_savings_account msa on mc.id=msa.client_id  ");
+	          shareAccountBalance.append("select msa.id ,msa.account_balance_derived,mc.firstname,mo.name  from m_office mo inner join    ");
+	          shareAccountBalance.append("m_client mc on mo.id=mc.office_id left join m_savings_account msa on mc.id=msa.client_id  ");
 	          shareAccountBalance.append("where mc.id=? ");
 	          shareAccountBalance.append(" and msa.id in (select  default_savings_account from m_client where mc.id=?) ");
 	          this.schemaSql = shareAccountBalance.toString();
@@ -482,7 +482,9 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 				int rowNum) throws SQLException {
 			final String accountNo = rs.getString("id");
 			final BigDecimal accountBalance = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "account_balance_derived");
-	         return  new SharesAccountBalanceCollectionData(accountNo, accountBalance);                
+			final String firstname=rs.getString("firstname");
+			final String branch=rs.getString("name");
+	         return  new SharesAccountBalanceCollectionData(accountNo, accountBalance,firstname,branch);                
 	       
 		}
 	}
