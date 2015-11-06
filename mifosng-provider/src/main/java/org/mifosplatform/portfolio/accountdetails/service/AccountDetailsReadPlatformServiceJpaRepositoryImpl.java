@@ -159,7 +159,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
           paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mlt.payment_detail_id ");
           paymentdetail.append(" where mc.id=? ");
           paymentdetail.append("and mlt.is_reversed=0 ");
-          paymentdetail.append("and mlt.transaction_type_enum in (1,2) ");
+          paymentdetail.append("and mlt.transaction_type_enum in (2) ");
           paymentdetail.append("group by mpd.receipt_number,mlt.transaction_type_enum,mlt.transaction_date,mlt.loan_id ");
           paymentdetail.append("union ");
           paymentdetail.append("select mst.transaction_date ,IF (LENGTH( mpd.receipt_number) >0 , mpd.receipt_number , CONCAT('dummy_', mpd.id) )  receipt_number, ");
@@ -171,11 +171,11 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
           paymentdetail.append("inner join m_savings_account_transaction mst on mst.savings_account_id=s.id ");
           paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mst.payment_detail_id ");
           paymentdetail.append("where mc.id=?  ");
-          paymentdetail.append("and transaction_type_enum in(1,2) ");
+          paymentdetail.append("and mst.transaction_type_enum in(1,2) ");
           paymentdetail.append(" group by mpd.receipt_number,mst.transaction_type_enum,mst.transaction_date,mst.savings_account_id ");
           paymentdetail.append(" )c group by c.transaction_date,c.receipt_number ");
           paymentdetail.append("  order by c.transaction_date desc "); 
-          paymentdetail.append(" LIMIT 4");
+          paymentdetail.append(" LIMIT 3");
           this.schemaSql = paymentdetail.toString();
       }
       public String schema() {
