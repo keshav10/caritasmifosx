@@ -169,7 +169,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             accountsSummary.append("cbu.username as closedByUsername,");
             accountsSummary.append("cbu.firstname as closedByFirstname, cbu.lastname as closedByLastname,");
             
-            accountsSummary.append(" sum(mac.amount_outstanding_derived) as charges,");
+       //     accountsSummary.append(" sum(mac.amount_outstanding_derived) as charges,");
 
 
             accountsSummary
@@ -187,7 +187,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             accountsSummary.append("left join m_appuser abu on abu.id = sa.approvedon_userid ");
             accountsSummary.append("left join m_appuser avbu on rbu.id = sa.activatedon_userid ");
             accountsSummary.append("left join m_appuser cbu on cbu.id = sa.closedon_userid ");
-            accountsSummary.append("left join m_savings_account_charge mac on mac.savings_account_id = sa.id");
+         //   accountsSummary.append("left join m_savings_account_charge mac on mac.savings_account_id = sa.id");
 
 
             this.schemaSql = accountsSummary.toString();
@@ -213,7 +213,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             final EnumOptionData accountTypeData = AccountEnumerations.loanType(accountType);
             final Integer depositTypeId = JdbcSupport.getInteger(rs, "depositType");
             final EnumOptionData depositTypeData = SavingsEnumerations.depositType(depositTypeId);
-            final BigDecimal charges =   JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "charges");
+          //  final BigDecimal charges =   JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "charges");
             
             final String currencyCode = rs.getString("currencyCode");
             final String currencyName = rs.getString("currencyName");
@@ -262,7 +262,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     closedByLastname);
 
             return new SavingsAccountSummaryData(id, accountNo, externalId, productId, productName, shortProductName, status, currency, accountBalance,
-                    accountTypeData, timeline, depositTypeData,charges);
+                    accountTypeData, timeline, depositTypeData);
         }
     }
 
@@ -299,19 +299,18 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     .append(" l.closedon_date as closedOnDate,")
                     .append(" cbu.username as closedByUsername, cbu.firstname as closedByFirstname, cbu.lastname as closedByLastname,")
                     .append(" la.overdue_since_date_derived as overdueSinceDate,")
-                    .append(" l.writtenoffon_date as writtenOffOnDate, l.expected_maturedon_date as expectedMaturityDate,")
-                    .append(" sum(mlc.amount_outstanding_derived) as charges")
+                    .append(" l.writtenoffon_date as writtenOffOnDate, l.expected_maturedon_date as expectedMaturityDate")
+                  //  .append(" sum(mlc.amount_outstanding_derived) as charges")
 
-                    .append(" from m_loan l ")
-                    .append("LEFT JOIN m_product_loan AS lp ON lp.id = l.product_id")
+                    .append(" from m_loan l ").append(" LEFT JOIN m_product_loan AS lp ON lp.id = l.product_id ")
                     .append(" left join m_appuser sbu on sbu.id = l.submittedon_userid")
                     .append(" left join m_appuser rbu on rbu.id = l.rejectedon_userid")
                     .append(" left join m_appuser wbu on wbu.id = l.withdrawnon_userid")
                     .append(" left join m_appuser abu on abu.id = l.approvedon_userid")
                     .append(" left join m_appuser dbu on dbu.id = l.disbursedon_userid")
                     .append(" left join m_appuser cbu on cbu.id = l.closedon_userid")
-                    .append(" left join m_loan_arrears_aging la on la.loan_id = l.id")
-                    .append(" left join m_loan_charge mlc on mlc.loan_id=l.id");
+                    .append(" left join m_loan_arrears_aging la on la.loan_id = l.id");
+                  //  .append(" left join m_loan_charge mlc on mlc.loan_id=l.id");
                     
                     
 
@@ -367,7 +366,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             final BigDecimal originalLoan = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs,"originalLoan");
             final BigDecimal loanBalance = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs,"loanBalance");
             final BigDecimal amountPaid = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs,"amountPaid");
-            final BigDecimal charges    = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs,"charges");
+         //   final BigDecimal charges    = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs,"charges");
 
             final LocalDate writtenOffOnDate = JdbcSupport.getLocalDate(rs, "writtenOffOnDate");
 
@@ -387,7 +386,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     expectedMaturityDate, writtenOffOnDate, closedByUsername, closedByFirstname, closedByLastname);
 
             return new LoanAccountSummaryData(id, accountNo, externalId, productId, loanProductName, shortLoanProductName, loanStatus, loanType, loanCycle,
-                    timeline, inArrears,originalLoan,loanBalance,amountPaid,charges);
+                    timeline, inArrears,originalLoan,loanBalance,amountPaid);
         }
     }
 

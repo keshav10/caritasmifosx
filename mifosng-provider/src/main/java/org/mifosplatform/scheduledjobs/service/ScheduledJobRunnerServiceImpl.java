@@ -6,6 +6,7 @@
 package org.mifosplatform.scheduledjobs.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.io.IOException;
@@ -17,22 +18,34 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.mifosplatform.commands.domain.CommandWrapper;
+import org.mifosplatform.commands.service.CommandWrapperBuilder;
+import org.mifosplatform.commands.service.PortfolioCommandSourceWritePlatformService;
+import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
+import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.mifosplatform.infrastructure.hooks.domain.HookConfiguration;
 import org.mifosplatform.infrastructure.hooks.domain.HookConfigurationRepository;
 import org.mifosplatform.infrastructure.hooks.domain.HookRepository;
 import org.mifosplatform.infrastructure.hooks.service.HookReadPlatformServiceImpl;
+
 import com.amazonaws.util.json.JSONException;
 import com.amazonaws.util.json.JSONObject;
-import org.springframework.context.ApplicationContext;
+import com.google.gson.JsonElement;
 
+import edu.emory.mathcs.backport.java.util.concurrent.TimeUnit;
+
+import org.springframework.context.ApplicationContext;
+import org.hibernate.Transaction;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
@@ -50,19 +63,38 @@ import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
 import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
 import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
 import org.mifosplatform.infrastructure.jobs.service.JobName;
+import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.charge.service.ChargeReadPlatformService;
 import org.mifosplatform.portfolio.common.domain.PeriodFrequencyType;
+import org.mifosplatform.portfolio.investment.api.InvestmentConstants;
+import org.mifosplatform.portfolio.investment.data.InvestmentBatchJobData;
+import org.mifosplatform.portfolio.investment.exception.NoAnyInvestmentFoundForDistributionException;
+import org.mifosplatform.portfolio.investment.service.InvestmentBatchJobReadPlatformService;
+import org.mifosplatform.portfolio.loanaccount.data.DisbursementData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanAccountData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanStatusEnumData;
+import org.mifosplatform.portfolio.loanaccount.service.LoanReadPlatformService;
+import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
+import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetailRepository;
+import org.mifosplatform.portfolio.paymenttype.domain.PaymentType;
+import org.mifosplatform.portfolio.paymenttype.domain.PaymentTypeRepositoryWrapper;
 import org.mifosplatform.portfolio.savings.DepositAccountType;
 import org.mifosplatform.portfolio.savings.DepositAccountUtils;
+import org.mifosplatform.portfolio.savings.api.SavingsAccountTransactionsApiResource;
 import org.mifosplatform.portfolio.savings.data.DepositAccountData;
 import org.mifosplatform.portfolio.savings.data.SavingIdListData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountAnnualFeeData;
 import org.mifosplatform.portfolio.savings.data.SavingsIdOfChargeData;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountAssembler;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountDomainService;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
 import org.mifosplatform.portfolio.savings.service.DepositAccountReadPlatformService;
 import org.mifosplatform.portfolio.savings.service.DepositAccountWritePlatformService;
 import org.mifosplatform.portfolio.savings.service.SavingsAccountChargeReadPlatformService;
 import org.mifosplatform.portfolio.savings.service.SavingsAccountWritePlatformService;
+import org.mifosplatform.useradministration.domain.AppUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,7 +119,16 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
    	private final HookReadPlatformServiceImpl hookReadPlatformServiceImpl;
    	private final HookRepository hookRepository;
    	private final HookConfigurationRepository hookConfigurationRepository;
-   
+    private final LoanReadPlatformService loanReadPlatformService;
+    private final InvestmentBatchJobReadPlatformService investmentBatchJobReadPlatformService;
+    private final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService;
+    private final SavingsAccountDomainService savingsAccountDomainService;
+    private final SavingsAccountAssembler savingAccountAssembler;
+    private final PaymentTypeRepositoryWrapper paymentTyperepositoryWrapper;
+    private final PaymentDetailRepository paymentDetailRepository;
+    private final SavingsAccountTransactionsApiResource savingsAccountTransactionsApiResource;
+    private final PlatformSecurityContext context;
+    private final FromJsonHelper fromApiJsonHelper;
     
 
 
@@ -101,7 +142,17 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
             final ToApiJsonSerializer<CommandProcessingResult> toApiResultJsonSerializer,
             			final HookReadPlatformServiceImpl hookReadPlatformServiceImpl,
             			final HookRepository hookRepository,
-            			final HookConfigurationRepository hookConfigurationRepository) {
+            			final HookConfigurationRepository hookConfigurationRepository, 
+            			LoanReadPlatformService loanReadPlatformService,
+            			final InvestmentBatchJobReadPlatformService investmentBatchJobReadPlatformService,
+            			final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
+            			final SavingsAccountDomainService savingsAccountDomainService,
+            			final SavingsAccountAssembler savingAccountAssembler,
+            			final PaymentTypeRepositoryWrapper paymentTyperepositoryWrapper,
+            			final PaymentDetailRepository paymentDetailRepository,
+            			final SavingsAccountTransactionsApiResource savingsAccountTransactionsApiResource,
+            			final PlatformSecurityContext context,
+            			final FromJsonHelper fromApiJsonHelper) {
         this.dataSourceServiceFactory = dataSourceServiceFactory;
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
         this.savingsAccountChargeReadPlatformService = savingsAccountChargeReadPlatformService;
@@ -112,7 +163,18 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         this.hookReadPlatformServiceImpl = hookReadPlatformServiceImpl;
         this.hookRepository = hookRepository;
         this.hookConfigurationRepository = hookConfigurationRepository;
+        this.loanReadPlatformService = loanReadPlatformService;
+        this.investmentBatchJobReadPlatformService = investmentBatchJobReadPlatformService;
+        this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
+        this.savingsAccountDomainService = savingsAccountDomainService;
+        this.savingAccountAssembler = savingAccountAssembler;
+        this.paymentTyperepositoryWrapper = paymentTyperepositoryWrapper;
+        this.paymentDetailRepository = paymentDetailRepository;
+        this.savingsAccountTransactionsApiResource = savingsAccountTransactionsApiResource;
+        this.context = context;
+        this.fromApiJsonHelper = fromApiJsonHelper;
     }
+      
 
     @Transactional
     @Override
@@ -1125,5 +1187,329 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
             }
     }
 
+
     
-}
+    @Override
+    @CronTarget(jobName = JobName.DO_INVESTMENT_DISTRIBUTION)
+    public void distributeInvestmentEarning(){
+    	
+    	/*
+    	 *this will call the distributeInvestment() method with passing null values so it will work for all the data not for specific one 
+    	 *
+    	 */
+    	String[] productId = null;
+    	String date = "";
+    	String investmentId = "";
+    
+    	distributeInvestment(productId,date,investmentId);  	
+    	
+    }
+
+	@Override
+	@Transactional 
+   /**
+    * the following method will call if user enter the manual data to run the batch job
+    */
+	public CommandProcessingResult doInvestmentTracker(
+			JsonCommand command) {
+		  CommandProcessingResult result = null;
+		String[] productIds = command.arrayValueOfParameterNamed("productId");
+        String date = command.stringValueOfParameterNamed("date");
+        String investmentId = command.stringValueOfParameterNamed("investmentId");
+        
+        result = distributeInvestment(productIds, date, investmentId);
+        if(result == null){
+        	throw new NoAnyInvestmentFoundForDistributionException();
+        }
+        return result;
+	}
+	
+	/**
+	 * the following method is the one which is responsible for distribute the investment 
+	 * and the same method we are calling for batch as well
+	 */
+	
+	 public CommandProcessingResult distributeInvestment(String[] productIds, String date, String investmentId){
+        
+		
+	   String distributionDate = date;	 
+	   List<Long> investmentIdFromData = new ArrayList<Long>();
+	   CommandProcessingResult result = null;
+		Date today = new Date();                  
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+       
+        final DateTimeFormatter fmt = DateTimeFormat.forPattern("dd MMMM yyyy");
+        String statusDate =df.format(today);
+    	StringBuilder sb = new StringBuilder();
+        
+        final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
+
+        
+        /**
+         * In this code if any one of parameter is passed by user then following method will return the specific result. In case user doesn't
+         * pass any parameter then all data will be selected   like all product and all investmentId and date will be the current date 
+         **/
+        
+        
+        List<InvestmentBatchJobData> data = this.investmentBatchJobReadPlatformService.validateForInvestmentSplit(productIds, distributionDate, investmentId);
+        if(data.isEmpty()){
+     	  	throw new NoAnyInvestmentFoundForDistributionException();
+        }
+        List<Long> investmentIds = insertInvestmentStatus(data, statusDate);
+      
+        
+        /**
+         * Following method return's the investment data which having a matured status and if we pass the investmentId then it will return the specific record 
+         * else it will return the all the data with matured status 
+         * */
+      
+        InvestmentBatchJobData interestDetails = this.investmentBatchJobReadPlatformService.getInterestDetails();
+        
+        BigDecimal groupPercentage = interestDetails.getGroupPercentage();
+        for(Long loanId : investmentIds ){
+        	
+        
+        	List<InvestmentBatchJobData> maturedInvestmentData = this.investmentBatchJobReadPlatformService.getAllInvestementDataWithMaturedStatus(loanId);
+        	for(InvestmentBatchJobData investmentBatchJobData : maturedInvestmentData){
+        		
+        		Long savingId = investmentBatchJobData.getSavingId();
+        		Date investmentStartDate = investmentBatchJobData.getInvestmentStartDate();
+        		Date investmentCloseDate = investmentBatchJobData.getInvestmentCloseDate();
+        		BigDecimal investedAmountByGroup = investmentBatchJobData.getInvestmetAmount().setScale(5);
+        		InvestmentBatchJobData loanData = this.investmentBatchJobReadPlatformService.getLoanClosedDate(loanId);
+        		Date loanCloseOn = loanData.getLoanCloseDate();
+        		LocalDate investmentStart = new LocalDate(investmentStartDate);
+        		LocalDate investmentClose = new LocalDate(investmentCloseDate);
+        		LocalDate loanClose = new LocalDate(loanCloseOn);
+        		LocalDate transactionDate = new LocalDate();
+        		StringBuilder dB = new StringBuilder();
+        	    DateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy"); 
+        	    String interestPostingDate = dateFormat.format(transactionDate.toDate());
+                String postingDateOfInvestment = df.format(transactionDate.toDate());
+                
+                BigDecimal totalInterestAmountOfLoan = loanData.getTotalInterest();
+                BigDecimal totalInvestedAmount = loanData.getTotalInvestedAmount();  
+                
+                Date loanStartDate = loanData.getLoanStartDate();
+                LocalDate loanStart = new LocalDate(loanStartDate);
+                
+                
+                LocalDate startInvestment = new LocalDate();
+                LocalDate closeInvestment = new LocalDate();
+                
+                int dayDiff = 0;
+                if(!(investmentCloseDate == null)){
+                	if(investmentStart.isBefore(loanStart)){
+                		    dayDiff = Days.daysBetween(loanStart, investmentClose).getDays();
+                		    startInvestment = loanStart;
+                		    closeInvestment = investmentClose;
+                		}else{
+                			dayDiff = Days.daysBetween(investmentStart, investmentClose).getDays();	
+                			startInvestment = investmentStart;
+                			closeInvestment = investmentClose;
+                		}
+                	
+                }else{
+                 	if(investmentStart.isBefore(loanStart)){
+            	 	    dayDiff = Days.daysBetween(loanStart, loanClose).getDays();
+            	 	    startInvestment = loanStart;
+            	 	    closeInvestment = loanClose;
+            		}else{
+            	 		dayDiff = Days.daysBetween(investmentStart, loanClose).getDays();
+            	 		startInvestment = investmentStart;
+            	 		closeInvestment = loanClose;
+            		}    
+                }
+        		
+        		BigDecimal numberOfDaysOfInvestment = new BigDecimal(dayDiff);
+        		
+        		
+        		int totalDayDiff = Days.daysBetween(loanStart, loanClose).getDays();
+        		BigDecimal totalNumberOfInvestment = new BigDecimal(totalDayDiff);
+        		BigDecimal bigDecimalHundred = new BigDecimal(100);
+        		
+        		
+        		BigDecimal ratioOfInvestmentAmount = investedAmountByGroup.divide(totalInvestedAmount, 10, RoundingMode.HALF_EVEN);
+        		BigDecimal ratioOfDaysInvested = numberOfDaysOfInvestment.divide(totalNumberOfInvestment, 10, RoundingMode.HALF_EVEN);
+        		BigDecimal interestEarn = ratioOfInvestmentAmount.multiply(ratioOfDaysInvested).multiply(totalInterestAmountOfLoan).setScale(05, RoundingMode.HALF_EVEN);
+        		
+        		BigDecimal transactionAmount = interestEarn.multiply((groupPercentage.divide(bigDecimalHundred))).setScale(05, RoundingMode.HALF_EVEN);
+        		
+        
+        		
+        		
+        		
+        		//following the method and constructor reused for getting the long value result of 
+        		InvestmentBatchJobData paymentData = this.investmentBatchJobReadPlatformService.getPaymentType();
+        		Long paymentTypeId = paymentData.getInvestmentId();
+        		
+        		
+        		StringBuilder json = new StringBuilder();
+                json.append("{ ");
+                json.append("transactionDate:");
+                json.append('"');
+                json.append(interestPostingDate);
+                json.append('"');
+                json.append(", transactionAmount:");
+                json.append(transactionAmount);
+                json.append(",");
+                json.append(" paymentTypeId: ");
+                json.append(paymentTypeId);
+                json.append(",");
+                json.append("locale:en,");
+                json.append("dateFormat : ");
+                json.append('"');
+                json.append("dd MMMM yyyy");
+                json.append('"');
+                json.append(", isFromBatchJob : true ");
+                json.append("}");
+                
+
+                String apiJson = json.toString();
+        	
+        		
+        	//this method is responsible for handling the deposit amount into the specific saving account
+               if(transactionAmount.compareTo(BigDecimal.ZERO)>0){
+            	   
+               
+                result = doDepositeTransaction(savingId,apiJson);
+         	    
+     
+        		String insertSqlStmt = "INSERT INTO `ct_posted_investment_earnings` (`loan_id`, `saving_id`, `number_of_days`, "
+        				+ " `invested_amount`, `gorup_interest_rate`, `gorup_interest_earned`, `interest_earned`, `date_of_interest_posting`, "
+        				+ "`investment_start_date`, `investment_close_date`) VALUES ";
+        		
+        		dB.append("( ");
+        		dB.append(loanId);
+        		dB.append(",");
+        		dB.append(savingId);
+        		dB.append(",");
+        		dB.append(dayDiff);
+        		dB.append(",");
+        		dB.append(investedAmountByGroup);
+        		dB.append(",");
+        		dB.append(groupPercentage);
+        		dB.append(",");
+        		dB.append(transactionAmount);
+        		dB.append(",");
+        		dB.append(interestEarn);
+        		dB.append(",'");
+        		dB.append(postingDateOfInvestment);
+        		dB.append("','");
+        		dB.append(startInvestment);
+        		dB.append("','");
+        		dB.append(closeInvestment);
+        		dB.append("')");
+            	
+                if (dB.length() > 0) {
+                     jdbcTemplate.update(insertSqlStmt + dB.toString());
+                  }        		 
+
+         	    String updateString = " update ct_investment_status cis set cis.earning_status = 'Distributed' ";
+         	    StringBuilder update = new StringBuilder();
+         	    update.append(" where cis.loan_id = ");
+         	    update.append(loanId);
+         	    if(update.length() > 0){
+         		   jdbcTemplate.update(updateString + update.toString());
+         	    }
+        	  }
+        	}
+        	
+          }
+	      
+        return result;
+      }
+	
+
+	//the following method will call when the money has to be deposited  to a specific account 
+	public CommandProcessingResult doDepositeTransaction(Long savingId, String apiJson){
+		 
+		 CommandProcessingResult result = null;
+		 JsonCommand command = null;
+		 final JsonElement parsedCommand = this.fromApiJsonHelper.parse(apiJson);
+		 final CommandWrapper wrapper = new CommandWrapperBuilder().savingsAccountDeposit(savingId).withJson(apiJson).build();
+         
+		 command = JsonCommand.from(apiJson, parsedCommand, this.fromApiJsonHelper, wrapper.getEntityName(), wrapper.getEntityId(),
+	                wrapper.getSubentityId(), wrapper.getGroupId(), wrapper.getClientId(), wrapper.getLoanId(), wrapper.getSavingsId(),
+	                wrapper.getTransactionId(), wrapper.getHref(), wrapper.getProductId());
+		 
+		 result = this.savingsAccountWritePlatformService.deposit(savingId, command);
+ 	     return result;
+	}
+	
+	
+	
+	 // this method for inserting the investment status is to the ct_investment_status table 
+	 @Transactional
+	 public List<Long> insertInvestmentStatus(List<InvestmentBatchJobData> data, String statusDate){
+	    	
+	    	
+	    	List<Long> investmentId= new ArrayList<Long>();
+	        final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
+	       
+	        for(InvestmentBatchJobData oneElement : data){
+	        	StringBuilder sb = new StringBuilder();  
+	        	Long loanId = oneElement.getInvestmentId();           
+	        	InvestmentBatchJobData getLoanStatus = this.investmentBatchJobReadPlatformService.getLoanIdStatus(loanId);
+	        	
+	        	int loanStatusId = getLoanStatus.getLoanStatusId();
+	        	
+	        	InvestmentBatchJobData earningStatus = this.investmentBatchJobReadPlatformService.getInvestmentStatus(loanId);
+	        	
+	        	if(earningStatus==null){
+	         
+		     	String insertSql =  " INSERT INTO `ct_investment_status` (`loan_id`, `earning_status`, `status_date`) VALUES ";
+	                
+	            	sb.append("( ");
+	            	sb.append(loanId);
+	            	sb.append(",");
+	            	sb.append("'");
+	            	if(loanStatusId == 600){
+	                   sb.append("Matured");
+	                   investmentId.add(loanId);
+	            	}else{
+	            	   sb.append("Not Matured");
+	            	}
+	            	sb.append("'");
+	            	sb.append(",");
+	            	sb.append("'");
+	            	sb.append(statusDate);
+	            	sb.append("'");
+	                sb.append(" )");
+	                
+	                String instertIntoTableValues = insertSql + sb.toString();
+	                
+	                if (sb.length() > 0) {
+	                    jdbcTemplate.update(instertIntoTableValues);
+	                }
+	               	
+	        	}
+	        	else{
+	                  
+	         		String status = earningStatus.getEarningStatus();
+	        		StringBuilder update = new StringBuilder();
+	        		if(loanStatusId == 600 && status.equalsIgnoreCase("Not Matured")){
+	        		  
+	        			update.append(" update ct_investment_status cis set cis.earning_status = ");
+	        			update.append("'Matured'");
+	        			update.append(" where ");
+	        			update.append("cis.loan_id = " + loanId);
+	        			investmentId.add(loanId);
+	        		}else if(loanStatusId == 600 && status.equalsIgnoreCase("Matured")){
+	        			investmentId.add(loanId);
+	        		}
+	        		        		
+	        		if(update.length() > 0){
+	        			jdbcTemplate.update(update.toString());
+	        		}
+	            
+	        	}
+	            
+	          }
+	        
+	        return investmentId;
+	    	
+	    }
+	
+	
+  }

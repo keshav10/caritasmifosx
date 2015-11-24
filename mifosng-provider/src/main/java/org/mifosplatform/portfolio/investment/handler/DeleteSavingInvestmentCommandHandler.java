@@ -28,7 +28,7 @@ public class DeleteSavingInvestmentCommandHandler implements NewCommandSourceHan
     @Transactional
     @Override
     public CommandProcessingResult processCommand(JsonCommand command) {
-       return this.savingInvestment.deleteInvestmentBasedOnMapping(command.getSavingsId(), command.getLoanId());
+       return this.savingInvestment.deleteSavingInvestment(command.getSavingsId(), command);
     }
     
 

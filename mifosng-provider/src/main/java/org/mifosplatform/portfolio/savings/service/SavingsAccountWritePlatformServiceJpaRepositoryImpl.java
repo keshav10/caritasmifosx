@@ -218,7 +218,10 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     @Override
     public CommandProcessingResult deposit(final Long savingsId, final JsonCommand command) {
 
-        this.context.authenticatedUser();
+    	String isFromBatchJob = command.stringValueOfParameterNamed("isFromBatchJob");
+    	if(isFromBatchJob.isEmpty()){
+             this.context.authenticatedUser();
+     	} 
 
         this.savingsAccountTransactionDataValidator.validate(command);
 

@@ -60,6 +60,12 @@ public final class ClientDataValidator {
             baseDataValidator.reset().parameter(ClientApiConstants.groupIdParamName).value(groupId).notNull().integerGreaterThanZero();
         }
 
+        if(this.fromApiJsonHelper.parameterExists(ClientApiConstants.nationalId, element)){
+        	final String nationalId = this.fromApiJsonHelper.extractStringNamed(ClientApiConstants.nationalId, element);
+        	baseDataValidator.reset().parameter(ClientApiConstants.nationalId).value(nationalId).notBlank().notBlank().notExceedingLengthOf(20); 
+        	}
+        
+        
         if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.staffIdParamName, element)) {
             final Long staffId = this.fromApiJsonHelper.extractLongNamed(ClientApiConstants.staffIdParamName, element);
             baseDataValidator.reset().parameter(ClientApiConstants.staffIdParamName).value(staffId).ignoreIfNull().longGreaterThanZero();
@@ -254,6 +260,11 @@ public final class ClientDataValidator {
             atLeastOneParameterPassedForUpdate = true;
             final String accountNo = this.fromApiJsonHelper.extractStringNamed(ClientApiConstants.accountNoParamName, element);
             baseDataValidator.reset().parameter(ClientApiConstants.accountNoParamName).value(accountNo).notBlank().notExceedingLengthOf(20);
+        }
+        if(this.fromApiJsonHelper.parameterExists(ClientApiConstants.nationalId, element)){
+        	atLeastOneParameterPassedForUpdate = true ;
+        	final String nationalId = this.fromApiJsonHelper.extractStringNamed(ClientApiConstants.nationalId, element);
+        	baseDataValidator.reset().parameter(ClientApiConstants.nationalId).value(nationalId).notExceedingLengthOf(50);
         }
 
         if (isFullnameProvided(element) || isIndividualNameProvided(element)) {
