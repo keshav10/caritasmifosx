@@ -1063,6 +1063,8 @@ public class CommandWrapper {
     public boolean isUpdateSavingInvestment(){
     	return this.actionName.equalsIgnoreCase("UPDATE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
     }
-    
+    public boolean isUploadTransactionDetails(){
+    	    	return this.actionName.equalsIgnoreCase("CREATE") && this.entityName.equalsIgnoreCase("UPLOADSHEET");
+    	    }
 
 }

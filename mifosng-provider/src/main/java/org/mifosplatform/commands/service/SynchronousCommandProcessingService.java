@@ -1534,7 +1534,12 @@ public class SynchronousCommandProcessingService implements
 						"updateSavingInvestmentCommandHandler",
 						NewCommandSourceHandler.class);
 			}
-		}
+		}else if(wrapper.isUploadTransactionDetails()){
+						handler = this.applicationContext.getBean(
+										"uploadTransactionDetailsCommandHandler",
+										NewCommandSourceHandler.class);
+								
+					 		}
 
 		else {
 
