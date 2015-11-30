@@ -675,7 +675,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                     .append("sa.currency_code as currencyCode, sa.currency_digits as currencyDigits, sa.currency_multiplesof as inMultiplesOf, ");
             sqlBuilder.append("curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, ");
             sqlBuilder.append("curr.display_symbol as currencyDisplaySymbol, ");
-            sqlBuilder.append("pt.value as paymentTypeName ");
+            sqlBuilder.append("ifnull(pt.value,mc.name) as paymentTypeName ");
             sqlBuilder.append("from m_savings_account sa ");
             sqlBuilder.append("join m_savings_account_transaction tr on tr.savings_account_id = sa.id ");
             sqlBuilder.append("join m_currency curr on curr.code = sa.currency_code ");
@@ -683,6 +683,10 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             sqlBuilder.append("left join m_account_transfer_transaction totran on totran.to_savings_transaction_id = tr.id ");
             sqlBuilder.append("left join m_payment_detail pd on tr.payment_detail_id = pd.id ");
             sqlBuilder.append("left join m_payment_type pt on pd.payment_type_id = pt.id ");
+            sqlBuilder.append("left join m_savings_account_charge_paid_by msacpb on tr.id = msacpb.savings_account_transaction_id ");
+            sqlBuilder.append("left join m_savings_account_charge msac on msacpb.savings_account_charge_id = msac.id ");
+            sqlBuilder.append("left outer join m_charge mc on msac.charge_id = mc.id ");
+            		
 
             this.schemaSql = sqlBuilder.toString();
         }
@@ -720,6 +724,9 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                     paymentDetailData = new PaymentDetailData(id, paymentType, accountNumber, checkNumber, routingCode, receiptNumber,
                             bankNumber);
                 }
+            }else{
+            	final String chargeName = rs.getString("paymentTypeName");
+            	paymentDetailData = new PaymentDetailData(chargeName);
             }
 
             final String currencyCode = rs.getString("currencyCode");

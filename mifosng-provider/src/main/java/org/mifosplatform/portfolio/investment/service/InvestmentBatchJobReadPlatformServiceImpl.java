@@ -173,7 +173,7 @@ public class InvestmentBatchJobReadPlatformServiceImpl implements InvestmentBatc
 		 StringBuilder sb = new StringBuilder();
 		 sb.append(" select  ms.loan_id as entityId from m_investment ms ");
 		 sb.append(" left join ct_investment_status cis on ms.loan_id = cis.loan_id	 ");
-		 sb.append(" where cis.earning_status = 'Matured' ");
+		 sb.append(" where cis.earning_status = 'Due For Realization' ");
 		 sb.append(" and ms.loan_id =  "+ investmentId);
 		 String sql = sb.toString();
 		 
@@ -193,7 +193,7 @@ public class InvestmentBatchJobReadPlatformServiceImpl implements InvestmentBatc
 		 StringBuilder sb = new StringBuilder();
 		 sb.append(" select  ms.loan_id as entityId from m_investment ms ");
 		 sb.append(" left join ct_investment_status cis on ms.loan_id = cis.loan_id	 ");
-		 sb.append(" where cis.earning_status = 'Matured' ");
+		 sb.append(" where cis.earning_status = 'Due For Realization' ");
 		 String sql = sb.toString();
 		 
 		 data = this.jdbcTemplate.query(sql, rm , new Object[]{} );
@@ -309,6 +309,7 @@ public class InvestmentBatchJobReadPlatformServiceImpl implements InvestmentBatc
          
          sb.append(" select cis.loan_id as loanId , cis.earning_status as earning_status ");
          sb.append(" from ct_investment_status cis where cis.loan_id = " + investmentId);
+         sb.append(" group by cis.earning_status ");
          
          InvestmentBatchJobData data = this.jdbcTemplate.queryForObject(sb.toString(), rm , new Object[]{});
          
@@ -342,7 +343,7 @@ public class InvestmentBatchJobReadPlatformServiceImpl implements InvestmentBatc
 	   GetLoanStatusMapper rm = new GetLoanStatusMapper();
 	   
        StringBuilder sb = new StringBuilder();
-       sb.append(" select ml.loan_status_id as statusId  from  m_loan ml ");
+       sb.append(" select ml.loan_status_id as statusId, ml.maturedon_date as maturedon from  m_loan ml ");
        sb.append(" where ml.id = " + loanId);
        
        InvestmentBatchJobData data = this.jdbcTemplate.queryForObject(sb.toString(),rm, new Object[]{});
@@ -357,8 +358,8 @@ public class InvestmentBatchJobReadPlatformServiceImpl implements InvestmentBatc
 		public InvestmentBatchJobData mapRow(ResultSet rs, int rowNum)
 				throws SQLException {
 			 final int statusId = rs.getInt("statusId");
-			 
-			 InvestmentBatchJobData data = new InvestmentBatchJobData(statusId);
+			 final Date maturedOn = rs.getDate("maturedon");
+			 InvestmentBatchJobData data = new InvestmentBatchJobData(statusId,maturedOn);
   
 			 return data;
 

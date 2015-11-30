@@ -1453,7 +1453,8 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 	        	InvestmentBatchJobData getLoanStatus = this.investmentBatchJobReadPlatformService.getLoanIdStatus(loanId);
 	        	
 	        	int loanStatusId = getLoanStatus.getLoanStatusId();
-	        	
+	        	Date  loanMaturityDate = getLoanStatus.getLoanMaturityDate();
+	        	Date  investmentDistributionDate = new Date();
 	        	InvestmentBatchJobData earningStatus = this.investmentBatchJobReadPlatformService.getInvestmentStatus(loanId);
 	        	
 	        	if(earningStatus==null){
@@ -1464,10 +1465,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 	            	sb.append(loanId);
 	            	sb.append(",");
 	            	sb.append("'");
-	            	if(loanStatusId == 600){
-	                   sb.append("Matured");
+	            	if(loanStatusId == 600 && loanMaturityDate.before(investmentDistributionDate)){
+	                   sb.append("Due For Realization");
 	                   investmentId.add(loanId);
-	            	}else{
+	            	}else if(loanMaturityDate.after(investmentDistributionDate)){
 	            	   sb.append("Not Matured");
 	            	}
 	            	sb.append("'");
@@ -1491,11 +1492,11 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 	        		if(loanStatusId == 600 && status.equalsIgnoreCase("Not Matured")){
 	        		  
 	        			update.append(" update ct_investment_status cis set cis.earning_status = ");
-	        			update.append("'Matured'");
+	        			update.append("'Due For Realization'");
 	        			update.append(" where ");
 	        			update.append("cis.loan_id = " + loanId);
 	        			investmentId.add(loanId);
-	        		}else if(loanStatusId == 600 && status.equalsIgnoreCase("Matured")){
+	        		}else if(loanStatusId == 600 && status.equalsIgnoreCase("Due For Realization")){
 	        			investmentId.add(loanId);
 	        		}
 	        		        		

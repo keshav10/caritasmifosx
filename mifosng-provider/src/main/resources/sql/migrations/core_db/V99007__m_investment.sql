@@ -1,4 +1,5 @@
 CREATE TABLE `m_investment` (
+    `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
 	`saving_id` BIGINT(20) NOT NULL,
 	`loan_id` BIGINT(20) NOT NULL,
 	`start_date` DATE NULL DEFAULT NULL,
@@ -35,6 +36,7 @@ INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `c
 
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'UPDATE_LOANINVESTMENT', 'LOANINVESTMENT', 'UPDATE', 0);
 
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('report', 'RUNBATCHJOB_INVESTMENT', 'INVESTMENT', 'RUNBATCHJOB', 0);
 
 
 

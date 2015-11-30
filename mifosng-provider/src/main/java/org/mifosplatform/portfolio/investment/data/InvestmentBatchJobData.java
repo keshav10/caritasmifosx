@@ -11,6 +11,7 @@ public class InvestmentBatchJobData {
 	Date investmentStartDate;
     BigDecimal investmetAmount;
     Date investmentCloseDate;
+    Date loanMaturityDate;
  
     BigDecimal caritasPercentage;
     BigDecimal groupPercentage;
@@ -31,9 +32,18 @@ public class InvestmentBatchJobData {
    
  
 
-	public InvestmentBatchJobData(int loanStatusId){
+	public InvestmentBatchJobData(int loanStatusId, Date loanMaturityDate){
     	this.loanStatusId = loanStatusId;
+    	this.loanMaturityDate = loanMaturityDate;
     }
+
+	public Date getLoanMaturityDate() {
+		return this.loanMaturityDate;
+	}
+
+	public void setLoanMaturityDate(Date loanMaturityDate) {
+		this.loanMaturityDate = loanMaturityDate;
+	}
 
 	public InvestmentBatchJobData(Long loanId, String earningStatus){
     	this.loanId = loanId;
