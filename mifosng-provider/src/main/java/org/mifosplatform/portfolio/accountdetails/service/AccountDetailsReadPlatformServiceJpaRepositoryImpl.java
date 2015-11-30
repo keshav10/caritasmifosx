@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import org.joda.time.LocalDate;
@@ -19,8 +20,11 @@ import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
+import org.mifosplatform.portfolio.accountdetails.PaymentDetailCollectionData;
+import org.mifosplatform.portfolio.accountdetails.SharesAccountBalanceCollectionData;
 import org.mifosplatform.portfolio.accountdetails.data.AccountSummaryCollectionData;
 import org.mifosplatform.portfolio.accountdetails.data.LoanAccountSummaryData;
+import org.mifosplatform.portfolio.accountdetails.data.MpesaTransactionSummaryData;
 import org.mifosplatform.portfolio.accountdetails.data.SavingsAccountSummaryData;
 import org.mifosplatform.portfolio.client.service.ClientReadPlatformService;
 import org.mifosplatform.portfolio.group.service.GroupReadPlatformService;
@@ -135,6 +139,60 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
         return this.jdbcTemplate.query(savingsSql, savingsAccountSummaryDataMapper, inputs);
     }
 
+    private Collection<PaymentDetailCollectionData> retrievePaymentDetails( final Object[] inputs) {
+        final PaymentDetailDataMapper rm = new PaymentDetailDataMapper();
+        final String sql = rm.schemaSql;
+        return this.jdbcTemplate.query(sql, rm, inputs);
+    }
+    private static final class PaymentDetailDataMapper implements RowMapper<PaymentDetailCollectionData> {
+      final String schemaSql;
+      public PaymentDetailDataMapper(){
+          final StringBuilder paymentdetail = new StringBuilder();
+          paymentdetail.append("select date_format(c.transaction_date,'%d' '-%b' '-%y') as transaction_date , c. receipt_number,sum(c.amount) as amount,c.loan_id ,c.PaymentType1 from ( ");
+          paymentdetail.append("select mlt.transaction_date ,IF (LENGTH(mpd.receipt_number) >0 , mpd.receipt_number , CONCAT('dummy_', mpd.id) )  receipt_number, ");
+          paymentdetail.append(" sum(mlt.amount) as amount,mlt.transaction_type_enum,mlt.loan_id, ");
+          paymentdetail.append("if(mlt.transaction_type_enum =1,'D','R')as paymentType, ");
+          paymentdetail.append("if(mlt.transaction_type_enum=1,'DS','P') as PaymentType1 ");
+          paymentdetail.append("from m_client mc ");
+          paymentdetail.append("inner join m_loan l on mc.id=l.client_id ");
+          paymentdetail.append("inner join m_loan_transaction mlt on mlt.loan_id=l.id ");
+          paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mlt.payment_detail_id ");
+          paymentdetail.append(" where mc.id=? ");
+          paymentdetail.append("and mlt.is_reversed=0 ");
+          paymentdetail.append("and mlt.transaction_type_enum in (2) ");
+          paymentdetail.append("group by mpd.receipt_number,mlt.transaction_type_enum,mlt.transaction_date,mlt.loan_id ");
+          paymentdetail.append("union ");
+          paymentdetail.append("select mst.transaction_date ,IF (LENGTH( mpd.receipt_number) >0 , mpd.receipt_number , CONCAT('dummy_', mpd.id) )  receipt_number, ");
+          paymentdetail.append("sum(amount) as amount,mst.transaction_type_enum,mst.savings_account_id, ");
+          paymentdetail.append("if(mst.transaction_type_enum=1,'R','W')paymentType, ");
+          paymentdetail.append("if (mst.transaction_type_enum=1,'DP','W') paymentType1 ");
+          paymentdetail.append("from m_client mc  ");
+          paymentdetail.append("inner join m_savings_account s on mc.id=s.client_id ");
+          paymentdetail.append("inner join m_savings_account_transaction mst on mst.savings_account_id=s.id ");
+          paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mst.payment_detail_id ");
+          paymentdetail.append("where mc.id=?  ");
+          paymentdetail.append("and mst.transaction_type_enum in(1,2) ");
+          paymentdetail.append(" group by mpd.receipt_number,mst.transaction_type_enum,mst.transaction_date,mst.savings_account_id ");
+          paymentdetail.append(" )c group by c.transaction_date,c.receipt_number ");
+          paymentdetail.append("  order by c.transaction_date desc "); 
+          paymentdetail.append(" LIMIT 3");
+          this.schemaSql = paymentdetail.toString();
+      }
+      public String schema() {
+          return this.schemaSql;
+      }
+	@Override
+	public PaymentDetailCollectionData mapRow(ResultSet rs, int rowNum)
+			throws SQLException {
+		final String date = rs.getString("transaction_date");
+        final Long amount = rs.getLong("amount");
+        final String type=rs.getString("PaymentType1");
+        final String receiptNumber = rs.getString("receipt_number");
+        return new PaymentDetailCollectionData(amount, date, receiptNumber,type);                
+       
+	}
+    	
+    }
     private static final class SavingsAccountSummaryDataMapper implements RowMapper<SavingsAccountSummaryData> {
 
         final String schemaSql;
@@ -391,6 +449,152 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
     }
 
 	@Override
+	public Collection<PaymentDetailCollectionData> retrivePaymentDetail(
+			Long clientId) {
+		this.clientReadPlatformService.retrieveOne(clientId);
+		return retrievePaymentDetails(new Object[] { clientId, clientId });
+        
+   
+	}
+	private Collection<SharesAccountBalanceCollectionData> retrieveShareAccountBalance( final Object[] inputs) {
+        final shareAccountBalanceDataaMapper rm = new shareAccountBalanceDataaMapper();
+        final String sql = rm.schemaSql;
+        return this.jdbcTemplate.query(sql, rm, inputs);
+    }
+	
+	
+	private static final class shareAccountBalanceDataaMapper implements RowMapper<SharesAccountBalanceCollectionData> {
+	      final String schemaSql;
+	      public shareAccountBalanceDataaMapper(){
+	          final StringBuilder shareAccountBalance = new StringBuilder();
+	          shareAccountBalance.append("select msa.id ,msa.account_balance_derived  from   ");
+	          shareAccountBalance.append("m_client mc left join m_savings_account msa on mc.id=msa.client_id  ");
+	          shareAccountBalance.append("where mc.id=? ");
+	          shareAccountBalance.append(" and msa.id in (select  default_savings_account from m_client where mc.id=?) ");
+	          this.schemaSql = shareAccountBalance.toString();
+	      }
+	      public String schema() {
+	          return this.schemaSql;
+	      }
+		@Override
+		public SharesAccountBalanceCollectionData mapRow(ResultSet rs,
+				int rowNum) throws SQLException {
+			final String accountNo = rs.getString("id");
+			final BigDecimal accountBalance = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "account_balance_derived");
+	         return  new SharesAccountBalanceCollectionData(accountNo, accountBalance);                
+	       
+		}
+	}
+	@Override
+	public Collection<SharesAccountBalanceCollectionData> retriveSharesBalance(
+			Long clientId) {
+		this.clientReadPlatformService.retrieveOne(clientId);
+		return retrieveShareAccountBalance(new Object[] { clientId,clientId});
+	}
+	private Collection<MpesaTransactionSummaryData>retriveMpesaSummary(final Object[] inputs){
+		final MpesaTransactionSummaryDataMapper rm = new MpesaTransactionSummaryDataMapper();
+        final String sql = rm.schemaSql;
+        return this.jdbcTemplate.query(sql, rm, inputs);
+		
+	}
+	private static final class MpesaTransactionSummaryDataMapper implements RowMapper<MpesaTransactionSummaryData> {
+	      final String schemaSql;
+	      public MpesaTransactionSummaryDataMapper(){
+	          final StringBuilder sb = new StringBuilder();
+	          sb.append("(select mlt.id as transaction_id ");
+	          sb.append(", concat('Loan-',mlt.loan_id) account_no ");
+			  sb.append(" , mlt.transaction_date t_date ");
+			  sb.append(" ,rev.enum_value payment_type ");
+			  sb.append(" ,mpl.name product_name ");
+			  sb.append(" ,mc.id client_id ");
+			  sb.append(" ,mc.display_name client_name ");
+			  sb.append(" ,(ifnull(mlt.fee_charges_portion_derived,0)+ifnull(mlt.penalty_charges_portion_derived,0))as loan_charges ");
+			  sb.append("  ,(mlt.amount-ifnull(mlt.fee_charges_portion_derived,0)-ifnull(mlt.penalty_charges_portion_derived,0))as amount ");
+			  sb.append("  from m_loan_transaction mlt ");
+			  sb.append("  inner join m_appuser map on mlt.appuser_id = map.id ");
+			  sb.append("  inner join m_loan ml on ml.id=mlt.loan_id ");
+			  sb.append("  left join m_client mc on mc.id=ml.client_id ");
+			  sb.append("  inner join m_product_loan mpl on mpl.id=ml.product_id ");
+			  sb.append("  left join r_enum_value rev on rev.enum_id=mlt.transaction_type_enum and rev.enum_name='transaction_type_enum' ");
+			  sb.append("  where mlt.payment_detail_id in (select mpd.id from m_payment_detail mpd  ");
+			  sb.append("  where mpd.receipt_number=?) ");
+			  sb.append("  and mc.id=? ");
+			  sb.append("  and mlt.transaction_date =? ");
+			  sb.append("  and mlt.is_reversed=0)  ");
+			  sb.append("  union  ");
+			  sb.append("  (select a.transaction_id,concat('Savings-',a.account_no)as account_no, a.t_date as t_date,a.payment_type,a.product_name,a.client_id,a.client_name,b.charge_amount,(a.amount-ifnull(b.charge_amount,0))as amount ");
+			  sb.append("   from  ");
+			  sb.append("  (select msat.id transaction_id ");
+			  sb.append("  ,msat.savings_account_id as account_no ");
+			  sb.append("  ,msat.transaction_date t_date  ");
+			  sb.append("  ,msat.amount ");
+			  sb.append("  ,rev.enum_value payment_type ");
+			  sb.append("  ,msp.name product_name ");
+			  sb.append("  ,mc.id client_id ");
+			  sb.append("  ,mc.display_name client_name ");
+			  sb.append("  from m_savings_account_transaction msat ");
+			  sb.append("  inner join m_appuser map on msat.appuser_id = map.id ");
+			  sb.append("  left join m_savings_account msa on msa.id=msat.savings_account_id ");
+			  sb.append("  left join m_client mc on mc.id=msa.client_id ");
+			  sb.append("  left join m_office mo on mc.office_id=mo.id ");
+			  sb.append("  inner join m_savings_product msp on msp.id=msa.product_id ");
+			  sb.append("  left join r_enum_value rev on rev.enum_id=msat.transaction_type_enum and rev.enum_name='savings_transaction_type_enum' ");
+			  sb.append("  where msat.payment_detail_id in (select mpd.id from m_payment_detail mpd  ");
+			  sb.append("  where mpd.receipt_number=?) ");
+			  sb.append(" and mc.id=? ");
+			  sb.append(" and msat.transaction_date=? ");
+			  sb.append(" and msat.is_reversed=0 ");
+			  sb.append(" and msat.transaction_type_enum=1)a ");
+			  sb.append(" left join ");
+			  sb.append(" (select msat.id transaction_id ");
+			  sb.append("  ,msat.savings_account_id as account_no ");
+			  sb.append("  ,msat.transaction_date t_date  ");
+			  sb.append("  ,sum(msat.amount) charge_amount ");
+			  sb.append("  ,rev.enum_value payment_type ");
+			  sb.append("  ,msp.name product_name ");
+			  sb.append("  ,mc.id client_id ");
+			  sb.append("  ,mc.display_name client_name ");
+			  sb.append("  from m_savings_account_transaction msat ");
+			  sb.append("  left join m_savings_account msa on msa.id=msat.savings_account_id ");
+			  sb.append("  left join m_client mc on mc.id=msa.client_id ");
+			  sb.append("  inner join m_savings_product msp on msp.id=msa.product_id ");
+			  sb.append("  left join r_enum_value rev on rev.enum_id=msat.transaction_type_enum and rev.enum_name='savings_transaction_type_enum' ");
+			  sb.append("  where msat.payment_detail_id in (select mpd.id from m_payment_detail mpd  ");
+			  sb.append("  where mpd.receipt_number=?) ");
+			  sb.append("  and mc.id=? ");
+			  sb.append("  and msat.transaction_date=? ");
+			  sb.append("  and msat.is_reversed=0 ");
+			  sb.append("  and msat.transaction_type_enum in(4,5,7) ");
+			  sb.append("  group by msat.savings_account_id)b ");
+			  sb.append("  on a.account_no = b.account_no)  ");
+	  
+			  schemaSql = sb.toString(); 
+	      }
+	      public String schema() {
+	          return this.schemaSql;
+	      }
+		@Override
+		public MpesaTransactionSummaryData mapRow(ResultSet rs, int rowNum)
+				throws SQLException {
+			final String accountNo= rs.getString("account_no");
+			final BigDecimal chargeAmount = rs.getBigDecimal("loan_charges");
+			final BigDecimal amount = rs.getBigDecimal("amount");
+			final String  TxnDate=rs.getString("t_date");
+			final String clientName=rs.getString("client_name");
+			return new  MpesaTransactionSummaryData(null,accountNo,amount,TxnDate,chargeAmount,clientName);
+
+		}
+		
+	}
+	
+	
+	@Override
+	public Collection<MpesaTransactionSummaryData>retriveMpesaTransactionDetail(Long clientId,String TxnDate,String ReceiptNo){
+	this.clientReadPlatformService.retrieveOne(clientId);
+	return retriveMpesaSummary(new Object[]{ReceiptNo,clientId,TxnDate,ReceiptNo,clientId,TxnDate,ReceiptNo,clientId,TxnDate });
+	}
+	
+
 	public AccountSummaryCollectionData retriveClientAccountAndChargeDetails(
 			Long clientId, final String chargeonDate) {
 		 this.clientReadPlatformService.retrieveOne(clientId);
@@ -419,3 +623,4 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	}
 
 }
+

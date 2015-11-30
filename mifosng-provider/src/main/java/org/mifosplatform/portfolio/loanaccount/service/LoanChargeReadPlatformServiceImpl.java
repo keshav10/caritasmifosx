@@ -563,7 +563,8 @@ public  Collection<LoanChargeSummaryData> retriveLoanCharge(Long loanId,String c
     sb.append(rm.schema());
     sb.append(" where mlc.loan_id = ? ");
     sb.append(" and mlc.is_paid_derived=0");
-    sb.append(" and mlc.waived=0)a");
+    sb.append(" and mlc.waived=0"); 
+    sb.append(" and mlc.is_active=1)a");
     sb.append(" where a.charge_due_date <= ?");
     return this.jdbcTemplate.query(sb.toString(), rm, new Object[]{loanId,chargeonDate});
 }

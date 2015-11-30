@@ -5,8 +5,11 @@
  */
 package org.mifosplatform.portfolio.client.api;
 
-import java.text.DateFormat;
+
+
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -39,7 +42,10 @@ import org.mifosplatform.infrastructure.core.serialization.ApiRequestJsonSeriali
 import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.mifosplatform.infrastructure.core.service.Page;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
+import org.mifosplatform.portfolio.accountdetails.PaymentDetailCollectionData;
+import org.mifosplatform.portfolio.accountdetails.SharesAccountBalanceCollectionData;
 import org.mifosplatform.portfolio.accountdetails.data.AccountSummaryCollectionData;
+import org.mifosplatform.portfolio.accountdetails.data.MpesaTransactionSummaryData;
 import org.mifosplatform.portfolio.accountdetails.service.AccountDetailsReadPlatformService;
 import org.mifosplatform.portfolio.client.data.ClientData;
 import org.mifosplatform.portfolio.client.service.ClientReadPlatformService;
@@ -285,6 +291,40 @@ public class ClientsApiResource {
     }
     
     @GET
+    @Path("{clientId}/incomingSmsDetail")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String retrievePaymentDetail(@PathParam("clientId") final Long clientId, @Context final UriInfo uriInfo) {
+
+        this.context.authenticatedUser().validateHasReadPermission(ClientApiConstants.CLIENT_RESOURCE_NAME);
+       ArrayList<PaymentDetailCollectionData> PaymentDetail =  (ArrayList<PaymentDetailCollectionData>) this.accountDetailsReadPlatformService.retrivePaymentDetail(clientId);
+       // final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.clientAccountSummaryToApiJsonSerializer.serialize(PaymentDetail);
+    }
+    
+    @GET
+    @Path("{clientId}/sharesAccount")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String retrieveSharesAccountBalance(@PathParam("clientId") final Long clientId, @Context final UriInfo uriInfo) {
+
+        this.context.authenticatedUser().validateHasReadPermission(ClientApiConstants.CLIENT_RESOURCE_NAME);
+       ArrayList<SharesAccountBalanceCollectionData> sharesAccountBalance =  (ArrayList<SharesAccountBalanceCollectionData>) this.accountDetailsReadPlatformService.retriveSharesBalance(clientId);
+       // final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.clientAccountSummaryToApiJsonSerializer.serialize(sharesAccountBalance);
+    }
+    
+    @GET
+    @Path("{clientId}/Mpesa")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String retriveMpesaTransactionDetail(@PathParam("clientId") final Long clientId, @QueryParam("TransactionDate") final String TransactionDate, @QueryParam("ReceiptNo") final String ReceiptNo,@Context final UriInfo uriInfo) {
+    	this.context.authenticatedUser().validateHasReadPermission(ClientApiConstants.CLIENT_RESOURCE_NAME);
+		   	ArrayList<MpesaTransactionSummaryData> mpesaTxnDetails = (ArrayList<MpesaTransactionSummaryData>) this.accountDetailsReadPlatformService.retriveMpesaTransactionDetail(clientId,TransactionDate,ReceiptNo);
+            return this.clientAccountSummaryToApiJsonSerializer.serialize(mpesaTxnDetails);
+    }
+    
+    @GET
     @Path("{clientId}/clientsPayments")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
@@ -295,14 +335,14 @@ public class ClientsApiResource {
     	DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
     	String chargeonDate= formatter.format(currentdate);
     	if(submittedOnDate!=null){
-    	chargeonDate = formatter.format(submittedOnDate);    	}
+    	chargeonDate = formatter.format(submittedOnDate); 
+    	}
     	final AccountSummaryCollectionData clientAccount = this.accountDetailsReadPlatformService.retriveClientAccountAndChargeDetails(clientId,chargeonDate);
         final Set<String> CLIENT_ACCOUNTS_DATA_PARAMETERS = new HashSet<String>(Arrays.asList("loanAccounts", "savingsAccounts",
                 "paymentTypeOptions","loanCharges","savingsCharges"));
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.clientAccountSummaryToApiJsonSerializer.serialize(settings, clientAccount, CLIENT_ACCOUNTS_DATA_PARAMETERS);
+
     }
-    
-    
-    
+
 }
