@@ -89,6 +89,9 @@ public class CommandStrategyProvider {
                 "loanTransactionsCommandStrategy");
         this.commandStrategies.put(CommandContext.resource("savingsaccounts\\/\\d+\\/transactions\\?command=deposit").method("POST").build(),
                 "savingsTransactionsCommandStrategy");
+        this.commandStrategies.put(CommandContext.resource("savingsaccounts\\/\\d+\\/charges/\\d+\\?command=paycharge").method("POST").build(),
+        		"chargePayCommandStrategy");
+        
     }
 
 }

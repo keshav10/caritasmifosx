@@ -50,6 +50,7 @@ public class BatchApiServiceImpl implements BatchApiService {
     private final ResolutionHelper resolutionHelper;
     private final TransactionTemplate transactionTemplate;
     private List<BatchResponse> checkList = new ArrayList<>();
+   
 
     /**
      * Constructs a 'BatchApiServiceImpl' with an argument of
@@ -65,6 +66,7 @@ public class BatchApiServiceImpl implements BatchApiService {
         this.strategyProvider = strategyProvider;
         this.resolutionHelper = resolutionHelper;
         this.transactionTemplate = transactionTemplate;
+        
     }
 
     /**
@@ -83,7 +85,7 @@ public class BatchApiServiceImpl implements BatchApiService {
         final List<BatchRequestNode> batchRequestNodes = this.resolutionHelper.getDependingRequests(requestList);
         checkList.clear();
 
-        for (BatchRequestNode rootNode : batchRequestNodes) {
+        for (BatchRequestNode rootNode : batchRequestNodes) {        	
             final BatchRequest rootRequest = rootNode.getRequest();
             final CommandStrategy commandStrategy = this.strategyProvider.getCommandStrategy(CommandContext
                     .resource(rootRequest.getRelativeUrl()).method(rootRequest.getMethod()).build());
@@ -156,7 +158,7 @@ public class BatchApiServiceImpl implements BatchApiService {
 
     @Override
     public List<BatchResponse> handleBatchRequestsWithoutEnclosingTransaction(final List<BatchRequest> requestList, UriInfo uriInfo) {
-
+       
         return handleBatchRequests(requestList, uriInfo);
     }
 
@@ -164,6 +166,7 @@ public class BatchApiServiceImpl implements BatchApiService {
     public List<BatchResponse> handleBatchRequestsWithEnclosingTransaction(final List<BatchRequest> requestList, final UriInfo uriInfo) {
 
         try {
+        	
             return this.transactionTemplate.execute(new TransactionCallback<List<BatchResponse>>() {
 
                 @Override

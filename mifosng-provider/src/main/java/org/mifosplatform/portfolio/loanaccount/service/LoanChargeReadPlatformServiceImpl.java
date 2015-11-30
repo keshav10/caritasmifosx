@@ -26,6 +26,7 @@ import org.mifosplatform.portfolio.charge.service.ChargeEnumerations;
 import org.mifosplatform.portfolio.common.service.DropdownReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargePaidByData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanChargeSummaryData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanInstallmentChargeData;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -521,5 +522,57 @@ public class LoanChargeReadPlatformServiceImpl implements LoanChargeReadPlatform
             return new LoanChargePaidByData(id, amount, installmentNumber, chargeId, transactionId);
         }
     }
+   private static final class  LoanChargeByClientIdMapper implements RowMapper<LoanChargeSummaryData>{
+	   private final String schemaSql;
+	   
+	  public LoanChargeByClientIdMapper(){
+		  StringBuilder sb = new StringBuilder(100);
+		  sb.append("c.name as chargeName,mlc.amount_outstanding_derived as ChargeDue, ");
+		  sb.append("l.id as loanId ,l.account_no as accountNo,mlc.id as chargeId, ");
+		  sb.append("ifnull(due_for_collection_as_of_date,curdate())as charge_due_date ");
+		  sb.append("from m_client m inner join m_loan l on  l.client_id = m.id ");
+		  sb.append("inner join m_loan_charge mlc on l.id = mlc.loan_id ");
+		  sb.append("inner join m_charge c on c.id = mlc.charge_id ");
+		   schemaSql = sb.toString();
+	  }
+	  public String schema(){
+		  return this.schemaSql;
+	  }
+	@Override
+	public LoanChargeSummaryData mapRow(ResultSet rs, int rowNum)
+			throws SQLException {
+		final String chargeName= rs.getString("chargeName");
+		final BigDecimal chargeDue = rs.getBigDecimal("ChargeDue");
+		final Long id = rs.getLong("loanId");
+		final String accountNo = rs.getString("accountNo");
+		final Long chargeId= rs.getLong("chargeId");
+		final String date =rs.getString("charge_due_date");
+		return new  LoanChargeSummaryData(id,accountNo,chargeName,chargeDue,chargeId,date);
+	}
+	  
+   }
 
+@Override
+public  Collection<LoanChargeSummaryData> retriveLoanCharge(Long loanId,String chargeonDate) {
+	
+	LoanChargeByClientIdMapper rm = new LoanChargeByClientIdMapper();
+	Collection<LoanChargeSummaryData> args = new ArrayList<LoanChargeSummaryData>();
+    StringBuilder sb = new StringBuilder(100);
+    sb.append("select a.chargeName,a.ChargeDue,a.loanId,a.accountNo,a.chargeId,a.charge_due_date from (");
+    sb.append("select ");
+    sb.append(rm.schema());
+    sb.append(" where mlc.loan_id = ? ");
+    sb.append(" and mlc.is_paid_derived=0");
+    sb.append(" and mlc.waived=0"); 
+    sb.append(" and mlc.is_active=1)a");
+    sb.append(" where a.charge_due_date <= ?");
+    return this.jdbcTemplate.query(sb.toString(), rm, new Object[]{loanId,chargeonDate});
 }
+
+
+	
+}
+    
+    
+
+
