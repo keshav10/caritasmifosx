@@ -31,14 +31,7 @@ INSERT INTO m_permission (`grouping`, `code`, `entity_name`, `action_name`, `can
 
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'CLOSE_LOANINVESTMENT', 'LOANINVESTMENT', 'CLOSE', 0);
 
-
-
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'CLOSE_SAVINGINVESTMENT', 'SAVINGINVESTMENT', 'CLOSE', 0);
-
-
-INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'UPDATE_SAVINGINVESTMENT', 'SAVINGINVESTMENT', 'UPDATE', 0);
-
-INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('portfolio', 'UPDATE_LOANINVESTMENT', 'LOANINVESTMENT', 'UPDATE', 0);
 
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('report', 'RUNBATCHJOB_INVESTMENT', 'INVESTMENT', 'RUNBATCHJOB', 0);
 
