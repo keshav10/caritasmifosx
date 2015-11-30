@@ -88,15 +88,20 @@ public class SavingInvestmentApiResource {
 
     }
 
-    @DELETE
+
+    @POST
+    @Path("/delete")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String deleteInvestmentBasedOnMapping(@PathParam("savingsAccountId") final Long savingsAccountId,
-            @QueryParam("loanId") final Long loanId) {
+    public String deleteInvestmentBasedOnMapping(@PathParam("savingsAccountId") final Long savingsAccountId , final String apiRequestBodyAsJson) {
 
-        this.context.authenticatedUser().validateHasReadPermission(InvestmentConstants.SAVINGINVESTMENT_RESOURCE_NAME);
+        
+    	String json = apiRequestBodyAsJson;
+    	
+    	this.context.authenticatedUser().validateHasReadPermission(InvestmentConstants.SAVINGINVESTMENT_RESOURCE_NAME);
 
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().deleteInvestmentBasedOnMapping(savingsAccountId, loanId).build();
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().deleteInvestmentBasedOnMapping(savingsAccountId)
+        		.withJson(apiRequestBodyAsJson).build();
 
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
 
@@ -120,5 +125,17 @@ public class SavingInvestmentApiResource {
 
     }
     
+ 
+    @POST
+    @Path("/close")
+    @Consumes({ MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON})
+    public String closeSavingInvestment(@PathParam("savingsAccountId") final Long savingsAccountId, final String apiRequestBodyAsJson){
+    	this.context.authenticatedUser().validateHasPermissionTo(InvestmentConstants.SAVINGINVESTMENT_RESOURCE_NAME);
+    	final CommandWrapper commandRequest = new CommandWrapperBuilder().closeSavingInvestment(savingsAccountId).withJson(apiRequestBodyAsJson).build();
+        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+        
+    	return this.apiJsonSerializerService.serialize(result);
+    }
 
 }

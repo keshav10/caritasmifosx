@@ -2,6 +2,7 @@ package org.mifosplatform.portfolio.investment.domain;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,21 +47,51 @@ public class Investment extends AbstractPersistable<Long> {
     @Column(name = "invested_amount", scale = 6, precision = 19, nullable = true)
     private Long investedAmount;
     
+    
+    @Column(name = "start_date", nullable = true)
+    private Date startDate;
+    
+    @Column(name = "close_date", nullable = true)
+    private Date closeDate;
+    
+    
     protected Investment() {
         //
     }
 
    
-    public Investment(Long savingId, Long loanId, Long investedAmount) {
+    public Investment(Long savingId, Long loanId, Long investedAmount, Date startDate, Date closeDate) {
         // super();
         this.savingId = savingId;
         this.loanId = loanId;
         this.investedAmount = investedAmount;
+        this.startDate = startDate;
+        this.closeDate = closeDate;
     }
 
     
     public Long getInvestedAmount() {
 		return this.investedAmount;
+	}
+
+
+	public Date getStartDate() {
+		return this.startDate;
+	}
+
+
+	public void setStartDate(Date startDate) {
+		this.startDate = startDate;
+	}
+
+
+	public Date getCloseDate() {
+		return this.closeDate;
+	}
+
+
+	public void setCloseDate(Date closeDate) {
+		this.closeDate = closeDate;
 	}
 
 
