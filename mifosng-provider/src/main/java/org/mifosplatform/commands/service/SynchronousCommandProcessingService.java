@@ -37,10 +37,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
+
 
 @Service
 public class SynchronousCommandProcessingService implements
-		CommandProcessingService {
+		CommandProcessingService {	
 
 	private PlatformSecurityContext context;
 	private final ApplicationContext applicationContext;
@@ -1582,8 +1584,7 @@ public class SynchronousCommandProcessingService implements
 
 		final HookEvent applicationEvent = new HookEvent(hookEventSource,serializedResult, tenantIdentifier, appUser, authToken);
 				
-		
-		final GenericResultsetData results = readWriteNonCoreDataService.retrieveDataTableGenericResultSet("m_office_datable", officeId,
+		final GenericResultsetData results = readWriteNonCoreDataService.retrieveDataTableGenericResultSet("Office-Details", officeId,
 	                null, null);		 
 		ArrayList<ResultsetColumnHeaderData> header= (ArrayList<ResultsetColumnHeaderData>) results.getColumnHeaders();
 		ArrayList<ResultsetRowData> data  = (ArrayList<ResultsetRowData>) results.getData();
