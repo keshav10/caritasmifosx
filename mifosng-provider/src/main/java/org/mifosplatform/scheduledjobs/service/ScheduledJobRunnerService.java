@@ -5,6 +5,8 @@
  */
 package org.mifosplatform.scheduledjobs.service;
 
+import org.mifosplatform.infrastructure.core.api.JsonCommand;
+import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
 
 public interface ScheduledJobRunnerService {
@@ -44,4 +46,8 @@ public interface ScheduledJobRunnerService {
 
     void doAppySavingLateFeeCharge() throws JobExecutionException;
 
+    //the following method will call if any user manually wanted to run the job by passing some parameter from front end
+    CommandProcessingResult doInvestmentTracker(JsonCommand json);
+    
+    void distributeInvestmentEarning();
 }

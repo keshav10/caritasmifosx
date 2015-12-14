@@ -85,6 +85,7 @@ import org.mifosplatform.portfolio.savings.SavingsInterestCalculationDaysInYearT
 import org.mifosplatform.portfolio.savings.SavingsInterestCalculationType;
 import org.mifosplatform.portfolio.savings.SavingsPeriodFrequencyType;
 import org.mifosplatform.portfolio.savings.SavingsPostingInterestPeriodType;
+import org.mifosplatform.portfolio.savings.data.SavingsAccountData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountTransactionDTO;
 import org.mifosplatform.portfolio.savings.domain.interest.PostingPeriod;
 import org.mifosplatform.portfolio.savings.exception.InsufficientAccountBalanceException;
@@ -93,6 +94,8 @@ import org.mifosplatform.portfolio.savings.exception.SavingsActivityPriorToClien
 import org.mifosplatform.portfolio.savings.exception.SavingsOfficerAssignmentDateException;
 import org.mifosplatform.portfolio.savings.exception.SavingsOfficerUnassignmentDateException;
 import org.mifosplatform.portfolio.savings.exception.SavingsTransferTransactionsCannotBeUndoneException;
+import org.mifosplatform.portfolio.savings.exception.minBalanceRequiredUpdateNotAllowed;
+import org.mifosplatform.portfolio.savings.service.SavingsAccountReadPlatformService;
 import org.mifosplatform.portfolio.savings.service.SavingsEnumerations;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.data.jpa.domain.AbstractPersistable;
@@ -258,7 +261,8 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     @Column(name = "min_required_balance", scale = 6, precision = 19, nullable = true)
     private BigDecimal minRequiredBalance;
 
-    @Column(name = "on_hold_funds_derived", scale = 6, precision = 19, nullable = true)
+
+	@Column(name = "on_hold_funds_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal onHoldFunds;
 
     @Temporal(TemporalType.DATE)
@@ -297,7 +301,8 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     protected SavingsAccount() {
         //
     }
-
+    
+   
     public static SavingsAccount createNewApplicationForSubmittal(final Client client, final Group group, final SavingsProduct product,
             final Staff fieldOfficer, final String accountNo, final String externalId, final AccountType accountType,
             final LocalDate submittedOnDate, final AppUser submittedBy, final BigDecimal interestRate,
@@ -1029,14 +1034,17 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             final DataValidatorBuilder baseDataValidator) {
 
         final SavingsAccountStatusType currentStatus = SavingsAccountStatusType.fromInt(this.status);
-        if (!SavingsAccountStatusType.SUBMITTED_AND_PENDING_APPROVAL.hasStateOf(currentStatus)) {
+      
+        /*if (!SavingsAccountStatusType.SUBMITTED_AND_PENDING_APPROVAL.hasStateOf(currentStatus)) {
             baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("not.in.submittedandpendingapproval.state");
             return;
         }
-
+*/
         final String localeAsInput = command.locale();
         final String dateFormat = command.dateFormat();
-
+        final Long savingId = command.longValueOfParameterNamed("savingId");
+      //  BigDecimal minRequiredBalance = account.getMinRequiredBalance();
+     
         if (command.isChangeInLocalDateParameterNamed(SavingsApiConstants.submittedOnDateParamName, getSubmittedOnLocalDate())) {
             final LocalDate newValue = command.localDateValueOfParameterNamed(SavingsApiConstants.submittedOnDateParamName);
             final String newValueAsString = command.stringValueOfParameterNamed(SavingsApiConstants.submittedOnDateParamName);
@@ -1118,9 +1126,11 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                 this.minRequiredOpeningBalance)) {
             final BigDecimal newValue = command
                     .bigDecimalValueOfParameterNamedDefaultToNullIfZero(SavingsApiConstants.minRequiredOpeningBalanceParamName);
-            actualChanges.put(SavingsApiConstants.minRequiredOpeningBalanceParamName, newValue);
-            actualChanges.put("locale", localeAsInput);
-            this.minRequiredOpeningBalance = Money.of(this.currency, newValue).getAmount();
+            
+                   actualChanges.put(SavingsApiConstants.minRequiredOpeningBalanceParamName, newValue);
+                   actualChanges.put("locale", localeAsInput);
+                   this.minRequiredOpeningBalance = Money.of(this.currency, newValue).getAmount();
+            
         }
 
         if (command.isChangeInIntegerParameterNamedDefaultingZeroToNull(SavingsApiConstants.lockinPeriodFrequencyParamName,
@@ -1189,9 +1199,15 @@ public class SavingsAccount extends AbstractPersistable<Long> {
 
         if (command.isChangeInBigDecimalParameterNamedDefaultingZeroToNull(minRequiredBalanceParamName, this.minRequiredBalance)) {
             final BigDecimal newValue = command.bigDecimalValueOfParameterNamedDefaultToNullIfZero(minRequiredBalanceParamName);
-            actualChanges.put(minRequiredBalanceParamName, newValue);
-            actualChanges.put(localeParamName, localeAsInput);
-            this.minRequiredBalance = newValue;
+           
+      /*      if(newValue.compareTo(minRequiredBalance)>=1){
+          */      actualChanges.put(minRequiredBalanceParamName, newValue);
+                actualChanges.put(localeParamName, localeAsInput);
+                this.minRequiredBalance = newValue;
+            /*  }else{
+            	  throw new minBalanceRequiredUpdateNotAllowed();
+              }
+            */
         }
 
         validateLockinDetails(baseDataValidator);
@@ -2553,4 +2569,12 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     public BigDecimal getWithdrawableBalance() {
         return getAccountBalance().subtract(minRequiredBalanceDerived(getCurrency()).getAmount());
     }
+    
+    public BigDecimal getMinRequiredBalance() {
+  		return this.minRequiredBalance;
+  	}
+
+  	public void setMinRequiredBalance(BigDecimal minRequiredBalance) {
+  		this.minRequiredBalance = minRequiredBalance;
+  	}
 }

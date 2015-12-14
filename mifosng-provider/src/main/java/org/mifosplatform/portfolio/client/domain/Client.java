@@ -58,6 +58,9 @@ public final class Client extends AbstractPersistable<Long> {
     @Column(name = "account_no", length = 20, unique = true, nullable = false)
     private String accountNumber;
 
+    @Column(name = "national_id", length = 20, unique = true, nullable = false )
+    private String nationalId;
+    
     @ManyToOne
     @JoinColumn(name = "office_id", nullable = false)
     private Office office;
@@ -216,6 +219,7 @@ public final class Client extends AbstractPersistable<Long> {
         final String accountNo = command.stringValueOfParameterNamed(ClientApiConstants.accountNoParamName);
         final String externalId = command.stringValueOfParameterNamed(ClientApiConstants.externalIdParamName);
         final String mobileNo = command.stringValueOfParameterNamed(ClientApiConstants.mobileNoParamName);
+        final String nationalId = command.stringValueOfParameterNamed(ClientApiConstants.nationalId);
 
         final String firstname = command.stringValueOfParameterNamed(ClientApiConstants.firstnameParamName);
         final String middlename = command.stringValueOfParameterNamed(ClientApiConstants.middlenameParamName);
@@ -248,7 +252,7 @@ public final class Client extends AbstractPersistable<Long> {
         final SavingsAccount account = null;
         return new Client(currentUser, status, clientOffice, clientParentGroup, accountNo, firstname, middlename, lastname, fullname,
                 activationDate, officeJoiningDate, externalId, mobileNo, staff, submittedOnDate, savingsProduct, account, dataOfBirth,
-                gender, clientType, clientClassification);
+                gender, clientType, clientClassification, nationalId);
     }
 
     protected Client() {
@@ -259,7 +263,8 @@ public final class Client extends AbstractPersistable<Long> {
             final String accountNo, final String firstname, final String middlename, final String lastname, final String fullname,
             final LocalDate activationDate, final LocalDate officeJoiningDate, final String externalId, final String mobileNo,
             final Staff staff, final LocalDate submittedOnDate, final SavingsProduct savingsProduct, final SavingsAccount savingsAccount,
-            final LocalDate dateOfBirth, final CodeValue gender, final CodeValue clientType, final CodeValue clientClassification) {
+            final LocalDate dateOfBirth, final CodeValue gender, final CodeValue clientType, final CodeValue clientClassification,
+            final String nationalId) {
 
         if (StringUtils.isBlank(accountNo)) {
             this.accountNumber = new RandomPasswordGenerator(19).generate();
@@ -268,6 +273,7 @@ public final class Client extends AbstractPersistable<Long> {
             this.accountNumber = accountNo;
         }
 
+        this.nationalId = nationalId;
         this.submittedOnDate = submittedOnDate.toDate();
         this.submittedBy = currentUser;
 
@@ -338,7 +344,15 @@ public final class Client extends AbstractPersistable<Long> {
         validate();
     }
 
-    private void validate() {
+    public String getNationalId() {
+		return this.nationalId;
+	}
+
+	public void setNationalId(String nationalId) {
+		this.nationalId = nationalId;
+	}
+
+	private void validate() {
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
         validateNameParts(dataValidationErrors);
         validateActivationDate(dataValidationErrors);
@@ -441,6 +455,12 @@ public final class Client extends AbstractPersistable<Long> {
             this.accountNumber = StringUtils.defaultIfEmpty(newValue, null);
         }
 
+        if(command.isChangeInStringParameterNamed(ClientApiConstants.nationalId, this.nationalId)){
+        	final String newValue = command.stringValueOfParameterNamed(ClientApiConstants.nationalId);
+        	actualChanges.put(ClientApiConstants.nationalId, newValue);
+        	this.nationalId = StringUtils.defaultIfEmpty(newValue, null);
+        }
+        
         if (command.isChangeInStringParameterNamed(ClientApiConstants.externalIdParamName, this.externalId)) {
             final String newValue = command.stringValueOfParameterNamed(ClientApiConstants.externalIdParamName);
             actualChanges.put(ClientApiConstants.externalIdParamName, newValue);

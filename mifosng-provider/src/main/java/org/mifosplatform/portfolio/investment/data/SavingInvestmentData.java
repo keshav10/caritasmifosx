@@ -1,5 +1,6 @@
 package org.mifosplatform.portfolio.investment.data;
 
+import java.util.Date;
 import java.util.List;
 
 public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
@@ -13,10 +14,12 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
     final Long savigId;
     final List<Long> loanId;
     final Long investedAmount;
+    final Date startDate;
+    final Date closeDate;
 
     
     public SavingInvestmentData(Long loan_id,Long client_id, String name, String accountno, Long loanammount, String productname, Long savigId,
-            List<Long> loanId,  Long investedAmount) {
+            List<Long> loanId,  Long investedAmount, Date startDate, Date closeDate) {
         super();
         this.loan_id = loan_id;
         this.client_id = client_id;
@@ -27,6 +30,8 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
         this.savigId = savigId;
         this.loanId = loanId;
         this.investedAmount = investedAmount;
+        this.startDate = startDate;
+        this.closeDate = closeDate;
     }
 
     
@@ -61,7 +66,17 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
         return this.name;
     }
 
-    public Long getLoanammount() {
+    public Date getStartDate() {
+		return this.startDate;
+	}
+
+
+	public Date getCloseDate() {
+		return this.closeDate;
+	}
+
+
+	public Long getLoanammount() {
         return this.loanammount;
     }
 
@@ -76,9 +91,9 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
         return 0;
     }
     public static SavingInvestmentData instance(Long loan_id,Long client_id, String name, String accountno, Long loanammount, String productname, Long savingId,
-            List<Long> loanId,  Long investedAmount) {
+            List<Long> loanId,  Long investedAmount, Date startDate, Date closeDate) {
        
-        return new SavingInvestmentData(loan_id,client_id, accountno, name, loanammount, productname, savingId, loanId, investedAmount);
+        return new SavingInvestmentData(loan_id,client_id, accountno, name, loanammount, productname, savingId, loanId, investedAmount, startDate, closeDate);
     }
 
 

@@ -34,7 +34,8 @@ public enum JobName {
     LOAN_FOURTH_OVERDUE_REPAYMENT_REMINDER_SMS("Loan Fourth Overdue Repayment Reminder"),
     DEFAULT_WARNING_SMS_TO_CLIENT("Default Wring Sms To Client"),
     DEFAULT_WARNING_SMS_TO_GURANTOR("Default Warning Sms To gurantor"),
-    DORMANCY_WARNING_SMS_TO_CLIENT("Dormancy Warning Sms To Clients");
+    DORMANCY_WARNING_SMS_TO_CLIENT("Dormancy Warning Sms To Clients"),
+    DO_INVESTMENT_DISTRIBUTION("Distribute Investment Earning");
 
 
     private final String name;
