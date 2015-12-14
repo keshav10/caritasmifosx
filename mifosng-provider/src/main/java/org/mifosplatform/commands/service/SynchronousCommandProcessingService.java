@@ -1519,6 +1519,10 @@ public class SynchronousCommandProcessingService implements
 				handler = this.applicationContext.getBean(
 						"updateLoanInvestmentCommandHandler",
 						NewCommandSourceHandler.class);
+			}else if (wrapper.isCloseLoanInvestment()){
+				handler = this.applicationContext.getBean(
+						"closeLoanInvestmentCommandHandler",
+						NewCommandSourceHandler.class);
 			}
 		} else if (wrapper.isSavingInvestment()) {
 			if (wrapper.isAddSavingInvestment()) {
@@ -1532,6 +1536,14 @@ public class SynchronousCommandProcessingService implements
 			}else if(wrapper.isUpdateSavingInvestment()){
 				handler = this.applicationContext.getBean(
 						"updateSavingInvestmentCommandHandler",
+						NewCommandSourceHandler.class);
+			}else if(wrapper.isCloseSavingInvestment()){
+				handler = this.applicationContext.getBean("closeSavingInvestmentCommandHandler",
+						NewCommandSourceHandler.class);
+			}
+		}else if(wrapper.isInvestmentJob()){
+			if(wrapper.isInvestmentBatchJob()){
+				handler = this.applicationContext.getBean("runInvestmentBatchJobCommandHandler", 
 						NewCommandSourceHandler.class);
 			}
 		}else if(wrapper.isUploadTransactionDetails()){

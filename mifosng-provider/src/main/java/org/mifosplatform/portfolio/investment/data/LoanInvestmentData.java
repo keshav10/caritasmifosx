@@ -1,5 +1,7 @@
 package org.mifosplatform.portfolio.investment.data;
 
+import java.util.Date;
+
 
 public class LoanInvestmentData {
     
@@ -10,7 +12,10 @@ public class LoanInvestmentData {
     final Long savingamount;
     final String productname;
     final Long investedAmount;
-    public LoanInvestmentData(Long saving_id,Long group_id, String name, String accountno, Long savingamount, String productname, Long investedAmount) {
+    final Date startDate;
+    final Date closeDate;
+    public LoanInvestmentData(Long saving_id,Long group_id, String name, String accountno, 
+    		Long savingamount, String productname, Long investedAmount, Date startDate, Date closeDate) {
         super();
         this.saving_id = saving_id;
         this.name = name;
@@ -19,6 +24,8 @@ public class LoanInvestmentData {
         this.productname = productname;
         this.investedAmount = investedAmount;
         this.group_id = group_id;
+        this.startDate = startDate;
+        this.closeDate = closeDate;
     }
     
     public Long getGroup_id() {
@@ -50,7 +57,7 @@ public class LoanInvestmentData {
 	}
 
 	public static LoanInvestmentData intance (Long saving_id,Long group_id, String name, String accountno, Long savingamount,
-            String productname, Long investedAmount){
-        return new LoanInvestmentData(saving_id,group_id, name, accountno, savingamount, productname, investedAmount);
+            String productname, Long investedAmount, Date startDate, Date closeDate){
+        return new LoanInvestmentData(saving_id,group_id, name, accountno, savingamount, productname, investedAmount, startDate, closeDate);
     }
 }

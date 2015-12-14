@@ -1168,51 +1168,67 @@ public class CommandWrapperBuilder {
         return this;
     }
 
-    public CommandWrapperBuilder savingsAccountApplyAnnualFees(final Long accountId) {
-        this.actionName = "APPLYANNUALFEE";
-        this.entityName = "SAVINGSACCOUNT";
-        this.savingsId = accountId;
-        this.entityId = accountId;
-        this.href = "/savingsaccounts/" + accountId + "?command=applyAnnualFees";
-        return this;
-    }
+         public CommandWrapperBuilder savingsAccountApplyAnnualFees(final Long accountId) {
+               this.actionName = "APPLYANNUALFEE";
+               this.entityName = "SAVINGSACCOUNT";
+               this.savingsId = accountId;
+               this.entityId = accountId;
+        	   this.href = "/savingsaccounts/" + accountId + "?command=applyAnnualFees";
+               return this;
+          }
     
-    public CommandWrapperBuilder createSavingInvestment(final Long savingsAccountId){
+          public CommandWrapperBuilder createSavingInvestment(final Long savingsAccountId){
     	        this.actionName = "CREATE";
     	        this.entityName = "SAVINGINVESTMENT";
     	        this.savingsId = savingsAccountId;
     	        this.entityId = savingsAccountId;
     	        this.href = "/savingsaccounts/" + savingsAccountId + "/savingInvestment";
     	        return this;
-    	    }
-    public CommandWrapperBuilder updateSavingInvestment(final Long savingsAccountId){
-    	this.actionName = "UPDATE";
-    	this.entityName = "SAVINGINVESTMENT";
-        this.savingsId = savingsAccountId;
-        this.entityId = savingsAccountId;
-        this.href = "/savingsaccounts/" + savingsAccountId + "/savingInvestment";
-        return this;
-    }
+    	   }
+           public CommandWrapperBuilder updateSavingInvestment(final Long savingsAccountId){
+            	this.actionName = "UPDATE";
+    	        this.entityName = "SAVINGINVESTMENT";
+                this.savingsId = savingsAccountId;
+                this.entityId = savingsAccountId;
+                this.href = "/savingsaccounts/" + savingsAccountId + "/savingInvestment";
+                return this;
+           }
+    
+            public CommandWrapperBuilder closeSavingInvestment(final Long savingsAccountId){
+            	this.actionName = "CLOSE";
+            	this.entityName = "SAVINGINVESTMENT";
+            	this.savingsId = savingsAccountId;
+            	this.entityId = savingsAccountId;
+            	this.href = "/savingsaccounts/" + savingsAccountId + "/savingInvestment/close";
+            	return this;
+            }
     	    
-    	    public CommandWrapperBuilder deleteInvestmentBasedOnMapping(final Long savingsAccountId, final Long loanId){
+            public CommandWrapperBuilder closeLoanInvestment(final Long loanId){
+            	this.actionName = "CLOSE";
+            	this.entityName = "LOANINVESTMENT";
+            	this.loanId = loanId;
+            	this.entityId = loanId;
+            	this.href = "/loans/" + loanId + "/loanInvestment/close";
+            	return this;
+            }
+            
+    	    public CommandWrapperBuilder deleteInvestmentBasedOnMapping(final Long savingsAccountId){
     	        
     	        this.actionName = "DELETE";
     	        this.entityName = "SAVINGINVESTMENT";
     	        this.savingsId = savingsAccountId;
-    	        this.loanId = loanId;
     	        this.entityId = savingsAccountId;
     	        this.href = "/savingsaccounts/" + savingsAccountId + "/savingInvestment";
     	        return this;
     	        
     	    }
     	    
-    	    public CommandWrapperBuilder deleteLoanInvestment(final Long loanId, final Long savingId){
+    	    public CommandWrapperBuilder deleteLoanInvestment(final Long loanId){
     	        this.actionName = "DELETE";
     	        this.entityName = "LOANINVESTMENT";
     	        this.loanId = loanId;
-    	        this.savingsId = savingId;
     	        this.entityId = loanId;
-    	        this.href = "/loans/" + loanId + "/loanInvestment";
+    	        this.href = "/loans/" + loanId + "/loanInvestment/delete";
     	        return this;
     	    }
     	    
@@ -1234,6 +1250,14 @@ public class CommandWrapperBuilder {
     	    	return this;
     	    }
     
+    	    
+    	  public CommandWrapperBuilder investmentBatchJob(){
+    		  this.actionName = "RUNBATCHJOB";
+    		  this.entityName = "INVESTMENT";
+    		  this.href = "/investmentBatchJob/";
+    		  
+    		  return this;
+    	  }
     
     
 

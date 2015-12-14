@@ -1063,8 +1063,28 @@ public class CommandWrapper {
     public boolean isUpdateSavingInvestment(){
     	return this.actionName.equalsIgnoreCase("UPDATE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
     }
+
     public boolean isUploadTransactionDetails(){
     	    	return this.actionName.equalsIgnoreCase("CREATE") && this.entityName.equalsIgnoreCase("UPLOADSHEET");
     	    }
+
+    
+    public boolean isCloseSavingInvestment(){
+    	return this.actionName.equalsIgnoreCase("CLOSE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
+    }
+    
+    public boolean isCloseLoanInvestment(){
+    	return this.actionName.equalsIgnoreCase("CLOSE") && this.entityName.equalsIgnoreCase("LOANINVESTMENT");
+    }
+    
+    public boolean isInvestmentJob(){
+    	return this.entityName.equalsIgnoreCase("INVESTMENT");
+    }
+    
+    public boolean isInvestmentBatchJob(){
+    	return this.actionName.equalsIgnoreCase("RUNBATCHJOB") && this.entityName.equalsIgnoreCase("INVESTMENT");
+    }
+    
+
 
 }

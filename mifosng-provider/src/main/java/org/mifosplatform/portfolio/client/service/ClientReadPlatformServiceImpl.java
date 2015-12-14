@@ -306,7 +306,9 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
 
             sqlBuilder.append("acu.username as activatedByUsername, ");
             sqlBuilder.append("acu.firstname as activatedByFirstname, ");
-            sqlBuilder.append("acu.lastname as activatedByLastname ");
+            sqlBuilder.append("acu.lastname as activatedByLastname, ");
+            sqlBuilder.append("c.national_id as nationalId ");
+            
 
             sqlBuilder.append("from m_client c ");
             sqlBuilder.append("join m_office o on o.id = c.office_id ");
@@ -334,6 +336,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
         public ClientData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
 
             final String accountNo = rs.getString("accountNo");
+            final String nationalId = rs.getString("nationalId");
 
             final Integer statusEnum = JdbcSupport.getInteger(rs, "statusEnum");
             final EnumOptionData status = ClientEnumerations.status(statusEnum);
@@ -398,7 +401,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
                     submittedByLastname, activationDate, activatedByUsername, activatedByFirstname, activatedByLastname, closedOnDate,
                     closedByUsername, closedByFirstname, closedByLastname);
 
-            return ClientData.instance(accountNo, status, subStatus, officeId, officeName, transferToOfficeId, transferToOfficeName, id,
+            return ClientData.instance(accountNo,nationalId, status, subStatus, officeId, officeName, transferToOfficeId, transferToOfficeName, id,
                     firstname, middlename, lastname, fullname, displayName, externalId, mobileNo, dateOfBirth, gender, activationDate,
                     imageId, staffId, staffName, timeline, savingsProductId, savingsProductName, savingsAccountId, clienttype,
                     classification);
@@ -460,7 +463,8 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             builder.append("c.activation_date as activationDate, c.image_id as imageId, ");
             builder.append("c.staff_id as staffId, s.display_name as staffName, ");
             builder.append("c.default_savings_product as savingsProductId, sp.name as savingsProductName, ");
-            builder.append("c.default_savings_account as savingsAccountId ");
+            builder.append("c.default_savings_account as savingsAccountId, ");
+            builder.append("c.national_id as nationalId ");
             builder.append("from m_client c ");
             builder.append("join m_office o on o.id = c.office_id ");
             builder.append("left join m_staff s on s.id = c.staff_id ");
@@ -485,6 +489,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
         public ClientData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
 
             final String accountNo = rs.getString("accountNo");
+            final String nationalId = rs.getString("nationalId");
 
             final Integer statusEnum = JdbcSupport.getInteger(rs, "statusEnum");
             final EnumOptionData status = ClientEnumerations.status(statusEnum);
@@ -548,7 +553,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
                     submittedByLastname, activationDate, activatedByUsername, activatedByFirstname, activatedByLastname, closedOnDate,
                     closedByUsername, closedByFirstname, closedByLastname);
 
-            return ClientData.instance(accountNo, status, subStatus, officeId, officeName, transferToOfficeId, transferToOfficeName, id,
+            return ClientData.instance(accountNo,nationalId, status, subStatus, officeId, officeName, transferToOfficeId, transferToOfficeName, id,
                     firstname, middlename, lastname, fullname, displayName, externalId, mobileNo, dateOfBirth, gender, activationDate,
                     imageId, staffId, staffName, timeline, savingsProductId, savingsProductName, savingsAccountId, clienttype,
                     classification);
@@ -620,7 +625,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
     private static final class ClientIdentifierMapper implements RowMapper<ClientData> {
 
         public String clientLookupByIdentifierSchema() {
-            return "c.id as id, c.account_no as accountNo, c.firstname as firstname, c.middlename as middlename, c.lastname as lastname, "
+            return "c.id as id, c.account_no as accountNo, c.national_id as nationalId, c.firstname as firstname, c.middlename as middlename, c.lastname as lastname, "
                     + "c.fullname as fullname, c.display_name as displayName," + "c.office_id as officeId, o.name as officeName "
                     + " from m_client c, m_office o, m_client_identifier ci " + "where o.id = c.office_id and c.id=ci.client_id "
                     + "and ci.document_type_id= ? and ci.document_key like ?";
@@ -631,6 +636,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
 
             final Long id = rs.getLong("id");
             final String accountNo = rs.getString("accountNo");
+            final String nationalId = rs.getString("nationalId");
 
             final String firstname = rs.getString("firstname");
             final String middlename = rs.getString("middlename");
@@ -641,7 +647,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             final Long officeId = rs.getLong("officeId");
             final String officeName = rs.getString("officeName");
 
-            return ClientData.clientIdentifier(id, accountNo, firstname, middlename, lastname, fullname, displayName, officeId, officeName);
+            return ClientData.clientIdentifier(id, accountNo, nationalId, firstname, middlename, lastname, fullname, displayName, officeId, officeName);
         }
     }
 

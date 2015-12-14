@@ -24,7 +24,7 @@ public class DeleteLoanInvestmentCommandHandler implements NewCommandSourceHandl
     @Transactional
     public CommandProcessingResult processCommand(JsonCommand command) {
        
-        return this.loanInvestment.deleteLoanInvestment(command.getLoanId(), command.getSavingsId());
+        return this.loanInvestment.deleteLoanInvestment(command.getLoanId(), command);
     }
 
    
