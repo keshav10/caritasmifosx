@@ -1,0 +1,8 @@
+INSERT INTO `stretchy_report_parameter` ( `report_id`, `parameter_id`, `report_parameter_name`) VALUES ((select id from stretchy_report where report_name like 'DormancyWarning - Clients'), 1, 'Start Date');
+INSERT INTO `stretchy_report_parameter` ( `report_id`, `parameter_id`, `report_parameter_name`) VALUES ((select id from stretchy_report where report_name like 'Loan First Overdue Repayment Reminder'), 1, 'Start Date');
+INSERT INTO `stretchy_report_parameter` ( `report_id`, `parameter_id`, `report_parameter_name`) VALUES ((select id from stretchy_report where report_name like 'Loan Second Overdue Repayment Reminder'), 1, 'Start Date');
+INSERT INTO `stretchy_report_parameter` ( `report_id`, `parameter_id`, `report_parameter_name`) VALUES ((select id from stretchy_report where report_name like 'DefaultWarning - Clients'), 1, 'Start Date');
+INSERT INTO `stretchy_report_parameter` ( `report_id`, `parameter_id`, `report_parameter_name`) VALUES ((select id from stretchy_report where report_name like 'Loan Repayment Reminders'), 1, 'Start Date');
+INSERT INTO `stretchy_report_parameter` ( `report_id`, `parameter_id`, `report_parameter_name`) VALUES ((select id from stretchy_report where report_name like 'DefaultWarning -  guarantors'), 1, 'Start Date');
+INSERT INTO `stretchy_report_parameter` ( `report_id`, `parameter_id`, `report_parameter_name`) VALUES ((select id from stretchy_report where report_name like 'Loan Third Overdue Repayment Reminder'), 1, 'Start Date');
+INSERT INTO `stretchy_report_parameter` ( `report_id`, `parameter_id`, `report_parameter_name`) VALUES ((select id from stretchy_report where report_name like 'Loan Fourth Overdue Repayment Reminder'), 1, 'Start Date');
