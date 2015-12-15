@@ -87,6 +87,8 @@ dependencies {
                  'junit:junit-dep:4.11',
                  'org.mockito:mockito-core:1.9.5',
                  'com.jayway.restassured:rest-assured:2.3.3',
-                 [group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion]
+                 [group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion],
+                 compile('org.json:json:20090211')
+                 
 
 }
