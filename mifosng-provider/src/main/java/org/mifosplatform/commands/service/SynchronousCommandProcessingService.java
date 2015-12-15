@@ -41,6 +41,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 
 @Service
+
 public class SynchronousCommandProcessingService implements
 		CommandProcessingService {	
 
@@ -1565,6 +1566,17 @@ public class SynchronousCommandProcessingService implements
 			}
 		}
 
+		else if (wrapper.isNotificationResource()) {
+            if (wrapper.isSend()) {
+              handler = this.applicationContext.getBean("sendNotificationCommandHandler", NewCommandSourceHandler.class);
+             }
+            else{
+                throw new UnsupportedCommandException(wrapper.commandName());  
+            }
+      }
+
+
+
 		else {
 
 			throw new UnsupportedCommandException(wrapper.commandName());
@@ -1621,4 +1633,5 @@ public class SynchronousCommandProcessingService implements
 		System.out.println("Event Publish for sending msg");
        }
 	}
+
 }
