@@ -1596,7 +1596,7 @@ public class SynchronousCommandProcessingService implements
 
 		final HookEvent applicationEvent = new HookEvent(hookEventSource,serializedResult, tenantIdentifier, appUser, authToken);
 				
-		final GenericResultsetData results = readWriteNonCoreDataService.retrieveDataTableGenericResultSet("Office-Details", officeId,
+		final GenericResultsetData results = readWriteNonCoreDataService.retrieveDataTableGenericResultSet("OfficeDetails", officeId,
 	                null, null);		 
 		ArrayList<ResultsetColumnHeaderData> header= (ArrayList<ResultsetColumnHeaderData>) results.getColumnHeaders();
 		ArrayList<ResultsetRowData> data  = (ArrayList<ResultsetRowData>) results.getData();
