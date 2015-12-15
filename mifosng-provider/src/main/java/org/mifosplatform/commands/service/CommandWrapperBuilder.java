@@ -10,7 +10,7 @@ import org.mifosplatform.infrastructure.accountnumberformat.service.AccountNumbe
 import org.mifosplatform.portfolio.paymenttype.api.PaymentTypeApiResourceConstants;
 import org.mifosplatform.portfolio.savings.DepositsApiConstants;
 import org.mifosplatform.useradministration.api.PasswordPreferencesApiConstants;
-
+import javax.ws.rs.core.MediaType;
 public class CommandWrapperBuilder {
 
     private Long officeId;
@@ -27,12 +27,17 @@ public class CommandWrapperBuilder {
     private String transactionId;
     private Long productId;
     private Long templateId;
+    private MediaType file;
 
     public CommandWrapper build() {
         return new CommandWrapper(this.officeId, this.groupId, this.clientId, this.loanId, this.savingsId, this.actionName,
                 this.entityName, this.entityId, this.subentityId, this.href, this.json, this.transactionId, this.productId, this.templateId);
     }
 
+    public CommandWrapperBuilder withMediaType(final MediaType withMediaType) {
+    	        this.file = withMediaType;
+    	        return this;
+    	    }
     public CommandWrapperBuilder withLoanId(final Long withLoanId) {
         this.loanId = withLoanId;
         return this;
@@ -275,7 +280,13 @@ public class CommandWrapperBuilder {
         this.href = "/sms/template";
         return this;
     }
-
+    public CommandWrapperBuilder uploadDetails() {
+    	        this.actionName = "CREATE";
+    	        this.entityName = "UPLOADSHEET";
+    	        this.entityId = null;
+    	        this.href = "/uploadxls" ;
+    	        return this;
+    	    }
     public CommandWrapperBuilder updateSms(final Long resourceId) {
         this.actionName = "UPDATE";
         this.entityName = "SMS";

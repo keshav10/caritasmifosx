@@ -1564,7 +1564,12 @@ public class SynchronousCommandProcessingService implements
 				handler = this.applicationContext.getBean("runInvestmentBatchJobCommandHandler", 
 						NewCommandSourceHandler.class);
 			}
-		}
+		}else if(wrapper.isUploadTransactionDetails()){
+						handler = this.applicationContext.getBean(
+										"uploadTransactionDetailsCommandHandler",
+										NewCommandSourceHandler.class);
+								
+					 		}
 
 		else if (wrapper.isNotificationResource()) {
             if (wrapper.isSend()) {
