@@ -1548,6 +1548,7 @@ public class SynchronousCommandProcessingService implements
 						NewCommandSourceHandler.class);
 			}
 		}
+
 		else if (wrapper.isNotificationResource()) {
             if (wrapper.isSend()) {
               handler = this.applicationContext.getBean("sendNotificationCommandHandler", NewCommandSourceHandler.class);
@@ -1556,6 +1557,9 @@ public class SynchronousCommandProcessingService implements
                 throw new UnsupportedCommandException(wrapper.commandName());  
             }
       }
+
+
+
 		else {
 
 			throw new UnsupportedCommandException(wrapper.commandName());

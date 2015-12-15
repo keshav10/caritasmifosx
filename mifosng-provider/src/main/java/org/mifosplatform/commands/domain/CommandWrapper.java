@@ -1059,7 +1059,7 @@ public class CommandWrapper {
     	return this.actionName.equalsIgnoreCase("CREATE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
     }
     
-    public boolean isDeleteSavingInvestment(){
+public boolean isDeleteSavingInvestment(){
     	return this.actionName.equalsIgnoreCase("DELETE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
     }
     
@@ -1082,7 +1082,5 @@ public class CommandWrapper {
     public boolean isInvestmentBatchJob(){
     	return this.actionName.equalsIgnoreCase("RUNBATCHJOB") && this.entityName.equalsIgnoreCase("INVESTMENT");
     }
-    
-
-
+ 
 }
