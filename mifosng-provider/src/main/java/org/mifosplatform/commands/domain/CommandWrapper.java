@@ -137,7 +137,9 @@ public class CommandWrapper {
     public boolean isCreate() {
         return this.actionName.equalsIgnoreCase("CREATE");
     }
-
+    public boolean isSend() {
+    	return this.actionName.equalsIgnoreCase("SEND");
+    }
     public boolean isCreateDatatable() {
         return this.actionName.equalsIgnoreCase("CREATE") && this.href.startsWith("/datatables/") && this.entityId == null;
     }
@@ -248,7 +250,9 @@ public class CommandWrapper {
     public boolean isSmsResource() {
         return this.entityName.equalsIgnoreCase("SMS");
     }
-
+   public boolean  isNotificationResource() {
+	   return this.entityName.equalsIgnoreCase("NOTIFICATION");
+   }
     public boolean isSmsCampaignResource() {
         return this.entityName.equals("SMS_CAMPAIGN");
     }
@@ -1031,8 +1035,7 @@ public class CommandWrapper {
 
     public boolean isPaymentTypeResource() {
         return this.entityName.equalsIgnoreCase("PAYMENTTYPE");
-    }
-    
+    }   
     
     public boolean isLoanInvestment(){
         
@@ -1056,7 +1059,7 @@ public class CommandWrapper {
     	return this.actionName.equalsIgnoreCase("CREATE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
     }
     
-    public boolean isDeleteSavingInvestment(){
+public boolean isDeleteSavingInvestment(){
     	return this.actionName.equalsIgnoreCase("DELETE") && this.entityName.equalsIgnoreCase("SAVINGINVESTMENT");
     }
     
@@ -1084,7 +1087,5 @@ public class CommandWrapper {
     public boolean isInvestmentBatchJob(){
     	return this.actionName.equalsIgnoreCase("RUNBATCHJOB") && this.entityName.equalsIgnoreCase("INVESTMENT");
     }
-    
-
 
 }

@@ -5,9 +5,12 @@
  */
 package org.mifosplatform.commands.service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.joda.time.DateTime;
+import org.json.*;
 import org.mifosplatform.commands.domain.CommandSource;
 import org.mifosplatform.commands.domain.CommandSourceRepository;
 import org.mifosplatform.commands.domain.CommandWrapper;
@@ -20,6 +23,12 @@ import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
+import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
+import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnHeaderData;
+import org.mifosplatform.infrastructure.dataqueries.data.ResultsetRowData;
+import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
+import org.mifosplatform.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
+import org.mifosplatform.infrastructure.dataqueries.service.ReadWriteNonCoreDataServiceImpl;
 import org.mifosplatform.infrastructure.hooks.event.HookEvent;
 import org.mifosplatform.infrastructure.hooks.event.HookEventSource;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
@@ -28,10 +37,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
+
 
 @Service
+
 public class SynchronousCommandProcessingService implements
-		CommandProcessingService {
+		CommandProcessingService {	
 
 	private PlatformSecurityContext context;
 	private final ApplicationContext applicationContext;
@@ -39,6 +51,8 @@ public class SynchronousCommandProcessingService implements
 	private final ToApiJsonSerializer<CommandProcessingResult> toApiResultJsonSerializer;
 	private CommandSourceRepository commandSourceRepository;
 	private final ConfigurationDomainService configurationDomainService;
+	private final ReadWriteNonCoreDataService readWriteNonCoreDataService;
+	private final GenericDataService genericDataService;
 
 	@Autowired
 	public SynchronousCommandProcessingService(
@@ -47,7 +61,9 @@ public class SynchronousCommandProcessingService implements
 			final ToApiJsonSerializer<Map<String, Object>> toApiJsonSerializer,
 			final ToApiJsonSerializer<CommandProcessingResult> toApiResultJsonSerializer,
 			final CommandSourceRepository commandSourceRepository,
-			final ConfigurationDomainService configurationDomainService) {
+			final ConfigurationDomainService configurationDomainService,
+			final ReadWriteNonCoreDataService readWriteNonCoreDataService,
+			final GenericDataService genericDataService) {
 		this.context = context;
 		this.context = context;
 		this.applicationContext = applicationContext;
@@ -56,6 +72,8 @@ public class SynchronousCommandProcessingService implements
 		this.commandSourceRepository = commandSourceRepository;
 		this.commandSourceRepository = commandSourceRepository;
 		this.configurationDomainService = configurationDomainService;
+		this.readWriteNonCoreDataService = readWriteNonCoreDataService;
+		this.genericDataService =genericDataService;
 	}
 
 	@Transactional
@@ -1553,6 +1571,17 @@ public class SynchronousCommandProcessingService implements
 								
 					 		}
 
+		else if (wrapper.isNotificationResource()) {
+            if (wrapper.isSend()) {
+              handler = this.applicationContext.getBean("sendNotificationCommandHandler", NewCommandSourceHandler.class);
+             }
+            else{
+                throw new UnsupportedCommandException(wrapper.commandName());  
+            }
+      }
+
+
+
 		else {
 
 			throw new UnsupportedCommandException(wrapper.commandName());
@@ -1573,21 +1602,41 @@ public class SynchronousCommandProcessingService implements
 
 	private void publishEvent(final String entityName, final String actionName,
 			final CommandProcessingResult result) {
-
+		Boolean enabled=false;  
 		final String authToken = ThreadLocalContextUtil.getAuthToken();
 		final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
 				.getTenantIdentifier();
 		final AppUser appUser = this.context.authenticatedUser();
+        final Long officeId=this.context.authenticatedUser().getOffice().getId();
+		final HookEventSource hookEventSource = new HookEventSource(entityName,actionName);	
+		final String serializedResult = this.toApiResultJsonSerializer.serialize(result);				
 
-		final HookEventSource hookEventSource = new HookEventSource(entityName,
-				actionName);
-
-		final String serializedResult = this.toApiResultJsonSerializer
-				.serialize(result);
-
-		final HookEvent applicationEvent = new HookEvent(hookEventSource,
-				serializedResult, tenantIdentifier, appUser, authToken);
-
+		final HookEvent applicationEvent = new HookEvent(hookEventSource,serializedResult, tenantIdentifier, appUser, authToken);
+				
+		final GenericResultsetData results = readWriteNonCoreDataService.retrieveDataTableGenericResultSet("OfficeDetails", officeId,
+	                null, null);		 
+		ArrayList<ResultsetColumnHeaderData> header= (ArrayList<ResultsetColumnHeaderData>) results.getColumnHeaders();
+		ArrayList<ResultsetRowData> data  = (ArrayList<ResultsetRowData>) results.getData();
+		if(results!=null && header.size()>0&& data.size()>0)
+		{		
+		for(int i=0;i<header.size();i++)
+		{
+			if(header.get(i).getColumnName().equalsIgnoreCase("sms_enabled"))
+			{				
+			  if(data.get(0).getRow().get(i).equals("true"))
+				{
+					enabled=true;
+					break;
+				}
+				
+			}
+		}
+		}	
+	  if(enabled)
+	   {
 		applicationContext.publishEvent(applicationEvent);
+		System.out.println("Event Publish for sending msg");
+       }
 	}
+
 }

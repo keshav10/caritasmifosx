@@ -2488,5 +2488,14 @@ public class CommandWrapperBuilder {
         this.href = "/" + PaymentTypeApiResourceConstants.RESOURCE_NAME + paymentTypeId;
         return this;
     }
+    
+    public CommandWrapperBuilder sendNotification() {
+    	        this.actionName = "SEND";
+    	        this.entityName = "NOTIFICATION";
+    	        //this.entityId = transactionId;
+    	        //this.clientId = clientId;
+    	        this.href = "/notification";
+    	        return this;
+    	    }
 
 }

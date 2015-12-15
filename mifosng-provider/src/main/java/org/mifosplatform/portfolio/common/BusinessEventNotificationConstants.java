@@ -27,7 +27,7 @@ public class BusinessEventNotificationConstants {
             this.value = value;
         }
 
-        private static final Set<String> values = new HashSet<>();
+        private static final Set<String> values = new HashSet<String>();
         static {
             for (final BUSINESS_EVENTS type : BUSINESS_EVENTS.values()) {
                 values.add(type.value);
@@ -39,11 +39,11 @@ public class BusinessEventNotificationConstants {
         }
 
         public String getValue() {
-            return this.value;
+            return value;
         }
     }
 
-    public static enum BUSINESS_ENTITY {
+    public  static enum BUSINESS_ENTITY {
         LOAN("loan"), LOAN_TRANSACTION("loan_transaction"), LOAN_CHARGE("loan_charge"), LOAN_ADJUSTED_TRANSACTION(
                 "loan_adjusted_transaction");
 
