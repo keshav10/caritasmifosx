@@ -41,4 +41,9 @@ public class SavingsAccountSummaryData {
         this.totalFeeCharge = totalFeeCharge;
         this.totalPenaltyCharge = totalPenaltyCharge;
     }
+
+	public BigDecimal getAccountBalance() {
+		return this.accountBalance;
+	}
+    
 }

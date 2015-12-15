@@ -31,6 +31,7 @@ public class LoanAccountSummaryData {
     private final BigDecimal originalLoan;
     private final BigDecimal loanBalance;
     private final BigDecimal amountPaid;
+ //   private final BigDecimal charges;
     
     public LoanAccountSummaryData(final Long id, final String accountNo, final String externalId, final Long productId,
             final String loanProductName, final String shortLoanProductName, final LoanStatusEnumData loanStatus, final EnumOptionData loanType, final Integer loanCycle,
@@ -49,5 +50,6 @@ public class LoanAccountSummaryData {
         this.loanBalance = loanBalance;
         this.originalLoan = originalLoan;
         this.amountPaid = amountPaid;
+   
     }
 }

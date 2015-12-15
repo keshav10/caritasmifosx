@@ -27,6 +27,7 @@ public class SavingsAccountSummaryData {
     private final SavingsAccountStatusEnumData status;
     private final CurrencyData currency;
     private final BigDecimal accountBalance;
+   // private final BigDecimal charges;
     //differentiate Individual, JLG or Group account
     private final EnumOptionData accountType;
     private final SavingsAccountApplicationTimelineData timeline;

@@ -6,6 +6,7 @@
 package org.mifosplatform.portfolio.savings.domain;
 
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.releaseGuarantorFundParamName;
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.allowOverdraftParamName;
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.dueAsOfDateParamName;
 import static org.mifosplatform.portfolio.savings.SavingsApiConstants.enforceMinRequiredBalanceParamName;
@@ -76,6 +77,7 @@ import org.mifosplatform.portfolio.charge.exception.SavingsAccountChargeNotFound
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.common.domain.PeriodFrequencyType;
 import org.mifosplatform.portfolio.group.domain.Group;
+import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
 import org.mifosplatform.portfolio.savings.DepositAccountType;
 import org.mifosplatform.portfolio.savings.SavingsApiConstants;
 import org.mifosplatform.portfolio.savings.SavingsCompoundingInterestPeriodType;
@@ -83,6 +85,7 @@ import org.mifosplatform.portfolio.savings.SavingsInterestCalculationDaysInYearT
 import org.mifosplatform.portfolio.savings.SavingsInterestCalculationType;
 import org.mifosplatform.portfolio.savings.SavingsPeriodFrequencyType;
 import org.mifosplatform.portfolio.savings.SavingsPostingInterestPeriodType;
+import org.mifosplatform.portfolio.savings.data.SavingsAccountData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountTransactionDTO;
 import org.mifosplatform.portfolio.savings.domain.interest.PostingPeriod;
 import org.mifosplatform.portfolio.savings.exception.InsufficientAccountBalanceException;
@@ -91,6 +94,8 @@ import org.mifosplatform.portfolio.savings.exception.SavingsActivityPriorToClien
 import org.mifosplatform.portfolio.savings.exception.SavingsOfficerAssignmentDateException;
 import org.mifosplatform.portfolio.savings.exception.SavingsOfficerUnassignmentDateException;
 import org.mifosplatform.portfolio.savings.exception.SavingsTransferTransactionsCannotBeUndoneException;
+import org.mifosplatform.portfolio.savings.exception.minBalanceRequiredUpdateNotAllowed;
+import org.mifosplatform.portfolio.savings.service.SavingsAccountReadPlatformService;
 import org.mifosplatform.portfolio.savings.service.SavingsEnumerations;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.data.jpa.domain.AbstractPersistable;
@@ -244,6 +249,9 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     @Column(name = "allow_overdraft")
     private boolean allowOverdraft;
 
+    @Column(name = "release_guarantor")
+    private boolean releaseguarantor;
+
     @Column(name = "overdraft_limit", scale = 6, precision = 19, nullable = true)
     private BigDecimal overdraftLimit;
 
@@ -253,7 +261,8 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     @Column(name = "min_required_balance", scale = 6, precision = 19, nullable = true)
     private BigDecimal minRequiredBalance;
 
-    @Column(name = "on_hold_funds_derived", scale = 6, precision = 19, nullable = true)
+
+	@Column(name = "on_hold_funds_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal onHoldFunds;
 
     @Temporal(TemporalType.DATE)
@@ -292,6 +301,25 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     protected SavingsAccount() {
         //
     }
+    
+   
+    public static SavingsAccount createNewApplicationForSubmittal(final Client client, final Group group, final SavingsProduct product,
+            final Staff fieldOfficer, final String accountNo, final String externalId, final AccountType accountType,
+            final LocalDate submittedOnDate, final AppUser submittedBy, final BigDecimal interestRate,
+            final SavingsCompoundingInterestPeriodType interestCompoundingPeriodType,
+            final SavingsPostingInterestPeriodType interestPostingPeriodType, final SavingsInterestCalculationType interestCalculationType,
+            final SavingsInterestCalculationDaysInYearType interestCalculationDaysInYearType, final BigDecimal minRequiredOpeningBalance,
+            final Integer lockinPeriodFrequency, final SavingsPeriodFrequencyType lockinPeriodFrequencyType,
+            final boolean withdrawalFeeApplicableForTransfer, final Set<SavingsAccountCharge> savingsAccountCharges,
+            final boolean allowOverdraft, final BigDecimal overdraftLimit, final boolean enforceMinRequiredBalance,
+            final BigDecimal minRequiredBalance, final boolean releaseguarantor) {
+        final SavingsAccountStatusType status = SavingsAccountStatusType.SUBMITTED_AND_PENDING_APPROVAL;
+        return new SavingsAccount(client, group, product, fieldOfficer, accountNo, externalId, status, accountType, submittedOnDate,
+                submittedBy, interestRate, interestCompoundingPeriodType, interestPostingPeriodType, interestCalculationType,
+                interestCalculationDaysInYearType, minRequiredOpeningBalance, lockinPeriodFrequency, lockinPeriodFrequencyType,
+                withdrawalFeeApplicableForTransfer, savingsAccountCharges, allowOverdraft, overdraftLimit, enforceMinRequiredBalance,
+                minRequiredBalance, releaseguarantor);
+    }
 
     public static SavingsAccount createNewApplicationForSubmittal(final Client client, final Group group, final SavingsProduct product,
             final Staff fieldOfficer, final String accountNo, final String externalId, final AccountType accountType,
@@ -310,6 +338,62 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                 interestCalculationDaysInYearType, minRequiredOpeningBalance, lockinPeriodFrequency, lockinPeriodFrequencyType,
                 withdrawalFeeApplicableForTransfer, savingsAccountCharges, allowOverdraft, overdraftLimit, enforceMinRequiredBalance,
                 minRequiredBalance);
+    }
+
+    protected SavingsAccount(final Client client, final Group group, final SavingsProduct product, final Staff savingsOfficer,
+            final String accountNo, final String externalId, final SavingsAccountStatusType status, final AccountType accountType,
+            final LocalDate submittedOnDate, final AppUser submittedBy, final BigDecimal nominalAnnualInterestRate,
+            final SavingsCompoundingInterestPeriodType interestCompoundingPeriodType,
+            final SavingsPostingInterestPeriodType interestPostingPeriodType, final SavingsInterestCalculationType interestCalculationType,
+            final SavingsInterestCalculationDaysInYearType interestCalculationDaysInYearType, final BigDecimal minRequiredOpeningBalance,
+            final Integer lockinPeriodFrequency, final SavingsPeriodFrequencyType lockinPeriodFrequencyType,
+            final boolean withdrawalFeeApplicableForTransfer, final Set<SavingsAccountCharge> savingsAccountCharges,
+            final boolean allowOverdraft, final BigDecimal overdraftLimit, final boolean enforceMinRequiredBalance,
+            final BigDecimal minRequiredBalance, final boolean releaseguarantor) {
+
+        this.releaseguarantor = releaseguarantor;
+        this.client = client;
+        this.group = group;
+        this.product = product;
+        this.savingsOfficer = savingsOfficer;
+        if (StringUtils.isBlank(accountNo)) {
+            this.accountNumber = new RandomPasswordGenerator(19).generate();
+            this.accountNumberRequiresAutoGeneration = true;
+        } else {
+            this.accountNumber = accountNo;
+        }
+
+        this.currency = product.currency();
+        this.externalId = externalId;
+        this.status = status.getValue();
+        this.accountType = accountType.getValue();
+        this.submittedOnDate = submittedOnDate.toDate();
+        this.submittedBy = submittedBy;
+        this.nominalAnnualInterestRate = nominalAnnualInterestRate;
+        this.interestCompoundingPeriodType = interestCompoundingPeriodType.getValue();
+        this.interestPostingPeriodType = interestPostingPeriodType.getValue();
+        this.interestCalculationType = interestCalculationType.getValue();
+        this.interestCalculationDaysInYearType = interestCalculationDaysInYearType.getValue();
+        this.minRequiredOpeningBalance = minRequiredOpeningBalance;
+        this.lockinPeriodFrequency = lockinPeriodFrequency;
+        if (lockinPeriodFrequencyType != null) {
+            this.lockinPeriodFrequencyType = lockinPeriodFrequencyType.getValue();
+        }
+        this.withdrawalFeeApplicableForTransfer = withdrawalFeeApplicableForTransfer;
+
+        if (!CollectionUtils.isEmpty(savingsAccountCharges)) {
+            this.charges = associateChargesWithThisSavingsAccount(savingsAccountCharges);
+        }
+
+        this.summary = new SavingsAccountSummary();
+        this.allowOverdraft = allowOverdraft;
+        this.overdraftLimit = overdraftLimit;
+
+        this.enforceMinRequiredBalance = enforceMinRequiredBalance;
+        this.minRequiredBalance = minRequiredBalance;
+        this.minBalanceForInterestCalculation = product.minBalanceForInterestCalculation();
+        this.savingsOfficerHistory = null;
+
     }
 
     protected SavingsAccount(final Client client, final Group group, final SavingsProduct product, final Staff fieldOfficer,
@@ -769,7 +853,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
         return startInterestCalculationLocalDate;
     }
 
-    public SavingsAccountTransaction withdraw(final SavingsAccountTransactionDTO transactionDTO, final boolean applyWithdrawFee) {
+    public SavingsAccountTransaction withdraw(final SavingsAccountTransactionDTO transactionDTO, final boolean applyWithdrawFee,final PaymentDetail paymentDetail) {
 
         if (!isTransactionsAllowed()) {
 
@@ -830,16 +914,16 @@ public class SavingsAccount extends AbstractPersistable<Long> {
 
         if (applyWithdrawFee) {
             // auto pay withdrawal fee
-            payWithdrawalFee(transactionDTO.getTransactionAmount(), transactionDTO.getTransactionDate(), transactionDTO.getAppUser());
+            payWithdrawalFee(transactionDTO.getTransactionAmount(), transactionDTO.getTransactionDate(), transactionDTO.getAppUser(),paymentDetail);
         }
         return transaction;
     }
 
-    private void payWithdrawalFee(final BigDecimal transactionAmoount, final LocalDate transactionDate, final AppUser user) {
+    private void payWithdrawalFee(final BigDecimal transactionAmoount, final LocalDate transactionDate, final AppUser user,final PaymentDetail paymentDetail) {
         for (SavingsAccountCharge charge : this.charges()) {
             if (charge.isWithdrawalFee() && charge.isActive()) {
                 charge.updateWithdralFeeAmount(transactionAmoount);
-                this.payCharge(charge, charge.getAmountOutstanding(this.getCurrency()), transactionDate, user);
+                this.payCharge(charge, charge.getAmountOutstanding(this.getCurrency()), transactionDate, user, paymentDetail);
             }
         }
     }
@@ -950,14 +1034,17 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             final DataValidatorBuilder baseDataValidator) {
 
         final SavingsAccountStatusType currentStatus = SavingsAccountStatusType.fromInt(this.status);
-        if (!SavingsAccountStatusType.SUBMITTED_AND_PENDING_APPROVAL.hasStateOf(currentStatus)) {
+      
+        /*if (!SavingsAccountStatusType.SUBMITTED_AND_PENDING_APPROVAL.hasStateOf(currentStatus)) {
             baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("not.in.submittedandpendingapproval.state");
             return;
         }
-
+*/
         final String localeAsInput = command.locale();
         final String dateFormat = command.dateFormat();
-
+        final Long savingId = command.longValueOfParameterNamed("savingId");
+      //  BigDecimal minRequiredBalance = account.getMinRequiredBalance();
+     
         if (command.isChangeInLocalDateParameterNamed(SavingsApiConstants.submittedOnDateParamName, getSubmittedOnLocalDate())) {
             final LocalDate newValue = command.localDateValueOfParameterNamed(SavingsApiConstants.submittedOnDateParamName);
             final String newValueAsString = command.stringValueOfParameterNamed(SavingsApiConstants.submittedOnDateParamName);
@@ -1039,9 +1126,11 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                 this.minRequiredOpeningBalance)) {
             final BigDecimal newValue = command
                     .bigDecimalValueOfParameterNamedDefaultToNullIfZero(SavingsApiConstants.minRequiredOpeningBalanceParamName);
-            actualChanges.put(SavingsApiConstants.minRequiredOpeningBalanceParamName, newValue);
-            actualChanges.put("locale", localeAsInput);
-            this.minRequiredOpeningBalance = Money.of(this.currency, newValue).getAmount();
+            
+                   actualChanges.put(SavingsApiConstants.minRequiredOpeningBalanceParamName, newValue);
+                   actualChanges.put("locale", localeAsInput);
+                   this.minRequiredOpeningBalance = Money.of(this.currency, newValue).getAmount();
+            
         }
 
         if (command.isChangeInIntegerParameterNamedDefaultingZeroToNull(SavingsApiConstants.lockinPeriodFrequencyParamName,
@@ -1085,6 +1174,12 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             this.allowOverdraft = newValue;
         }
 
+        if (command.isChangeInBooleanParameterNamed(releaseGuarantorFundParamName, this.releaseguarantor)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(releaseGuarantorFundParamName);
+            actualChanges.put(releaseGuarantorFundParamName, newValue);
+            this.releaseguarantor = newValue;
+        }
+
         if (command.isChangeInBigDecimalParameterNamedDefaultingZeroToNull(overdraftLimitParamName, this.overdraftLimit)) {
             final BigDecimal newValue = command.bigDecimalValueOfParameterNamedDefaultToNullIfZero(overdraftLimitParamName);
             actualChanges.put(overdraftLimitParamName, newValue);
@@ -1104,9 +1199,15 @@ public class SavingsAccount extends AbstractPersistable<Long> {
 
         if (command.isChangeInBigDecimalParameterNamedDefaultingZeroToNull(minRequiredBalanceParamName, this.minRequiredBalance)) {
             final BigDecimal newValue = command.bigDecimalValueOfParameterNamedDefaultToNullIfZero(minRequiredBalanceParamName);
-            actualChanges.put(minRequiredBalanceParamName, newValue);
-            actualChanges.put(localeParamName, localeAsInput);
-            this.minRequiredBalance = newValue;
+           
+      /*      if(newValue.compareTo(minRequiredBalance)>=1){
+          */      actualChanges.put(minRequiredBalanceParamName, newValue);
+                actualChanges.put(localeParamName, localeAsInput);
+                this.minRequiredBalance = newValue;
+            /*  }else{
+            	  throw new minBalanceRequiredUpdateNotAllowed();
+              }
+            */
         }
 
         validateLockinDetails(baseDataValidator);
@@ -1829,7 +1930,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     }
 
     public void processAccountUponActivation(final boolean isSavingsInterestPostingAtCurrentPeriodEnd,
-            final Integer financialYearBeginningMonth, final AppUser user) {
+            final Integer financialYearBeginningMonth, final AppUser user,final PaymentDetail paymentDetail) {
 
         // update annual fee due date
         for (SavingsAccountCharge charge : this.charges()) {
@@ -1837,7 +1938,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
         }
 
         // auto pay the activation time charges
-        this.payActivationCharges(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, user);
+        this.payActivationCharges(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, user, paymentDetail);
         // TODO : AA add activation charges to actual changes list
     }
 
@@ -1861,12 +1962,12 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     }
 
     private void payActivationCharges(final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth,
-            final AppUser user) {
+            final AppUser user,final PaymentDetail paymentDetail) {
         boolean isSavingsChargeApplied = false;
         for (SavingsAccountCharge savingsAccountCharge : this.charges()) {
             if (savingsAccountCharge.isSavingsActivation()) {
                 isSavingsChargeApplied = true;
-                payCharge(savingsAccountCharge, savingsAccountCharge.getAmountOutstanding(getCurrency()), getActivationLocalDate(), user);
+                payCharge(savingsAccountCharge, savingsAccountCharge.getAmountOutstanding(getCurrency()), getActivationLocalDate(), user, paymentDetail);
             }
         }
 
@@ -2180,7 +2281,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     }
 
     public void payCharge(final SavingsAccountCharge savingsAccountCharge, final BigDecimal amountPaid, final LocalDate transactionDate,
-            final DateTimeFormatter formatter, final AppUser user) {
+            final DateTimeFormatter formatter, final AppUser user,final PaymentDetail paymentDetail) {
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
         final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
@@ -2255,25 +2356,28 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
         }
 
-        this.payCharge(savingsAccountCharge, chargePaid, transactionDate, user);
+        this.payCharge(savingsAccountCharge, chargePaid, transactionDate, user, paymentDetail);
     }
 
     public void payCharge(final SavingsAccountCharge savingsAccountCharge, final Money amountPaid, final LocalDate transactionDate,
-            final AppUser user) {
+            final AppUser user,final PaymentDetail paymentDetail) {
         savingsAccountCharge.pay(getCurrency(), amountPaid);
-        handlePayChargeTransactions(savingsAccountCharge, amountPaid, transactionDate, user);
+        handlePayChargeTransactions(savingsAccountCharge, amountPaid, transactionDate, user, paymentDetail);
     }
 
     private void handlePayChargeTransactions(SavingsAccountCharge savingsAccountCharge, Money transactionAmount,
-            final LocalDate transactionDate, final AppUser user) {
+            final LocalDate transactionDate, final AppUser user,final PaymentDetail paymentDetail) {
         SavingsAccountTransaction chargeTransaction = null;
+        Date dt =new Date();
 
         if (savingsAccountCharge.isWithdrawalFee()) {
-            chargeTransaction = SavingsAccountTransaction.withdrawalFee(this, office(), transactionDate, transactionAmount, user);
+            chargeTransaction = SavingsAccountTransaction.withdrawalFee(this, office(),paymentDetail, transactionDate, transactionAmount,dt, user);
         } else if (savingsAccountCharge.isAnnualFee()) {
-            chargeTransaction = SavingsAccountTransaction.annualFee(this, office(), transactionDate, transactionAmount, user);
+            chargeTransaction = SavingsAccountTransaction.annualFee(this, office(),paymentDetail, transactionDate, transactionAmount,dt, user);
         } else {
-            chargeTransaction = SavingsAccountTransaction.charge(this, office(), transactionDate, transactionAmount, user);
+
+            chargeTransaction = SavingsAccountTransaction.charge(this, office(),paymentDetail, transactionDate, transactionAmount,dt, user);
+
         }
 
         handleChargeTransactions(savingsAccountCharge, chargeTransaction);
@@ -2465,4 +2569,12 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     public BigDecimal getWithdrawableBalance() {
         return getAccountBalance().subtract(minRequiredBalanceDerived(getCurrency()).getAmount());
     }
+    
+    public BigDecimal getMinRequiredBalance() {
+  		return this.minRequiredBalance;
+  	}
+
+  	public void setMinRequiredBalance(BigDecimal minRequiredBalance) {
+  		this.minRequiredBalance = minRequiredBalance;
+  	}
 }

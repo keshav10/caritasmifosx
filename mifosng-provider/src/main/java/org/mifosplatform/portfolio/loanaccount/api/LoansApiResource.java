@@ -194,6 +194,7 @@ public class LoansApiResource {
      * invoked on loan that are pending for approval. But system does not
      * validate the status of the loan, it returns the template irrespective of
      * loan status
+     * 
      */
 
     @GET
@@ -656,7 +657,7 @@ public class LoansApiResource {
             final CommandWrapper commandRequest = builder.unassignLoanOfficer(loanId).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         } else if (is(commandParam, "recoverGuarantees")) {
-            final CommandWrapper commandRequest = new CommandWrapperBuilder().recoverFromGuarantor(loanId).build();
+            final CommandWrapper commandRequest = builder.recoverFromGuarantor(loanId).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         }
 

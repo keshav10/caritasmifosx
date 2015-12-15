@@ -181,6 +181,14 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
         }
     }
 
+    @Override
+        public Long getIsReleaseGuarantor(final Long savingId){
+           
+           final String sql = " select msa.release_guarantor from m_savings_account msa where msa.id = " + savingId ;
+           return this.jdbcTemplate.queryForLong(sql);
+        }
+       
+    
     private static final class SavingAccountMapper implements RowMapper<SavingsAccountData> {
 
         private final String schemaSql;
@@ -237,6 +245,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             sqlBuilder.append("sa.withdrawal_fee_for_transfer as withdrawalFeeForTransfers, ");
             sqlBuilder.append("sa.allow_overdraft as allowOverdraft, ");
             sqlBuilder.append("sa.overdraft_limit as overdraftLimit, ");
+            sqlBuilder.append("sa.release_guarantor as releaseguarantor, ");
             // sqlBuilder.append("sa.annual_fee_amount as annualFeeAmount,");
             // sqlBuilder.append("sa.annual_fee_on_month as annualFeeOnMonth, ");
             // sqlBuilder.append("sa.annual_fee_on_day as annualFeeOnDay, ");
@@ -384,7 +393,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
 
             final boolean allowOverdraft = rs.getBoolean("allowOverdraft");
             final BigDecimal overdraftLimit = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "overdraftLimit");
-
+            final boolean releaseguarantor = rs.getBoolean("releaseguarantor");
             final BigDecimal minRequiredBalance = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "minRequiredBalance");
             final boolean enforceMinRequiredBalance = rs.getBoolean("enforceMinRequiredBalance");
 
@@ -426,7 +435,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                     interestCompoundingPeriodType, interestPostingPeriodType, interestCalculationType, interestCalculationDaysInYearType,
                     minRequiredOpeningBalance, lockinPeriodFrequency, lockinPeriodFrequencyType, withdrawalFeeForTransfers, summary,
                     allowOverdraft, overdraftLimit, minRequiredBalance, enforceMinRequiredBalance, minBalanceForInterestCalculation,
-                    onHoldFunds);
+                    onHoldFunds, releaseguarantor);
         }
     }
 
@@ -666,7 +675,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                     .append("sa.currency_code as currencyCode, sa.currency_digits as currencyDigits, sa.currency_multiplesof as inMultiplesOf, ");
             sqlBuilder.append("curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, ");
             sqlBuilder.append("curr.display_symbol as currencyDisplaySymbol, ");
-            sqlBuilder.append("pt.value as paymentTypeName ");
+            sqlBuilder.append("ifnull(pt.value,mc.name) as paymentTypeName ");
             sqlBuilder.append("from m_savings_account sa ");
             sqlBuilder.append("join m_savings_account_transaction tr on tr.savings_account_id = sa.id ");
             sqlBuilder.append("join m_currency curr on curr.code = sa.currency_code ");
@@ -674,6 +683,10 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             sqlBuilder.append("left join m_account_transfer_transaction totran on totran.to_savings_transaction_id = tr.id ");
             sqlBuilder.append("left join m_payment_detail pd on tr.payment_detail_id = pd.id ");
             sqlBuilder.append("left join m_payment_type pt on pd.payment_type_id = pt.id ");
+            sqlBuilder.append("left join m_savings_account_charge_paid_by msacpb on tr.id = msacpb.savings_account_transaction_id ");
+            sqlBuilder.append("left join m_savings_account_charge msac on msacpb.savings_account_charge_id = msac.id ");
+            sqlBuilder.append("left outer join m_charge mc on msac.charge_id = mc.id ");
+            		
 
             this.schemaSql = sqlBuilder.toString();
         }
@@ -711,6 +724,9 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                     paymentDetailData = new PaymentDetailData(id, paymentType, accountNumber, checkNumber, routingCode, receiptNumber,
                             bankNumber);
                 }
+            }else{
+            	final String chargeName = rs.getString("paymentTypeName");
+            	paymentDetailData = new PaymentDetailData(chargeName);
             }
 
             final String currencyCode = rs.getString("currencyCode");
@@ -820,6 +836,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             sqlBuilder.append("sp.min_balance_for_interest_calculation as minBalanceForInterestCalculation, ");
             sqlBuilder.append("sp.allow_overdraft as allowOverdraft, ");
             sqlBuilder.append("sp.overdraft_limit as overdraftLimit, ");
+            sqlBuilder.append("sp.release_guarantor as releaseguarantor, ");
             // sqlBuilder.append("sp.annual_fee_amount as annualFeeAmount,");
             // sqlBuilder.append("sp.annual_fee_on_month as annualFeeOnMonth, ");
             // sqlBuilder.append("sp.annual_fee_on_day as annualFeeOnDay ");
@@ -889,6 +906,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             final boolean withdrawalFeeForTransfers = rs.getBoolean("withdrawalFeeForTransfers");
 
             final boolean allowOverdraft = rs.getBoolean("allowOverdraft");
+            final boolean releaseguarantor = rs.getBoolean("releaseguarantor");
             final BigDecimal overdraftLimit = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "overdraftLimit");
 
             final BigDecimal minRequiredBalance = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "minRequiredBalance");
@@ -937,7 +955,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                     interestCompoundingPeriodType, interestPostingPeriodType, interestCalculationType, interestCalculationDaysInYearType,
                     minRequiredOpeningBalance, lockinPeriodFrequency, lockinPeriodFrequencyType, withdrawalFeeForTransfers, summary,
                     allowOverdraft, overdraftLimit, minRequiredBalance, enforceMinRequiredBalance, minBalanceForInterestCalculation,
-                    onHoldFunds);
+                    onHoldFunds,releaseguarantor);
         }
     }
 

@@ -58,7 +58,8 @@ public class LoanAccountData {
 
     // related to
     private final Long clientId;
-    private final String clientName;
+   
+	private final String clientName;
     private final Long clientOfficeId;
     private final GroupGeneralData group;
     private final Long loanProductId;
@@ -120,7 +121,8 @@ public class LoanAccountData {
     private final Collection<NoteData> notes;
     private final Collection<DisbursementData> disbursementDetails;
     private final LoanScheduleData originalSchedule;
-    // template
+   
+	// template
     private final Collection<LoanProductData> productOptions;
     private final Collection<StaffData> loanOfficerOptions;
     private final Collection<CodeValueData> loanPurposeOptions;
@@ -1386,5 +1388,17 @@ public class LoanAccountData {
     public boolean isActive() {
         return LoanStatus.fromInt(this.status.id().intValue()).isActive();
     }
+
+    public Long getId() {
+        return this.id;
+    }
+    
+    public LoanStatusEnumData getStatus() {
+		return this.status;
+	}
+
+    public Collection<DisbursementData> getDisbursementDetails() {
+		return this.disbursementDetails;
+	}
 
 }

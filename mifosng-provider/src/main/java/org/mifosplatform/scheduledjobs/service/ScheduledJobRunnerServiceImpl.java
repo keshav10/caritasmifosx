@@ -6,15 +6,56 @@
 package org.mifosplatform.scheduledjobs.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.mifosplatform.commands.domain.CommandWrapper;
+import org.mifosplatform.commands.service.CommandWrapperBuilder;
+import org.mifosplatform.commands.service.PortfolioCommandSourceWritePlatformService;
+import org.mifosplatform.infrastructure.core.api.JsonCommand;
+import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
+import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
+import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
+import org.mifosplatform.infrastructure.hooks.domain.HookConfiguration;
+import org.mifosplatform.infrastructure.hooks.domain.HookConfigurationRepository;
+import org.mifosplatform.infrastructure.hooks.domain.HookRepository;
+import org.mifosplatform.infrastructure.hooks.service.HookReadPlatformServiceImpl;
+
+import com.amazonaws.util.json.JSONException;
+import com.amazonaws.util.json.JSONObject;
+import com.google.gson.JsonElement;
+
+import edu.emory.mathcs.backport.java.util.concurrent.TimeUnit;
+
+import org.springframework.context.ApplicationContext;
+import org.hibernate.Transaction;
+import org.joda.time.DateTime;
+import org.joda.time.Days;
 import org.joda.time.LocalDate;
+import org.joda.time.Months;
+import org.joda.time.Weeks;
+import org.joda.time.Years;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.mifosplatform.infrastructure.core.data.ApiParameterError;
+import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSourceServiceFactory;
@@ -22,14 +63,38 @@ import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
 import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
 import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
 import org.mifosplatform.infrastructure.jobs.service.JobName;
+import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
+import org.mifosplatform.portfolio.charge.data.ChargeData;
+import org.mifosplatform.portfolio.charge.service.ChargeReadPlatformService;
+import org.mifosplatform.portfolio.common.domain.PeriodFrequencyType;
+import org.mifosplatform.portfolio.investment.api.InvestmentConstants;
+import org.mifosplatform.portfolio.investment.data.InvestmentBatchJobData;
+import org.mifosplatform.portfolio.investment.exception.NoAnyInvestmentFoundForDistributionException;
+import org.mifosplatform.portfolio.investment.service.InvestmentBatchJobReadPlatformService;
+import org.mifosplatform.portfolio.loanaccount.data.DisbursementData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanAccountData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanStatusEnumData;
+import org.mifosplatform.portfolio.loanaccount.service.LoanReadPlatformService;
+import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
+import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetailRepository;
+import org.mifosplatform.portfolio.paymenttype.domain.PaymentType;
+import org.mifosplatform.portfolio.paymenttype.domain.PaymentTypeRepositoryWrapper;
 import org.mifosplatform.portfolio.savings.DepositAccountType;
 import org.mifosplatform.portfolio.savings.DepositAccountUtils;
+import org.mifosplatform.portfolio.savings.api.SavingsAccountTransactionsApiResource;
 import org.mifosplatform.portfolio.savings.data.DepositAccountData;
+import org.mifosplatform.portfolio.savings.data.SavingIdListData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountAnnualFeeData;
+import org.mifosplatform.portfolio.savings.data.SavingsIdOfChargeData;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountAssembler;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountDomainService;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
 import org.mifosplatform.portfolio.savings.service.DepositAccountReadPlatformService;
 import org.mifosplatform.portfolio.savings.service.DepositAccountWritePlatformService;
 import org.mifosplatform.portfolio.savings.service.SavingsAccountChargeReadPlatformService;
 import org.mifosplatform.portfolio.savings.service.SavingsAccountWritePlatformService;
+import org.mifosplatform.useradministration.domain.AppUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,19 +114,67 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     private final SavingsAccountChargeReadPlatformService savingsAccountChargeReadPlatformService;
     private final DepositAccountReadPlatformService depositAccountReadPlatformService;
     private final DepositAccountWritePlatformService depositAccountWritePlatformService;
+    private final ChargeReadPlatformService chargeReadPlatformService;
+    private final ToApiJsonSerializer<CommandProcessingResult> toApiResultJsonSerializer;
+   	private final HookReadPlatformServiceImpl hookReadPlatformServiceImpl;
+   	private final HookRepository hookRepository;
+   	private final HookConfigurationRepository hookConfigurationRepository;
+    private final LoanReadPlatformService loanReadPlatformService;
+    private final InvestmentBatchJobReadPlatformService investmentBatchJobReadPlatformService;
+    private final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService;
+    private final SavingsAccountDomainService savingsAccountDomainService;
+    private final SavingsAccountAssembler savingAccountAssembler;
+    private final PaymentTypeRepositoryWrapper paymentTyperepositoryWrapper;
+    private final PaymentDetailRepository paymentDetailRepository;
+    private final SavingsAccountTransactionsApiResource savingsAccountTransactionsApiResource;
+    private final PlatformSecurityContext context;
+    private final FromJsonHelper fromApiJsonHelper;
+    
+
 
     @Autowired
     public ScheduledJobRunnerServiceImpl(final RoutingDataSourceServiceFactory dataSourceServiceFactory,
             final SavingsAccountWritePlatformService savingsAccountWritePlatformService,
             final SavingsAccountChargeReadPlatformService savingsAccountChargeReadPlatformService,
             final DepositAccountReadPlatformService depositAccountReadPlatformService,
-            final DepositAccountWritePlatformService depositAccountWritePlatformService) {
+            final DepositAccountWritePlatformService depositAccountWritePlatformService,
+            final ChargeReadPlatformService chargeReadPlatformService,
+            final ToApiJsonSerializer<CommandProcessingResult> toApiResultJsonSerializer,
+            			final HookReadPlatformServiceImpl hookReadPlatformServiceImpl,
+            			final HookRepository hookRepository,
+            			final HookConfigurationRepository hookConfigurationRepository, 
+            			LoanReadPlatformService loanReadPlatformService,
+            			final InvestmentBatchJobReadPlatformService investmentBatchJobReadPlatformService,
+            			final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
+            			final SavingsAccountDomainService savingsAccountDomainService,
+            			final SavingsAccountAssembler savingAccountAssembler,
+            			final PaymentTypeRepositoryWrapper paymentTyperepositoryWrapper,
+            			final PaymentDetailRepository paymentDetailRepository,
+            			final SavingsAccountTransactionsApiResource savingsAccountTransactionsApiResource,
+            			final PlatformSecurityContext context,
+            			final FromJsonHelper fromApiJsonHelper) {
         this.dataSourceServiceFactory = dataSourceServiceFactory;
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
         this.savingsAccountChargeReadPlatformService = savingsAccountChargeReadPlatformService;
         this.depositAccountReadPlatformService = depositAccountReadPlatformService;
         this.depositAccountWritePlatformService = depositAccountWritePlatformService;
+        this.chargeReadPlatformService = chargeReadPlatformService;
+        this.toApiResultJsonSerializer = toApiResultJsonSerializer;
+        this.hookReadPlatformServiceImpl = hookReadPlatformServiceImpl;
+        this.hookRepository = hookRepository;
+        this.hookConfigurationRepository = hookConfigurationRepository;
+        this.loanReadPlatformService = loanReadPlatformService;
+        this.investmentBatchJobReadPlatformService = investmentBatchJobReadPlatformService;
+        this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
+        this.savingsAccountDomainService = savingsAccountDomainService;
+        this.savingAccountAssembler = savingAccountAssembler;
+        this.paymentTyperepositoryWrapper = paymentTyperepositoryWrapper;
+        this.paymentDetailRepository = paymentDetailRepository;
+        this.savingsAccountTransactionsApiResource = savingsAccountTransactionsApiResource;
+        this.context = context;
+        this.fromApiJsonHelper = fromApiJsonHelper;
     }
+      
 
     @Transactional
     @Override
@@ -294,14 +407,14 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
         logger.info(ThreadLocalContextUtil.getTenant().getName() + ": Deposit accounts affected by update: " + depositAccounts.size());
     }
-    
+
     @Transactional
     @Override
     @CronTarget(jobName = JobName.UPDATE_CLIENT_SUB_STATUS)
     public void updateClientSubStatus() {
-        
+
         final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
-        
+
         final int result = jdbcTemplate.update("call doClientSubStatusUpdates()");
 
         logger.info(ThreadLocalContextUtil.getTenant().getName() + ": Results affected by update: " + result);
@@ -361,5 +474,1043 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
             jdbcTemplate.update(insertSql + sb.toString());
         }
     }
+
+    @Override
+    @CronTarget(jobName = JobName.APPY_SAVING_DEPOSITE_LATE_FEE)
+    public void doAppySavingLateFeeCharge() throws JobExecutionException {
+        PeriodFrequencyType frequencyType = null;
+
+        String startingDate = new String();
+        SimpleDateFormat formateDate = new SimpleDateFormat("yyyy-MM-dd");
+
+        final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
+
+        final Collection<ChargeData> chargeData = this.chargeReadPlatformService.retriveAllChargeOfSavingLateFee();
+        /**
+         * above method retrun's all available charges for the saving late
+         * deposit fee
+         */
+
+        for (final ChargeData oneCharge : chargeData) {
+            int interval = oneCharge.getFeeInterval();
+            int month = frequencyType.MONTHS.getValue();
+
+            EnumOptionData data = oneCharge.getFeeFrequency();
+            Long frequency = data.getId();
+            Calendar aCalendar = Calendar.getInstance();
+
+            if (month == frequency) {
+
+                // added -interval for any previous month
+                aCalendar.add(Calendar.MONTH, -interval);
+                aCalendar.set(Calendar.DATE, 1);
+                Date startDate = aCalendar.getTime();
+                startingDate = formateDate.format(startDate);
+            }
+
+            final Collection<SavingIdListData> savingIdList = this.savingsAccountChargeReadPlatformService
+                    .retriveAllSavingIdForApplyDepositeLateCharge();
+            final Collection<SavingsIdOfChargeData> savingIdsInCharge = this.savingsAccountChargeReadPlatformService
+                    .retriveAllSavingIdHavingDepositCharge(startingDate);
+            final Collection<SavingIdListData> savingIdsFromTransaction = this.savingsAccountChargeReadPlatformService
+                    .retriveSavingAccountForApplySavingDepositeFee(startingDate);
+
+            for (final SavingIdListData savingId : savingIdList) {
+
+                Long savingIdForGetMaxOfTxn = savingId.getSavingId();
+
+                DateTime start = new DateTime();
+                Date trasactionDate = new Date();
+                Date startFeeCharge = new Date();
+                LocalDate maxOfTransactionDate = new LocalDate();
+                LocalDate maxOfchargeDueDate = new LocalDate();
+                LocalDate startChargeDate = new LocalDate();
+                boolean isInsert = true;
+                boolean isValideForCharge = false;
+                boolean isMaxOfChargeDue = false;
+                boolean isPreviousTxn = false;
+                boolean isAllowInsert = false;
+                boolean isPriviousDueDate = false;
+                boolean isSavingIdAvailable = false;
+                int totalNoOfInsertion = 0;
+                
+                /**
+                 * Following code will check if the start date of charge calculation is there or is saving account is active
+                 * then it will return valid for apply charge 
+                 */
+                
+                if (savingId.getStartFeeChargeDate() != null) {
+
+                    if (savingId.getStartFeeChargeDate().isAfter(savingId.getActivateOnDate())
+                            || savingId.getStartFeeChargeDate().equals(savingId.getActivateOnDate())) {
+                        isValideForCharge = true;
+                    }
+                } else if (savingId.getActivateOnDate() != null) {
+                    isValideForCharge = true;
+                    startFeeCharge = savingId.getActivateOnDate().toDate();
+                }
+                
+             
+                /**
+                 * Following code will return the boolean value true if there is any previous charge on 
+                 * on saving id 
+                 */
+
+                SavingsIdOfChargeData maxOfChargeDueDate = this.savingsAccountChargeReadPlatformService
+                        .retriveOneWithMaxOfDueDate(savingIdForGetMaxOfTxn);
+                if (maxOfChargeDueDate.getDueDate() != null) {
+                    maxOfchargeDueDate = new LocalDate(maxOfChargeDueDate.getDueDate());
+                    isMaxOfChargeDue = true;
+                    isPriviousDueDate = true;
+                }
+               
+
+             
+                /**
+                 * if any savingAccount already having charge then isInsert
+                 * become false else it will be true and it will allow to insert
+                 * data
+                 **/
+
+                for (final SavingsIdOfChargeData savingData : savingIdsInCharge) {
+                    if (savingId.getSavingId().equals(savingData.getSavingId())) {
+                        isInsert = false;
+                        break;
+                    }
+                }
+                
+ 
+             /** 
+              * It checks the last transaction of saving Id is not in previous month those saving Id only
+              * eligible to apply charge    
+              */
+                
+                for(final SavingIdListData savingIdListData : savingIdsFromTransaction){
+                	if(savingId.getSavingId().equals(savingIdListData.getSavingId())){
+                		isAllowInsert = true;
+                	}	
+                }  	
+                
+                
+                
+                        
+                     
+                /** 
+                 * Following loop condition it will just adjust the dates based on some condition  for the charge calculation
+                 */
+                
+                
+              
+                
+                
+                for (final SavingIdListData savingIdListData : savingIdsFromTransaction) {
+
+                    if (savingIdListData.getSavingId().equals(savingId.getSavingId())) {
+                        isSavingIdAvailable = true;
+                     
+                        LocalDate dateOfTransaction = savingIdListData.getMaxTransactionDate();
+                        if (dateOfTransaction.isAfter(maxOfchargeDueDate) || dateOfTransaction.equals(maxOfChargeDueDate)
+                                || isMaxOfChargeDue == false) {
+                            trasactionDate = dateOfTransaction.toDate();
+                            maxOfTransactionDate = dateOfTransaction;
+                            isPreviousTxn = true;
+
+                        } else {
+                            trasactionDate = maxOfchargeDueDate.toDate();
+                            maxOfTransactionDate = maxOfchargeDueDate;
+                            isPreviousTxn = true;
+                        }
+
+                        LocalDate startFeeChargeDate = savingId.getStartFeeChargeDate();
+                        if(startFeeChargeDate == null){
+                            startFeeChargeDate = savingId.getActivateOnDate();
+                        }
+
+                        if (isMaxOfChargeDue == true) {
+                            if (dateOfTransaction.isAfter(maxOfchargeDueDate) || dateOfTransaction.equals(maxOfChargeDueDate)) {
+                                startFeeCharge = dateOfTransaction.toDate();
+                                startChargeDate = dateOfTransaction;
+                            } else {
+                                startFeeCharge = maxOfchargeDueDate.toDate();
+                                startChargeDate = maxOfchargeDueDate;
+                            }
+                        } else if (dateOfTransaction.isAfter(startFeeChargeDate)) {
+                            startFeeCharge = dateOfTransaction.toDate();
+                            startChargeDate = dateOfTransaction;
+                        } else {
+                            startFeeCharge = startFeeChargeDate.toDate();
+                            startChargeDate = startFeeChargeDate;
+                        }
+
+                        break;
+                    }
+
+                }
+
+
+                                
+                /**
+                 * if there is no any single transaction of saving account then
+                 * start date and number of insertion calculation done here
+                 */
+                
+                SavingIdListData maxTransactionDate = this.savingsAccountChargeReadPlatformService.retriveMaxOfTransaction(savingIdForGetMaxOfTxn);
+                if(maxTransactionDate.getMaxTransactionDate() == null){
+                	isAllowInsert = true;
+                }
+                
+                
+                if (isSavingIdAvailable == false && isInsert == true && isValideForCharge == true) {
+                	
+                    LocalDate startFeeChargeDate = savingId.getStartFeeChargeDate();
+                    if(startFeeChargeDate == null){
+                        startFeeChargeDate = savingId.getActivateOnDate();
+                    }
+
+                    if (maxOfchargeDueDate.isAfter(startFeeChargeDate) && isMaxOfChargeDue == true) {
+                        startFeeCharge = maxOfchargeDueDate.toDate();
+                    } else {
+                        startFeeCharge = startFeeChargeDate.toDate();
+                    }
+
+                    DateTime startFee = new DateTime(startFeeCharge);
+                    start = new DateTime(startFee);
+                    Date endDateAsCurrDate = new Date();
+                    DateTime end = new DateTime(endDateAsCurrDate);
+
+                    if (isMaxOfChargeDue == true) {
+                        trasactionDate = maxOfchargeDueDate.toDate();
+                        maxOfTransactionDate = maxOfchargeDueDate;
+                        isPriviousDueDate = true;
+                    } else {
+                        trasactionDate = startFeeChargeDate.toDate();
+                        maxOfTransactionDate = startFeeChargeDate;
+                        isPriviousDueDate = false;
+                    }
+
+                    Months diffMonth = Months.monthsBetween(start, end);
+                    totalNoOfInsertion = (diffMonth.getMonths()) / interval;
+                }
+                
+                /** If there is previous transaction of saving Id then 
+                 * here it will check how many charges will need be applied
+                 * 
+                 */
+
+                if (isSavingIdAvailable == true && isInsert == true && isValideForCharge == true) {
+
+                    DateTime transaction = new DateTime(trasactionDate);
+
+                    DateTime startFee = new DateTime(startFeeCharge);
+
+                    LocalDate startCharge = new LocalDate(startFeeCharge);
+                    Date endDateAsCurrDate = new Date();
+                    DateTime end = new DateTime(endDateAsCurrDate);
+
+                    if (maxOfTransactionDate.isAfter(startCharge) || maxOfTransactionDate.isEqual(startCharge) && isMaxOfChargeDue == true) {
+                        start = new DateTime(transaction);
+                        Months diffMonth = Months.monthsBetween(start, end);
+                        totalNoOfInsertion = (diffMonth.getMonths() - 1) / interval;
+
+                    }else if(maxOfTransactionDate.isEqual(startCharge) && isMaxOfChargeDue == false){
+                    	start = new DateTime(transaction);
+                    	Months diffMonth = Months.monthsBetween(startFee, end);
+                        totalNoOfInsertion = (diffMonth.getMonths() - 1)/ interval;	
+                    }
+                    else if (maxOfTransactionDate.isAfter(maxOfchargeDueDate) || maxOfTransactionDate.isEqual(maxOfchargeDueDate)
+                            && isMaxOfChargeDue == true) {
+
+                        start = new DateTime(transaction);
+                        Months diffMonth = Months.monthsBetween(start, end);
+                        totalNoOfInsertion = (diffMonth.getMonths()) / interval;
+
+                    }
+
+                }
+
+                
+             /**
+              * If all boolean values are true then it will insert the charge into the m_savings_account_charge   
+              */
+                
+                if (isInsert == true && isValideForCharge == true && isAllowInsert == true) {
+
+                    for (int i = 0; i < totalNoOfInsertion; i++) {
+
+                        String insertSql = " INSERT INTO `m_savings_account_charge` (`savings_account_id`, `charge_id`, `is_penalty`, `charge_time_enum`, "
+                                + " `charge_due_date`, `fee_on_month`, `fee_on_day`, `fee_interval`, `charge_calculation_enum`, `calculation_percentage`, "
+                                + " `calculation_on_amount`, `amount`, `amount_paid_derived`, `amount_waived_derived`, `amount_writtenoff_derived`, "
+                                + " `amount_outstanding_derived`, `is_paid_derived`, `waived`, `is_active`, `inactivated_on_date`) VALUES ";
+
+                        StringBuilder sb = new StringBuilder();
+                        final Long savingAccId = savingId.getSavingId();
+                        final Long chargId = oneCharge.getId();
+                        final BigDecimal amount = oneCharge.getAmount();
+                        LocalDate chargeDueDate = new LocalDate();
+                        if (i == 0) {
+                            if (isPriviousDueDate == true) {
+
+                                if (maxOfTransactionDate.isAfter(maxOfchargeDueDate) || isMaxOfChargeDue == false) {
+                                    aCalendar.setTime(trasactionDate);
+
+                                    aCalendar.add(Calendar.MONTH, interval + 1);
+                                    aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+
+                                    Date nextMonthFirstDay = aCalendar.getTime();
+                                    aCalendar.setTime(nextMonthFirstDay);
+                                    chargeDueDate = new LocalDate(nextMonthFirstDay);
+
+                                } else if (maxOfchargeDueDate.isAfter(maxOfTransactionDate) && isMaxOfChargeDue == true
+                                        || maxOfchargeDueDate.equals(maxOfTransactionDate)) {
+
+                                    Date chargeDue = new Date();
+                                    chargeDue = maxOfchargeDueDate.toDate();
+                                    aCalendar.setTime(chargeDue);
+                                    aCalendar.add(Calendar.MONTH, interval);
+                                    aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+
+                                    Date nextMonthFirstDay = aCalendar.getTime();
+                                    aCalendar.setTime(nextMonthFirstDay);
+                                    chargeDueDate = new LocalDate(nextMonthFirstDay);
+                                }
+
+                            }
+
+                            // in this if there is no any previous due date then
+                            // calendar is going to set on available date
+
+                            else {
+
+                                if (isPreviousTxn == true) {
+                                    aCalendar.setTime(startFeeCharge);
+
+                                    aCalendar.add(Calendar.MONTH, interval + 1);
+                                    aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+                                    Date nextMonthFirstDay = aCalendar.getTime();
+                                    aCalendar.setTime(nextMonthFirstDay);
+                                    chargeDueDate = new LocalDate(nextMonthFirstDay);
+                                }
+
+                                else {
+
+                                    aCalendar.setTime(startFeeCharge);
+
+                                    aCalendar.add(Calendar.MONTH, interval);
+                                    aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+                                    Date nextMonthFirstDay = aCalendar.getTime();
+                                    aCalendar.setTime(nextMonthFirstDay);
+                                    chargeDueDate = new LocalDate(nextMonthFirstDay);
+
+                                }
+
+                            }
+                        }
+
+                        else {
+                           
+                                aCalendar.add(Calendar.MONTH, interval);
+                                aCalendar.set(Calendar.DATE, aCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+                                Date nextMonthFirstDay = aCalendar.getTime();
+                                aCalendar.setTime(nextMonthFirstDay);
+                                chargeDueDate = new LocalDate(nextMonthFirstDay);
+
+                        }
+                        sb.append("(");
+                        sb.append(savingAccId);
+                        sb.append(",");
+                        sb.append(chargId);
+                        sb.append(",");
+                        sb.append("0");
+                        sb.append(",");
+                        sb.append("12");
+                        sb.append(",'");
+                        sb.append(formatter.print(chargeDueDate));
+                        sb.append("',");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("1");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append(amount);
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(",");
+                        sb.append(amount);
+                        sb.append(",");
+                        sb.append("0");
+                        sb.append(",");
+                        sb.append("0");
+                        sb.append(",");
+                        sb.append("1");
+                        sb.append(",");
+                        sb.append("NULL");
+                        sb.append(")");
+
+                        if (sb.length() > 0) {
+                            jdbcTemplate.update(insertSql + sb.toString());
+                        }
+
+                    }
+                }
+                // //
+            }
+
+        }
+
+    }
+
+
+   
+    @Override
+    @CronTarget(jobName = JobName.LOAN_REPAYMENT_SMS_REMINDER_TO_CLIENT)
+    public void loanRepaymentSmsReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"Loan Repayment Reminders\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.LOAN_FIRST_OVERDUE_REPAYMENT_REMINDER_SMS)
+    public void loanFirstOverdueRepaymentReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"Loan First Overdue Repayment Reminder\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.LOAN_SECOND_OVERDUE_REPAYMENT_REMINDER_SMS)
+    public void loanSecondOverdueRepaymentReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                                
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"Loan Second Overdue Repayment Reminder\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.LOAN_THIRD_OVERDUE_REPAYMENT_REMINDER_SMS)
+    public void loanThirdOverdueRepaymentReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject("{\"reportName\":\"Loan Third Overdue Repayment Reminder\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.LOAN_FOURTH_OVERDUE_REPAYMENT_REMINDER_SMS)
+    public void loanFourthOverdueRepaymentReminder() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"Loan Fourth Overdue Repayment Reminder\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.DEFAULT_WARNING_SMS_TO_CLIENT)
+    public void defaultWarningToClients() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"DefaultWarning - Clients\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.DEFAULT_WARNING_SMS_TO_GURANTOR)
+    public void defaultWarningToGuarantors() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"DefaultWarning -  guarantors\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.DORMANCY_WARNING_SMS_TO_CLIENT)
+    public void dormancyWarningToClients() {
+            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String apikey = hookRepository.retriveApiKey();
+            final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
+                            .getTenantIdentifier();
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpPost httpPost = new HttpPost(payLoadUrl);
+            httpPost.addHeader("X-Mifos-Action", "EXECUTEJOB");
+            httpPost.addHeader("X-Mifos-Entity", "SCHEDULER");
+            httpPost.addHeader("X-Mifos-Platform-TenantId", tenantIdentifier);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("X-Mifos-API-Key", apikey);
+            StringEntity entity;
+            try {
+                    Date now = new Date();                  
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+                    String date=df.format(now);
+                    JSONObject jsonObj = new JSONObject(
+                                    "{\"reportName\":\"DormancyWarning - Clients\",\"date\":\""+date+"\"}");
+                    entity = new StringEntity(jsonObj.toString());
+                    httpPost.setEntity(entity);
+                    httpClient.execute(httpPost);
+            } catch (UnsupportedEncodingException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (ClientProtocolException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (IOException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            } catch (JSONException e) {
+                    logger.info(e.getMessage());
+                    e.printStackTrace();
+            }
+    }
+
+
     
-}
+    @Override
+    @CronTarget(jobName = JobName.DO_INVESTMENT_DISTRIBUTION)
+    public void distributeInvestmentEarning(){
+    	
+    	/*
+    	 *this will call the distributeInvestment() method with passing null values so it will work for all the data not for specific one 
+    	 *
+    	 */
+    	String[] productId = null;
+    	String date = "";
+    	String investmentId = "";
+    
+    	distributeInvestment(productId,date,investmentId);  	
+    	
+    }
+
+	@Override
+	@Transactional 
+   /**
+    * the following method will call if user enter the manual data to run the batch job
+    */
+	public CommandProcessingResult doInvestmentTracker(
+			JsonCommand command) {
+		  CommandProcessingResult result = null;
+		String[] productIds = command.arrayValueOfParameterNamed("productId");
+        String date = command.stringValueOfParameterNamed("date");
+        String investmentId = command.stringValueOfParameterNamed("investmentId");
+        
+        result = distributeInvestment(productIds, date, investmentId);
+        if(result == null){
+        	throw new NoAnyInvestmentFoundForDistributionException();
+        }
+        return result;
+	}
+	
+	/**
+	 * the following method is the one which is responsible for distribute the investment 
+	 * and the same method we are calling for batch as well
+	 */
+	
+	 public CommandProcessingResult distributeInvestment(String[] productIds, String date, String investmentId){
+        
+		
+	   String distributionDate = date;	 
+	   List<Long> investmentIdFromData = new ArrayList<Long>();
+	   CommandProcessingResult result = null;
+		Date today = new Date();                  
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");     
+       
+        final DateTimeFormatter fmt = DateTimeFormat.forPattern("dd MMMM yyyy");
+        String statusDate =df.format(today);
+    	StringBuilder sb = new StringBuilder();
+        
+        final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
+
+        
+        /**
+         * In this code if any one of parameter is passed by user then following method will return the specific result. In case user doesn't
+         * pass any parameter then all data will be selected   like all product and all investmentId and date will be the current date 
+         **/
+        
+        
+        List<InvestmentBatchJobData> data = this.investmentBatchJobReadPlatformService.validateForInvestmentSplit(productIds, distributionDate, investmentId);
+        if(data.isEmpty()){
+     	  	throw new NoAnyInvestmentFoundForDistributionException();
+        }
+        List<Long> investmentIds = insertInvestmentStatus(data, statusDate);
+      
+        
+        /**
+         * Following method return's the investment data which having a matured status and if we pass the investmentId then it will return the specific record 
+         * else it will return the all the data with matured status 
+         * */
+      
+        InvestmentBatchJobData interestDetails = this.investmentBatchJobReadPlatformService.getInterestDetails();
+        
+        BigDecimal groupPercentage = interestDetails.getGroupPercentage();
+        for(Long loanId : investmentIds ){
+        	
+        
+        	List<InvestmentBatchJobData> maturedInvestmentData = this.investmentBatchJobReadPlatformService.getAllInvestementDataWithMaturedStatus(loanId);
+        	for(InvestmentBatchJobData investmentBatchJobData : maturedInvestmentData){
+        		
+        		Long savingId = investmentBatchJobData.getSavingId();
+        		Date investmentStartDate = investmentBatchJobData.getInvestmentStartDate();
+        		Date investmentCloseDate = investmentBatchJobData.getInvestmentCloseDate();
+        		BigDecimal investedAmountByGroup = investmentBatchJobData.getInvestmetAmount().setScale(5);
+        		InvestmentBatchJobData loanData = this.investmentBatchJobReadPlatformService.getLoanClosedDate(loanId);
+        		Date loanCloseOn = loanData.getLoanCloseDate();
+        		LocalDate investmentStart = new LocalDate(investmentStartDate);
+        		LocalDate investmentClose = new LocalDate(investmentCloseDate);
+        		LocalDate loanClose = new LocalDate(loanCloseOn);
+        		LocalDate transactionDate = new LocalDate();
+        		StringBuilder dB = new StringBuilder();
+        	    DateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy"); 
+        	    String interestPostingDate = dateFormat.format(transactionDate.toDate());
+                String postingDateOfInvestment = df.format(transactionDate.toDate());
+                
+                BigDecimal totalInterestAmountOfLoan = loanData.getTotalInterest();
+                BigDecimal totalInvestedAmount = loanData.getTotalInvestedAmount();  
+                
+                Date loanStartDate = loanData.getLoanStartDate();
+                LocalDate loanStart = new LocalDate(loanStartDate);
+                
+                
+                LocalDate startInvestment = new LocalDate();
+                LocalDate closeInvestment = new LocalDate();
+                
+                int dayDiff = 0;
+                if(!(investmentCloseDate == null)){
+                	if(investmentStart.isBefore(loanStart)){
+                		    dayDiff = Days.daysBetween(loanStart, investmentClose).getDays();
+                		    startInvestment = loanStart;
+                		    closeInvestment = investmentClose;
+                		}else{
+                			dayDiff = Days.daysBetween(investmentStart, investmentClose).getDays();	
+                			startInvestment = investmentStart;
+                			closeInvestment = investmentClose;
+                		}
+                	
+                }else{
+                 	if(investmentStart.isBefore(loanStart)){
+            	 	    dayDiff = Days.daysBetween(loanStart, loanClose).getDays();
+            	 	    startInvestment = loanStart;
+            	 	    closeInvestment = loanClose;
+            		}else{
+            	 		dayDiff = Days.daysBetween(investmentStart, loanClose).getDays();
+            	 		startInvestment = investmentStart;
+            	 		closeInvestment = loanClose;
+            		}    
+                }
+        		
+        		BigDecimal numberOfDaysOfInvestment = new BigDecimal(dayDiff);
+        		
+        		
+        		int totalDayDiff = Days.daysBetween(loanStart, loanClose).getDays();
+        		BigDecimal totalNumberOfInvestment = new BigDecimal(totalDayDiff);
+        		BigDecimal bigDecimalHundred = new BigDecimal(100);
+        		
+        		
+        		BigDecimal ratioOfInvestmentAmount = investedAmountByGroup.divide(totalInvestedAmount, 10, RoundingMode.HALF_EVEN);
+        		BigDecimal ratioOfDaysInvested = numberOfDaysOfInvestment.divide(totalNumberOfInvestment, 10, RoundingMode.HALF_EVEN);
+        		BigDecimal interestEarn = ratioOfInvestmentAmount.multiply(ratioOfDaysInvested).multiply(totalInterestAmountOfLoan).setScale(05, RoundingMode.HALF_EVEN);
+        		
+        		BigDecimal transactionAmount = interestEarn.multiply((groupPercentage.divide(bigDecimalHundred))).setScale(05, RoundingMode.HALF_EVEN);
+        		
+        
+        		
+        		
+        		
+        		//following the method and constructor reused for getting the long value result of 
+        		InvestmentBatchJobData paymentData = this.investmentBatchJobReadPlatformService.getPaymentType();
+        		Long paymentTypeId = paymentData.getInvestmentId();
+        		
+        		
+        		StringBuilder json = new StringBuilder();
+                json.append("{ ");
+                json.append("transactionDate:");
+                json.append('"');
+                json.append(interestPostingDate);
+                json.append('"');
+                json.append(", transactionAmount:");
+                json.append(transactionAmount);
+                json.append(",");
+                json.append(" paymentTypeId: ");
+                json.append(paymentTypeId);
+                json.append(",");
+                json.append("locale:en,");
+                json.append("dateFormat : ");
+                json.append('"');
+                json.append("dd MMMM yyyy");
+                json.append('"');
+                json.append(", isFromBatchJob : true ");
+                json.append("}");
+                
+
+                String apiJson = json.toString();
+        	
+        		
+        	//this method is responsible for handling the deposit amount into the specific saving account
+               if(transactionAmount.compareTo(BigDecimal.ZERO)>0){
+            	   
+               
+                result = doDepositeTransaction(savingId,apiJson);
+         	    
+     
+        		String insertSqlStmt = "INSERT INTO `ct_posted_investment_earnings` (`loan_id`, `saving_id`, `number_of_days`, "
+        				+ " `invested_amount`, `gorup_interest_rate`, `gorup_interest_earned`, `interest_earned`, `date_of_interest_posting`, "
+        				+ "`investment_start_date`, `investment_close_date`) VALUES ";
+        		
+        		dB.append("( ");
+        		dB.append(loanId);
+        		dB.append(",");
+        		dB.append(savingId);
+        		dB.append(",");
+        		dB.append(dayDiff);
+        		dB.append(",");
+        		dB.append(investedAmountByGroup);
+        		dB.append(",");
+        		dB.append(groupPercentage);
+        		dB.append(",");
+        		dB.append(transactionAmount);
+        		dB.append(",");
+        		dB.append(interestEarn);
+        		dB.append(",'");
+        		dB.append(postingDateOfInvestment);
+        		dB.append("','");
+        		dB.append(startInvestment);
+        		dB.append("','");
+        		dB.append(closeInvestment);
+        		dB.append("')");
+            	
+                if (dB.length() > 0) {
+                     jdbcTemplate.update(insertSqlStmt + dB.toString());
+                  }        		 
+
+         	    String updateString = " update ct_investment_status cis set cis.earning_status = 'Distributed' ";
+         	    StringBuilder update = new StringBuilder();
+         	    update.append(" where cis.loan_id = ");
+         	    update.append(loanId);
+         	    if(update.length() > 0){
+         		   jdbcTemplate.update(updateString + update.toString());
+         	    }
+        	  }
+        	}
+        	
+          }
+	      
+        return result;
+      }
+	
+
+	//the following method will call when the money has to be deposited  to a specific account 
+	public CommandProcessingResult doDepositeTransaction(Long savingId, String apiJson){
+		 
+		 CommandProcessingResult result = null;
+		 JsonCommand command = null;
+		 final JsonElement parsedCommand = this.fromApiJsonHelper.parse(apiJson);
+		 final CommandWrapper wrapper = new CommandWrapperBuilder().savingsAccountDeposit(savingId).withJson(apiJson).build();
+         
+		 command = JsonCommand.from(apiJson, parsedCommand, this.fromApiJsonHelper, wrapper.getEntityName(), wrapper.getEntityId(),
+	                wrapper.getSubentityId(), wrapper.getGroupId(), wrapper.getClientId(), wrapper.getLoanId(), wrapper.getSavingsId(),
+	                wrapper.getTransactionId(), wrapper.getHref(), wrapper.getProductId());
+		 
+		 result = this.savingsAccountWritePlatformService.deposit(savingId, command);
+ 	     return result;
+	}
+	
+	
+	
+	 // this method for inserting the investment status is to the ct_investment_status table 
+	 @Transactional
+	 public List<Long> insertInvestmentStatus(List<InvestmentBatchJobData> data, String statusDate){
+	    	
+	    	
+	    	List<Long> investmentId= new ArrayList<Long>();
+	        final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
+	       
+	        for(InvestmentBatchJobData oneElement : data){
+	        	StringBuilder sb = new StringBuilder();  
+	        	Long loanId = oneElement.getInvestmentId();           
+	        	InvestmentBatchJobData getLoanStatus = this.investmentBatchJobReadPlatformService.getLoanIdStatus(loanId);
+	        	
+	        	int loanStatusId = getLoanStatus.getLoanStatusId();
+	        	Date  loanMaturityDate = getLoanStatus.getLoanMaturityDate();
+	        	Date  investmentDistributionDate = new Date();
+	        	InvestmentBatchJobData earningStatus = this.investmentBatchJobReadPlatformService.getInvestmentStatus(loanId);
+	        	
+	        	if(earningStatus==null){
+	         
+		     	String insertSql =  " INSERT INTO `ct_investment_status` (`loan_id`, `earning_status`, `status_date`) VALUES ";
+	                
+	            	sb.append("( ");
+	            	sb.append(loanId);
+	            	sb.append(",");
+	            	sb.append("'");
+	            	if(loanStatusId == 600 && loanMaturityDate.before(investmentDistributionDate)){
+	                   sb.append("Due For Realization");
+	                   investmentId.add(loanId);
+	            	}else if(loanMaturityDate.after(investmentDistributionDate)){
+	            	   sb.append("Not Matured");
+	            	}
+	            	sb.append("'");
+	            	sb.append(",");
+	            	sb.append("'");
+	            	sb.append(statusDate);
+	            	sb.append("'");
+	                sb.append(" )");
+	                
+	                String instertIntoTableValues = insertSql + sb.toString();
+	                
+	                if (sb.length() > 0) {
+	                    jdbcTemplate.update(instertIntoTableValues);
+	                }
+	               	
+	        	}
+	        	else{
+	                  
+	         		String status = earningStatus.getEarningStatus();
+	        		StringBuilder update = new StringBuilder();
+	        		if(loanStatusId == 600 && status.equalsIgnoreCase("Not Matured")){
+	        		  
+	        			update.append(" update ct_investment_status cis set cis.earning_status = ");
+	        			update.append("'Due For Realization'");
+	        			update.append(" where ");
+	        			update.append("cis.loan_id = " + loanId);
+	        			investmentId.add(loanId);
+	        		}else if(loanStatusId == 600 && status.equalsIgnoreCase("Due For Realization")){
+	        			investmentId.add(loanId);
+	        		}
+	        		        		
+	        		if(update.length() > 0){
+	        			jdbcTemplate.update(update.toString());
+	        		}
+	            
+	        	}
+	            
+	          }
+	        
+	        return investmentId;
+	    	
+	    }
+	
+	
+  }

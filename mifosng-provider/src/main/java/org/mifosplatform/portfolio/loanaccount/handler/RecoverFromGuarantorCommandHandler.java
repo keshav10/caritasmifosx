@@ -24,7 +24,7 @@ public class RecoverFromGuarantorCommandHandler implements NewCommandSourceHandl
 
     @Override
     public CommandProcessingResult processCommand(JsonCommand command) {
-        return this.writePlatformService.recoverFromGuarantor(command.getLoanId());
+        return this.writePlatformService.recoverFromGuarantor(command.getLoanId(),command.localDateValueOfParameterNamed("guarantorRecoveryDate"));
     }
 
 }

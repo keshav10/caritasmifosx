@@ -22,5 +22,9 @@ public interface HookRepository extends JpaRepository<Hook, Long>,
 
 	@Query("from Hook hook where hook.template.id = :templateId ")
 	Hook findOneByTemplateId(@Param("templateId") Long templateId);
+	
+	@Query("select apiKey from SMSBridgeConfig ")
+	       String retriveApiKey();
+	 
 
 }
