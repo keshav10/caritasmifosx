@@ -1607,7 +1607,7 @@ public class SynchronousCommandProcessingService implements
 		final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
 				.getTenantIdentifier();
 		final AppUser appUser = this.context.authenticatedUser();
-        final Long officeId=this.context.authenticatedUser().getOffice().getId();
+        final Long officeId=result.getOfficeId();
 		final HookEventSource hookEventSource = new HookEventSource(entityName,actionName);	
 		final String serializedResult = this.toApiResultJsonSerializer.serialize(result);				
 

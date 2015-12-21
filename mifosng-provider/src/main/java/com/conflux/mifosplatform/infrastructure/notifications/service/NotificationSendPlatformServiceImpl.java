@@ -70,12 +70,12 @@ public class NotificationSendPlatformServiceImpl implements NotificationSendPlat
         final String target = command.stringValueOfParameterNamed(NotificationApiConstants.target);
         final String subject = command.stringValueOfParameterNamed(NotificationApiConstants.subject);
         final String message = command.stringValueOfParameterNamed(NotificationApiConstants.message);
+        final Long officeId=   command.longValueOfParameterNamed(NotificationApiConstants.entitiyId);
         final String tenantIdentifier = ThreadLocalContextUtil.getTenant().getTenantIdentifier();
         Boolean enabled =false;
         if (type.equalsIgnoreCase("email")) {
         	emailSender.sendEmail(target, subject, message);
         } else if(type.equalsIgnoreCase("sms")) {
-            final Long officeId=this.context.authenticatedUser().getOffice().getId();
             final GenericResultsetData results = readWriteNonCoreDataService.retrieveDataTableGenericResultSet("OfficeDetails", officeId,
 	                null, null);		 
 		ArrayList<ResultsetColumnHeaderData> header= (ArrayList<ResultsetColumnHeaderData>) results.getColumnHeaders();

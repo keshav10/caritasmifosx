@@ -159,6 +159,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
           paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mlt.payment_detail_id ");
           paymentdetail.append(" where mc.id=? ");
           paymentdetail.append("and mlt.is_reversed=0 ");
+          paymentdetail.append(" and l.loan_status_id=300 ");
           paymentdetail.append("and mlt.transaction_type_enum in (2) ");
           paymentdetail.append("group by mpd.receipt_number,mlt.transaction_type_enum,mlt.transaction_date,mlt.loan_id ");
           paymentdetail.append("union ");
@@ -172,6 +173,9 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
           paymentdetail.append("left outer join m_payment_detail mpd on mpd.id=mst.payment_detail_id ");
           paymentdetail.append("where mc.id=?  ");
           paymentdetail.append("and mst.transaction_type_enum in(1,2) ");
+          paymentdetail.append("and mst.savings_account_id in (select  default_savings_account from m_client where mc.id=?) ");
+          paymentdetail.append("and mst.is_reversed=0 ");
+          paymentdetail.append("and s.status_enum=300 ");
           paymentdetail.append(" group by mpd.receipt_number,mst.transaction_type_enum,mst.transaction_date,mst.savings_account_id ");
           paymentdetail.append(" )c group by c.transaction_date,c.receipt_number ");
           paymentdetail.append("  order by c.transaction_date desc "); 
@@ -185,7 +189,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	public PaymentDetailCollectionData mapRow(ResultSet rs, int rowNum)
 			throws SQLException {
 		final String date = rs.getString("transaction_date");
-        final Long amount = rs.getLong("amount");
+        final BigDecimal amount = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs,"amount");
         final String type=rs.getString("PaymentType1");
         final String receiptNumber = rs.getString("receipt_number");
         return new PaymentDetailCollectionData(amount, date, receiptNumber,type);                
@@ -452,7 +456,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	public Collection<PaymentDetailCollectionData> retrivePaymentDetail(
 			Long clientId) {
 		this.clientReadPlatformService.retrieveOne(clientId);
-		return retrievePaymentDetails(new Object[] { clientId, clientId });
+		return retrievePaymentDetails(new Object[] { clientId, clientId,clientId });
         
    
 	}
@@ -471,6 +475,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	          shareAccountBalance.append("m_client mc left join m_savings_account msa on mc.id=msa.client_id  ");
 	          shareAccountBalance.append("where mc.id=? ");
 	          shareAccountBalance.append(" and msa.id in (select  default_savings_account from m_client where mc.id=?) ");
+	          shareAccountBalance.append(" and msa.status_enum=300 ");
 	          this.schemaSql = shareAccountBalance.toString();
 	      }
 	      public String schema() {

@@ -5,7 +5,7 @@ import java.util.Date;
 
 public class PaymentDetailCollectionData {
 
-	private final Long amount;
+	private final BigDecimal amount;
 	private final String TransactionDate;
 	private final String receiptNumber;
 	private final String Type;
@@ -17,7 +17,7 @@ public class PaymentDetailCollectionData {
 		return this.TransactionDate;
 	}
 
-	public PaymentDetailCollectionData(Long amount,
+	public PaymentDetailCollectionData(BigDecimal amount,
 			String transactionDate, String receiptNumber, String type) {
 		super();
 		this.amount = amount;
@@ -30,7 +30,7 @@ public class PaymentDetailCollectionData {
 		return this.Type;
 	}
 
-	public Long getAmount() {
+	public BigDecimal getAmount() {
 		return this.amount;
 	}
 

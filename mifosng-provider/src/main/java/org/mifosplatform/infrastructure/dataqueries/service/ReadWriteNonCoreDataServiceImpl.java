@@ -756,6 +756,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
     private void registerColumnCodeMapping(final Map<String, Long> codeMappings) {
+    	
         if (codeMappings != null && !codeMappings.isEmpty()) {
             final String[] addSqlList = new String[codeMappings.size()];
             int i = 0;
