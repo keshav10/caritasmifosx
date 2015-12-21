@@ -1612,7 +1612,7 @@ public class SynchronousCommandProcessingService implements
 		final String serializedResult = this.toApiResultJsonSerializer.serialize(result);				
 
 		final HookEvent applicationEvent = new HookEvent(hookEventSource,serializedResult, tenantIdentifier, appUser, authToken);
-				
+		if(officeId!=null){		
 		final GenericResultsetData results = readWriteNonCoreDataService.retrieveDataTableGenericResultSet("OfficeDetails", officeId,
 	                null, null);		 
 		ArrayList<ResultsetColumnHeaderData> header= (ArrayList<ResultsetColumnHeaderData>) results.getColumnHeaders();
@@ -1638,5 +1638,6 @@ public class SynchronousCommandProcessingService implements
 		System.out.println("Event Publish for sending msg");
        }
 	}
+	}		
 
 }
