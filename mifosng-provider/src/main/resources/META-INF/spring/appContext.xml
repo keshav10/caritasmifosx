@@ -32,6 +32,7 @@
 										  org.mifosplatform.commands.*,
 										  org.mifosplatform.audit.*,
 										  org.mifosplatform.infrastructure.*,
+										  org.mifosplatform.infrastructure.dataqueries.*,
 										  org.mifosplatform.scheduledjobs.*,
 										  org.mifosplatform.organisation.*,
 										  org.mifosplatform.portfolio.loanaccount.*,
@@ -43,7 +44,9 @@
 										  org.mifosplatform.template.service.*,
 										  org.mifosplatform.useradministration.*,
 										  org.mifosplatform.batch.*,
-										  com.conflux.mifosplatform.infrastructure.notifications.*">
+										  com.conflux.mifosplatform.infrastructure.notifications.*,
+										  com.conflux.mifosplatform.mpesa.reconcilation.upload.*,
+										  com.conflux.mifosplatform.portfolio.loanaccount.*">
 		<context:exclude-filter expression="org.springframework.stereotype.Controller"
 			type="annotation" />
 
