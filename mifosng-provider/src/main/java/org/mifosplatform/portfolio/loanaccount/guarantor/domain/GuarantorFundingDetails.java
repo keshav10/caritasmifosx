@@ -6,6 +6,7 @@
 package org.mifosplatform.portfolio.loanaccount.guarantor.domain;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -103,16 +104,18 @@ public class GuarantorFundingDetails extends AbstractPersistable<Long> {
     public void releaseFunds(final BigDecimal amount) {
         this.amountReleased = getAmountReleased().add(amount);
         this.amountRemaining = getAmountRemaining().subtract(amount);
-        if (this.amountRemaining.compareTo(BigDecimal.ZERO) == 0) {
+        if (this.amountRemaining.setScale(2, RoundingMode.FLOOR).compareTo(BigDecimal.ZERO) == 0) {
             this.updateStatus(GuarantorFundStatusType.COMPLETED);
+            accountAssociations.setActive(false);
         }
     }
 
     public void undoReleaseFunds(final BigDecimal amount) {
         this.amountReleased = getAmountReleased().subtract(amount);
         this.amountRemaining = getAmountRemaining().add(amount);
-        if (getStatus().isCompleted() && this.amountRemaining.compareTo(BigDecimal.ZERO) == 1) {
+        if (getStatus().isCompleted() && this.amountRemaining.setScale(2, RoundingMode.FLOOR).compareTo(BigDecimal.ZERO) == 1) {
             this.updateStatus(GuarantorFundStatusType.ACTIVE);
+            accountAssociations.setActive(true);
         }
     }
 
