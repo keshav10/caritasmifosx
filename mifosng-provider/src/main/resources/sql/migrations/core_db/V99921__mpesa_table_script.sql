@@ -23,7 +23,7 @@ CREATE TABLE `m_ext_txn` (
 )
 COLLATE='latin1_swedish_ci'
 ENGINE=InnoDB
-AUTO_INCREMENT=6;
+
 
 CREATE TABLE `m_ext_unmapped_txn` (
 	`id` INT(11) NOT NULL AUTO_INCREMENT,
@@ -33,4 +33,3 @@ CREATE TABLE `m_ext_unmapped_txn` (
 )
 COLLATE='utf8_general_ci'
 ENGINE=InnoDB
-AUTO_INCREMENT=2;

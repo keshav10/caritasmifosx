@@ -1457,7 +1457,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 	        	Date  investmentDistributionDate = new Date();
 	        	InvestmentBatchJobData earningStatus = this.investmentBatchJobReadPlatformService.getInvestmentStatus(loanId);
 	        	
-	        	if(earningStatus==null){
+	        	if(earningStatus == null || earningStatus.getEarningStatus().isEmpty()){
 	         
 		     	String insertSql =  " INSERT INTO `ct_investment_status` (`loan_id`, `earning_status`, `status_date`) VALUES ";
 	                
@@ -1470,6 +1470,8 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 	                   investmentId.add(loanId);
 	            	}else if(loanMaturityDate.after(investmentDistributionDate)){
 	            	   sb.append("Not Matured");
+	            	}else if(loanStatusId == 300 && loanMaturityDate.before(investmentDistributionDate)){
+	            		sb.append("Due For Realization");
 	            	}
 	            	sb.append("'");
 	            	sb.append(",");
