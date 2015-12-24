@@ -22,7 +22,7 @@ CREATE TABLE `m_ext_txn` (
 	PRIMARY KEY (`id`)
 )
 COLLATE='latin1_swedish_ci'
-ENGINE=InnoDB
+ENGINE=InnoDB;
 
 
 CREATE TABLE `m_ext_unmapped_txn` (
@@ -32,4 +32,4 @@ CREATE TABLE `m_ext_unmapped_txn` (
 	PRIMARY KEY (`id`)
 )
 COLLATE='utf8_general_ci'
-ENGINE=InnoDB
+ENGINE=InnoDB;
