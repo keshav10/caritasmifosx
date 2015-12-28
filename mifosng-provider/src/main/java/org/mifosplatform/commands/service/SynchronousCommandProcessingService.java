@@ -1613,6 +1613,8 @@ public class SynchronousCommandProcessingService implements
 
 		final HookEvent applicationEvent = new HookEvent(hookEventSource,serializedResult, tenantIdentifier, appUser, authToken);
 		if(officeId!=null){		
+			
+		if(!entityName.equalsIgnoreCase("OFFICE")){	
 		final GenericResultsetData results = readWriteNonCoreDataService.retrieveDataTableGenericResultSet("OfficeDetails", officeId,
 	                null, null);		 
 		ArrayList<ResultsetColumnHeaderData> header= (ArrayList<ResultsetColumnHeaderData>) results.getColumnHeaders();
@@ -1637,8 +1639,9 @@ public class SynchronousCommandProcessingService implements
 		applicationContext.publishEvent(applicationEvent);
 		System.out.println("Event Publish for sending msg");
        }
-	}
+     }
 	}		
+  }		
 
 }
 

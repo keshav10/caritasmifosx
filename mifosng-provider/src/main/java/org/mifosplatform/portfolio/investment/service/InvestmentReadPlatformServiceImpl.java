@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.portfolio.investment.data.LoanInvestmentData;
 import org.mifosplatform.portfolio.investment.data.SavingInvestmentData;
@@ -48,14 +49,14 @@ public class InvestmentReadPlatformServiceImpl implements
 		// TODO Auto-generated method stub
 		final LoanInvestmentDataMapper mapper = new LoanInvestmentDataMapper();
 		final String schema = " select " + mapper.loanAccountSchema()
-				+ " where msi.loan_id = " + loanId + " group by msi.saving_id ";
+				+ " where msi.loan_id = " + loanId;
 
 		List<LoanInvestmentData> data = this.jdbcTemplate.query(schema, mapper);
 		return data;
 	}
 
 	@Override
-	public Long retriveSavingInvestmentId(Long savingId, Long loanId, String startDate) {
+	public Long retriveSavingInvestmentId(Long savingId, Long loanId, LocalDate startDate) {
 		try{
 
 	   	
@@ -274,6 +275,56 @@ public class InvestmentReadPlatformServiceImpl implements
 			return data;
 		}
 
+	}
+
+	@Override
+	public boolean isSavingAccountLinkedWithInvestment(Long savingId) {
+		 boolean hasLinkiedWithInvestment = false;
+	  
+		  String sql = " select id from m_investment mi "
+				+ " where mi.saving_id = " + savingId + 
+                  " and mi.close_date is null ";
+		
+		 List<Long>  data = this.jdbcTemplate.queryForList(sql,null,Long.class);
+		 if(!(data.isEmpty())){
+			 hasLinkiedWithInvestment = true;
+		 }
+		 
+		return hasLinkiedWithInvestment;
+	}
+
+	@Override
+	public boolean isSavingInvestmentAlreadyDoneWithSameDate(Long savingId,
+			LocalDate investmentStartDate) {
+		boolean isSavingInvestementAlreadyDoneWithSameDate = false;
+		
+		String sql = " select id from m_investment mi where mi.start_date in ('" + investmentStartDate + "')"
+				+ " and mi.saving_id = " + savingId ;
+		List<Long>  data = this.jdbcTemplate.queryForList(sql,null,Long.class);
+
+		if(!(data.isEmpty())){
+			isSavingInvestementAlreadyDoneWithSameDate = true;
+		}
+		// TODO Auto-generated method stub
+		return isSavingInvestementAlreadyDoneWithSameDate;
+	}
+
+	@Override
+	public boolean isLoanInvestmentAlreadyDoneOnSameDate(Long loanId,
+			LocalDate investmentStartDate) {
+		
+		boolean isLoanInvestmentAlreadyDoneWithSameDate = false;
+		
+		String sql =  " select id from m_investment mi where mi.start_date in ('" + investmentStartDate + "')"
+				+ " and mi.loan_id = " + loanId ;
+		
+		List<Long>  data = this.jdbcTemplate.queryForList(sql,null,Long.class);
+		
+		if(!(data.isEmpty())){
+			isLoanInvestmentAlreadyDoneWithSameDate = true;
+		}
+		
+		return isLoanInvestmentAlreadyDoneWithSameDate;
 	}
 
 	
