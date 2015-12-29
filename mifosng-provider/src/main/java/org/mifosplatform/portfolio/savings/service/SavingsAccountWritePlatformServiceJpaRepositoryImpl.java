@@ -58,6 +58,8 @@ import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.exception.ClientNotActiveException;
 import org.mifosplatform.portfolio.group.domain.Group;
 import org.mifosplatform.portfolio.group.exception.GroupNotActiveException;
+import org.mifosplatform.portfolio.investment.exception.SavingAccountNotClosedDueToInvestmentException;
+import org.mifosplatform.portfolio.investment.service.InvestmentReadPlatformService;
 import org.mifosplatform.portfolio.note.domain.Note;
 import org.mifosplatform.portfolio.note.domain.NoteRepository;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
@@ -115,7 +117,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     private final HolidayWritePlatformService holidayWritePlatformService;
     private final WorkingDaysWritePlatformService workingDaysWritePlatformService;
     private final ConfigurationDomainService configurationDomainService;
-
+    private final InvestmentReadPlatformService invesetmentReadPlatformService;
     @Autowired
     public SavingsAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
             final SavingsAccountRepository savingAccountRepository,
@@ -133,7 +135,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             final HolidayWritePlatformService holidayWritePlatformService,
             final WorkingDaysWritePlatformService workingDaysWritePlatformService,
             final SavingsAccountDataValidator fromApiJsonDeserializer, final SavingsAccountRepositoryWrapper savingsRepository,
-            final StaffRepositoryWrapper staffRepository, final ConfigurationDomainService configurationDomainService) {
+            final StaffRepositoryWrapper staffRepository, final ConfigurationDomainService configurationDomainService,
+            final InvestmentReadPlatformService invesetmentReadPlatformService) {
         this.context = context;
         this.savingAccountRepository = savingAccountRepository;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -155,6 +158,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.savingsRepository = savingsRepository;
         this.staffRepository = staffRepository;
         this.configurationDomainService = configurationDomainService;
+        this.invesetmentReadPlatformService = invesetmentReadPlatformService;
     }
 
     @Transactional
@@ -581,10 +585,14 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final SavingsAccount account = this.savingAccountAssembler.assembleFrom(savingsId);
         final boolean isLinkedWithAnyActiveLoan = this.accountAssociationsReadPlatformService.isLinkedWithAnyActiveAccount(savingsId);
 
+        final boolean isLinkedWithAnyInvestment = this.invesetmentReadPlatformService.isSavingAccountLinkedWithInvestment(savingsId);
+        
         if (isLinkedWithAnyActiveLoan) {
             final String defaultUserMessage = "Closing savings account with id:" + savingsId
                     + " is not allowed, since it is linked with one of the active accounts";
             throw new SavingsAccountClosingNotAllowedException("linked", defaultUserMessage, savingsId);
+        }else if(isLinkedWithAnyInvestment){
+        	throw new SavingAccountNotClosedDueToInvestmentException();
         }
 
         final boolean isWithdrawBalance = command.booleanPrimitiveValueOfParameterNamed(withdrawBalanceParamName);
