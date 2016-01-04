@@ -28,10 +28,12 @@ import org.mifosplatform.portfolio.loanproduct.service.LoanProductReadPlatformSe
 import org.mifosplatform.portfolio.client.api.ClientApiConstants;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.investment.api.InvestmentConstants;
+import org.mifosplatform.portfolio.investment.data.InvestmentDataValidator;
 import org.mifosplatform.portfolio.investment.domain.InvestmentRepositoryWrapper;
 import org.mifosplatform.portfolio.investment.domain.Investment;
 import org.mifosplatform.portfolio.investment.domain.InvestmentRepositoryWrapper;
 import org.mifosplatform.portfolio.investment.exception.InvestmentAlreadyExistsException;
+import org.mifosplatform.portfolio.investment.exception.InvestmentCloseDateOnOrAfterInvestmentStartDateException;
 import org.mifosplatform.portfolio.investment.exception.MoreThanLoanAmmountException;
 import org.mifosplatform.portfolio.investment.exception.NoFundsAvailableException;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountData;
@@ -57,6 +59,8 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
     private final InvestmentReadPlatformService savingInvestment;
     private final SavingsAccountReadPlatformServiceImpl savingAccountDetails;
     private final LoanReadPlatformService loanReadPlatformService;
+    private final InvestmentDataValidator fromApiJsonDeserializer;
+    private final InvestmentReadPlatformService investmentReadPlatformService;
     
     
        
@@ -67,7 +71,9 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
             LoanRepositoryWrapper loanRepository, SavingsAccountRepository savingAccount,
             InvestmentReadPlatformService savingInvestment,
             SavingsAccountReadPlatformServiceImpl savingAccountDetails,
-           LoanReadPlatformService loanReadPlatformService) {
+           LoanReadPlatformService loanReadPlatformService,
+           InvestmentDataValidator fromApiJsonDeserializer,
+           InvestmentReadPlatformService investmentReadPlatformService) {
 
         this.context = context;
         this.repositoryWrapper = repositoryWrapper;
@@ -77,6 +83,8 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
         this.savingInvestment = savingInvestment;
         this.savingAccountDetails = savingAccountDetails;
         this.loanReadPlatformService = loanReadPlatformService;
+        this.fromApiJsonDeserializer = fromApiJsonDeserializer;
+        this.investmentReadPlatformService = investmentReadPlatformService;
         
     }
 
@@ -84,7 +92,9 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
     public CommandProcessingResult addSavingsInvestment(Long savingsId, JsonCommand command){
         // TODO Auto-generated method stub
 
-        // final AppUser user = this.context.authenticatedUser();
+        this.context.authenticatedUser();
+         
+        this.fromApiJsonDeserializer.validateForCreateSavingInvestment(command.json());
 
         final Long savingId = command.longValueOfParameterNamed("savingId");
         final String[] loanIds = command.arrayValueOfParameterNamed("loanId");
@@ -124,6 +134,7 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
         Long savingSum = 0L;
         Long loanSum = 0L;
         int check = 0;
+        boolean isSavingInvestmentIsAlreadyDoneWithSameDate = false;
         
         Date date = new Date();
       
@@ -161,6 +172,14 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
         SavingsAccountData savingBalance = savingAccountDetails.retrieveOne(savingId);        
         BigDecimal savingAccountBalance = savingBalance.getSummary().getAccountBalance();
        
+        
+        if(!(savingAccountBalance.compareTo(BigDecimal.ZERO)>0)){
+        	throw new NoFundsAvailableException();
+        }
+        
+        
+        
+        
         if (existingLoanIds.isEmpty()) {       	
         	for(int i = 0; i < investedAmount.size(); i++){
         		loanInvestedAmount = this.savingInvestment.retriveInvestedAmountByLoanId(loanId.get(i));
@@ -229,7 +248,36 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
                 	throw new InvestmentAlreadyExistsException();
                 }*/
 
-            
+               if(count>0){
+            	   
+            	   LocalDate investmentStartDate = new LocalDate(sDate.get(i));
+            	   isSavingInvestmentIsAlreadyDoneWithSameDate = this.investmentReadPlatformService.isSavingInvestmentAlreadyDoneWithSameDate(savingId, investmentStartDate);
+            	   if(!(isSavingInvestmentIsAlreadyDoneWithSameDate)){
+            		   
+            		   loanInvestedAmount = this.savingInvestment.retriveInvestedAmountByLoanId(loanId.get(i));
+                   	for(Long investment :loanInvestedAmount){
+                       	loanSum = loanSum + investment;       	
+                       }
+                   	
+                   	LoanAccountData loanBalance = this.loanReadPlatformService.retrieveOne(loanId.get(i));  
+                       BigDecimal loanAccountBalance = loanBalance.getTotalOutstandingAmount();
+                       
+                   	
+                   	if((investedAmount.get(i)<= (savingAccountBalance.longValue()-savingSum))){
+                            newLoanIds.add(loanId.get(i));
+                            newInvestedAmount.add(investedAmount.get(i));
+                            savingSum = savingSum + investedAmount.get(i);
+                           // minRequiredBalance = new BigDecimal(savingSum);
+                            newStartDate.add(sDate.get(i));
+                    	}
+                   	else{
+                   		 check++;
+                   	}
+                       totalInvestment = totalInvestment + investedAmount.get(i);
+            	   }
+            	   
+            	   
+               }
                 
                 
             }
@@ -242,7 +290,7 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
         }
 
         for (int i = 0; i < newLoanIds.size(); i++) {
-        	if(check == 0){
+        	if(check == 0 || isSavingInvestmentIsAlreadyDoneWithSameDate == false){
                    Investment savingInvestment = new Investment(savingId, newLoanIds.get(i), newInvestedAmount.get(i), newStartDate.get(i), null);
                    this.repositoryWrapper.save(savingInvestment);
         	}
@@ -261,6 +309,10 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
     public CommandProcessingResult addLoanInvestment(Long loanId, JsonCommand command){
         // TODO Auto-generated method stub
 
+    	
+    	this.context.authenticatedUser();
+    	this.fromApiJsonDeserializer.validateForCreateLoanInvestment(command.json());
+    	
         Long loanid = command.longValueOfParameterNamed("loanId");
         final String[] savingIds = command.arrayValueOfParameterNamed("savingId");
         final String[] investedAmounts = command.arrayValueOfParameterNamed("investedAmounts");
@@ -276,6 +328,8 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
         Long savingSum = 0L;
         Long loanSum = 0L;
         int check = 0;
+        boolean isLoanInvestmentIsAlreadyDoneWithSameDate = false;
+        
 
         
         final String[] startDate = command.arrayValueOfParameterNamed("startDate");
@@ -287,9 +341,9 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
         Date date = new Date();
         
         
-        BigDecimal minRequiredBalance = null;
+        BigDecimal minRequiredBalance = BigDecimal.ZERO;
       
-        
+        Long totalInvestment = 0L;
         
         
         DateFormat formateDate = new SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH);
@@ -384,9 +438,39 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
                     	check++;
                     }
                 }
-                else{
+                
+                
+                if(count>0){
+
+                   LocalDate investmentStartDate = new LocalDate(sDate.get(i));
+                  
+                   isLoanInvestmentIsAlreadyDoneWithSameDate = this.investmentReadPlatformService.isLoanInvestmentAlreadyDoneOnSameDate(loanid, investmentStartDate);
+                   if(!(isLoanInvestmentIsAlreadyDoneWithSameDate)){
+                	   
+                	   
+                	   savingInvestedAmount = this.savingInvestment.retriveInvestedAmountBySavingId(savingId.get(i));
+                   	for(Long investment :savingInvestedAmount){
+                       	savingSum = savingSum + investment;       	
+                       }
+                   	
+                       SavingsAccountData savingBalance = savingAccountDetails.retrieveOne(savingId.get(i));        
+                       BigDecimal savingAccountBalance = savingBalance.getSummary().getAccountBalance();
+                       if(investedAmount.get(i) <= (loanAccountBalance.longValue()-loanSum)&&investedAmount.get(i) <= (savingAccountBalance.longValue()-savingSum)){
+                       newSavingId.add(savingId.get(i));
+                       newInvestedAmount.add(investedAmount.get(i));
+                       loanSum = loanSum + investedAmount.get(i);
+                       newStartDate.add(sDate.get(i));
+                	   
+                    }
+                   
+                   }
+                
+                }    
+               /* else{
                 	throw new InvestmentAlreadyExistsException();
-                }
+                }*/
+                
+                totalInvestment = investedAmount.get(i) + totalInvestment;
             }
         }
         
@@ -399,7 +483,7 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
               account.setMinRequiredBalance(newMinBal);
              
         	
-        	if(check == 0){
+        	if(check == 0 || isLoanInvestmentIsAlreadyDoneWithSameDate==false){
             Investment savingInvestment = new Investment(newSavingId.get(i), loanid, newInvestedAmount.get(i),
             		newStartDate.get(i), null);
               this.repositoryWrapper.save(savingInvestment);
@@ -641,11 +725,21 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
         	
         	
         	Date closedDate = formateDate.parse(closeDate);
-			Long id = this.savingInvestment.retriveSavingInvestmentId(savingId, loanId, startDate);
+        	Date startedDate = formateDate.parse(startDate);
+        	
+        	LocalDate investmentClosedDate = new LocalDate(closedDate);
+        	LocalDate investmentStartedDate = new LocalDate(startedDate);
+        	
+        	if(investmentClosedDate.isAfter(investmentStartedDate) || investmentClosedDate.equals(investmentStartedDate)){
+        	
+			Long id = this.savingInvestment.retriveSavingInvestmentId(savingId, loanId, investmentStartedDate);
 	    	Investment savingInvestment = this.repositoryWrapper.findWithNotFoundDetection(id);
 	        savingInvestment.setCloseDate(closedDate);
 	        Long investedAmount = savingInvestment.getInvestedAmount();
 	        SavingsAccount account = this.savingAccount.findOne(savingId);
+	        
+	        
+	        
 	        BigDecimal availableMinRequiredBal = account.getMinRequiredBalance();
 	        BigDecimal newMinBal = availableMinRequiredBal.subtract(new BigDecimal(investedAmount));
             Long minBal = newMinBal.longValue();
@@ -658,7 +752,9 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
 	        
 	    	
 	    	this.repositoryWrapper.save(savingInvestment);
-	    	
+          }else{
+        	  throw new InvestmentCloseDateOnOrAfterInvestmentStartDateException();
+          }
 		} catch (ParseException e) {
 			// TODO Auto-generated catch blocky
 			e.printStackTrace();
@@ -680,7 +776,15 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
     	try {
         		
         	Date closedDate = formateDate.parse(closeDate);
-			Long id = this.savingInvestment.retriveSavingInvestmentId(savingId, loanId, startDate);
+        	Date startedDate = formateDate.parse(startDate);
+        	
+        	LocalDate investmentClosedDate = new LocalDate(closedDate);
+        	LocalDate investmentStartDate = new LocalDate(startedDate);
+        	
+        	if(investmentClosedDate.isAfter(investmentStartDate) || investmentClosedDate.equals(investmentStartDate)){
+        	
+        	
+			Long id = this.savingInvestment.retriveSavingInvestmentId(savingId, loanId, investmentStartDate);
 	    	Investment loanInvestment = this.repositoryWrapper.findWithNotFoundDetection(id);
 	        loanInvestment.setCloseDate(closedDate);
 	        Long investedAmount = loanInvestment.getInvestedAmount();
@@ -696,7 +800,10 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
 	        
 	    	this.repositoryWrapper.save(loanInvestment);
 	    	
-		} catch (ParseException e) {
+		 }else{
+			 throw new InvestmentCloseDateOnOrAfterInvestmentStartDateException();
+		 }
+    	}	catch (ParseException e) {
 			// TODO Auto-generated catch blocky
 			e.printStackTrace();
 		}
