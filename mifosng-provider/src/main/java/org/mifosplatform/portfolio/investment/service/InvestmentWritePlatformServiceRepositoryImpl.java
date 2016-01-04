@@ -137,8 +137,7 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
         boolean isSavingInvestmentIsAlreadyDoneWithSameDate = false;
         
         Date date = new Date();
-      
-       
+     
         if (loanIds != null){
 			 for (String Id : loanIds) {
 				        id = Long.parseLong(Id);
@@ -151,7 +150,8 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
 		     for(String start : startDate){
 			
 		    	 try {
-					date = formateDate.parse(start);
+				 date = formateDate.parse(start);
+				
 					
 				} catch (ParseException e) {
 					// TODO Auto-generated catch block

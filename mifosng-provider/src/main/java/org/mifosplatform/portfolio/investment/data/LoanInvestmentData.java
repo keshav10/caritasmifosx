@@ -2,6 +2,8 @@ package org.mifosplatform.portfolio.investment.data;
 
 import java.util.Date;
 
+import org.joda.time.LocalDate;
+
 
 public class LoanInvestmentData {
     
@@ -12,10 +14,10 @@ public class LoanInvestmentData {
     final Long savingamount;
     final String productname;
     final Long investedAmount;
-    final Date startDate;
-    final Date closeDate;
+    final LocalDate startDate;
+    final LocalDate closeDate;
     public LoanInvestmentData(Long saving_id,Long group_id, String name, String accountno, 
-    		Long savingamount, String productname, Long investedAmount, Date startDate, Date closeDate) {
+    		Long savingamount, String productname, Long investedAmount, LocalDate startDate, LocalDate closeDate) {
         super();
         this.saving_id = saving_id;
         this.name = name;
@@ -57,7 +59,7 @@ public class LoanInvestmentData {
 	}
 
 	public static LoanInvestmentData intance (Long saving_id,Long group_id, String name, String accountno, Long savingamount,
-            String productname, Long investedAmount, Date startDate, Date closeDate){
+            String productname, Long investedAmount, LocalDate startDate, LocalDate closeDate){
         return new LoanInvestmentData(saving_id,group_id, name, accountno, savingamount, productname, investedAmount, startDate, closeDate);
     }
 }
