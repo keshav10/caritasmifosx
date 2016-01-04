@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.joda.time.LocalDate;
+import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.portfolio.investment.data.LoanInvestmentData;
 import org.mifosplatform.portfolio.investment.data.SavingInvestmentData;
@@ -228,8 +229,10 @@ public class InvestmentReadPlatformServiceImpl implements
 			final Long loanammount = rs.getLong("loanammount");
 			final String productname = rs.getString("productname");
 			final Long investedAmount = rs.getLong("investedAmount");
-			final Date startDate = rs.getDate("start_date");
-			final Date closeDate = rs.getDate("close_date");
+			
+			final LocalDate closeDate = JdbcSupport.getLocalDate(rs, "close_date");
+			final LocalDate startDate = JdbcSupport.getLocalDate(rs, "start_date");
+
 
 			List<SavingInvestmentData> savingInvestmentData = null;
 			final SavingInvestmentData data = SavingInvestmentData.instance(
@@ -266,8 +269,9 @@ public class InvestmentReadPlatformServiceImpl implements
 			final Long savingammount = rs.getLong("savingammount");
 			final String productname = rs.getString("productname");
 			final Long investedAmount = rs.getLong("investedamount");
-			final Date startDate = rs.getDate("startDate");
-            final Date closeDate = rs.getDate("closeDate");
+            final LocalDate startDate = JdbcSupport.getLocalDate(rs, "startDate");
+            final LocalDate closeDate = JdbcSupport.getLocalDate(rs, "closeDate");
+            
 			final LoanInvestmentData data = LoanInvestmentData.intance(
 					saving_id,group_id, name, accountno, savingammount, productname,
 					investedAmount, startDate, closeDate);

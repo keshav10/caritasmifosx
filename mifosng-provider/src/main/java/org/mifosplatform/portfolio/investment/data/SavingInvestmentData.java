@@ -3,6 +3,8 @@ package org.mifosplatform.portfolio.investment.data;
 import java.util.Date;
 import java.util.List;
 
+import org.joda.time.LocalDate;
+
 public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
 
     final Long loan_id;
@@ -14,12 +16,12 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
     final Long savigId;
     final List<Long> loanId;
     final Long investedAmount;
-    final Date startDate;
-    final Date closeDate;
+    final LocalDate startDate;
+    final LocalDate closeDate;
 
     
     public SavingInvestmentData(Long loan_id,Long client_id, String name, String accountno, Long loanammount, String productname, Long savigId,
-            List<Long> loanId,  Long investedAmount, Date startDate, Date closeDate) {
+            List<Long> loanId,  Long investedAmount, LocalDate startDate, LocalDate closeDate) {
         super();
         this.loan_id = loan_id;
         this.client_id = client_id;
@@ -66,12 +68,12 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
         return this.name;
     }
 
-    public Date getStartDate() {
+    public LocalDate getStartDate() {
 		return this.startDate;
 	}
 
 
-	public Date getCloseDate() {
+	public LocalDate getCloseDate() {
 		return this.closeDate;
 	}
 
@@ -91,7 +93,7 @@ public class SavingInvestmentData implements Comparable<SavingInvestmentData> {
         return 0;
     }
     public static SavingInvestmentData instance(Long loan_id,Long client_id, String name, String accountno, Long loanammount, String productname, Long savingId,
-            List<Long> loanId,  Long investedAmount, Date startDate, Date closeDate) {
+            List<Long> loanId,  Long investedAmount, LocalDate startDate, LocalDate closeDate) {
        
         return new SavingInvestmentData(loan_id,client_id, accountno, name, loanammount, productname, savingId, loanId, investedAmount, startDate, closeDate);
     }
