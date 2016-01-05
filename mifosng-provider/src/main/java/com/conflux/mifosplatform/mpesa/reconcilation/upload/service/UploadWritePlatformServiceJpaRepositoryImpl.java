@@ -6,8 +6,11 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
+
+
 import com.conflux.mifosplatform.mpesa.reconcilation.upload.command.FileCommand;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,9 +19,18 @@ import java.util.Date;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 
 @Service
 public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWritePlatformService {
@@ -59,8 +71,22 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 		            if((count == 1)&&(!tokens[1].equals(" "))){		  
 	 		            	String[] senderandmobilenumber = {"null","null"} ;
 	 		            	
-	 			        	String url = "http://localhost:9292/caritasmpesa/mpesa/transactiondetail";
-	  		        	HttpClient client = HttpClientBuilder.create().build();
+	 			        	String url = "https://localhost:9292/mpesa/transactiondetail";
+
+	 						SSLContext sslContext = null;
+	 						try {
+	 							sslContext = SSLContext.getInstance("SSL");
+	 						} catch (NoSuchAlgorithmException e1) {
+	 							// TODO Auto-generated catch block
+	 							e1.printStackTrace();
+	 						}
+	 						try {
+	 							sslContext.init(null, new TrustManager[] {new DefaultTrustManager()}, new SecureRandom());
+	 						} catch (KeyManagementException e1) {
+	 							// TODO Auto-generated catch block
+	 							e1.printStackTrace();
+	 						}
+	  		        	HttpClient client = HttpClientBuilder.create().setSSLContext(sslContext).setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build();
 	 			        	HttpPost post = new HttpPost(url);
 	 			        	if(tokens[9].equals(" ")){
 	 			        		senderandmobilenumber[0] = " ";
@@ -80,7 +106,7 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 			        	}
 	 
 	  
-	 SimpleDateFormat source = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+	 SimpleDateFormat source = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 	 SimpleDateFormat target = new SimpleDateFormat("MM/dd/yyyy");
 	 
 	 
@@ -140,6 +166,30 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 			return result.toString(); 
 	 		 
 	 	 }
+	 
+	 private static class DefaultTrustManager implements X509TrustManager {
+
+
+	        @Override
+	        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+	            return null;
+	        }
+
+			@Override
+			public void checkClientTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
+					throws CertificateException {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void checkServerTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
+					throws CertificateException {
+				// TODO Auto-generated method stub
+				
+			}
+	    }
+
 	 
 	 }
 	
