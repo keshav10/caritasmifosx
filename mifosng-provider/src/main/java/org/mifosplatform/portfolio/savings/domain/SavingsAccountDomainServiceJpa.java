@@ -231,6 +231,7 @@ public class SavingsAccountDomainServiceJpa implements
 			List<DepositAccountOnHoldTransaction> accountOnHoldTransactions = new ArrayList<>();
 
 			for (Guarantor guarantor1 : existGuarantorList) {
+				
 				if (guarantor1.isExistingCustomer()) {
 					allowToOnHold = true;
 				}
@@ -240,44 +241,46 @@ public class SavingsAccountDomainServiceJpa implements
 				final List<GuarantorFundingDetails> fundingDetails = guarantor
 						.getGuarantorFundDetails();
 				for (GuarantorFundingDetails guarantorFundingDetails : fundingDetails) {
+					
 					if (guarantorFundingDetails.getStatus().isActive()) {
 
-						if (guarantor.isSelfGuarantee()) {
-
-							selfGuarantorList.add(guarantorFundingDetails);
-							selfGuarantee = selfGuarantee
-									.add(guarantorFundingDetails
-											.getAmountRemaining());
-							BigDecimal  totalOnHoldAmount = account.getOnHoldFunds();
-							BigDecimal remainingOnHoldAmount = loanAmount.subtract(totalOnHoldAmount);
-							boolean allowToAddOnHold = false;
-						    if(totalOnHoldAmount.compareTo(loanAmount)<1){
-						    	allowToAddOnHold = true;
-						    }
-						    
-						    if(transactionAmount.compareTo(remainingOnHoldAmount)==1){
-							  totalTransactionAmount = remainingOnHoldAmount;	
-							}else{
-								totalTransactionAmount = transactionAmount;
-							}
-							
-							
-							
-						if (allowToOnHold == true && allowToAddOnHold == true) {
-							
-							
-							
-							 DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction
-										.hold(account, totalTransactionAmount,
-												transactionDate);
-
-								accountOnHoldTransactions
-										.add(onHoldTransaction);
-								GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(
-										guarantorFundingDetails, null,
-										onHoldTransaction);
-								guarantorFundingDetails
-										.addGuarantorFundingTransactions(guarantorFundingTransaction);
+						if (guarantor.isSelfGuarantee() ) {
+							if(guarantorFundingDetails.getLinkedSavingsAccount().accountNumber.equals(account.accountNumber)){	
+								selfGuarantorList.add(guarantorFundingDetails);
+								selfGuarantee = selfGuarantee
+										.add(guarantorFundingDetails
+												.getAmountRemaining());
+								BigDecimal  totalOnHoldAmount = account.getOnHoldFunds();
+								BigDecimal remainingOnHoldAmount = loanAmount.subtract(totalOnHoldAmount);
+								boolean allowToAddOnHold = false;
+							    if(totalOnHoldAmount.compareTo(loanAmount)<1){
+							    	allowToAddOnHold = true;
+							    }
+							    
+							    if(transactionAmount.compareTo(remainingOnHoldAmount)==1){
+								  totalTransactionAmount = remainingOnHoldAmount;	
+								}else{
+									totalTransactionAmount = transactionAmount;
+								}
+								
+								
+								
+							    if (allowToOnHold == true && allowToAddOnHold == true) {
+								
+								
+								
+							    	DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction
+											.hold(account, totalTransactionAmount,
+													transactionDate);
+	
+									accountOnHoldTransactions
+											.add(onHoldTransaction);
+									GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(
+											guarantorFundingDetails, null,
+											onHoldTransaction);
+									guarantorFundingDetails
+											.addGuarantorFundingTransactions(guarantorFundingTransaction);
+								}
 							}
 
 						} else if (guarantor.isExistingCustomer()) {
