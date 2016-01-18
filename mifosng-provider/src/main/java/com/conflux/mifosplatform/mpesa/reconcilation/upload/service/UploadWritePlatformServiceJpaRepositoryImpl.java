@@ -71,7 +71,7 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 		            if((count == 1)&&(!tokens[1].equals(" "))){		  
 	 		            	String[] senderandmobilenumber = {"null","null"} ;
 	 		            	
-	 			        	String url = "https://localhost:9292/mpesa/transactiondetail";
+	 			        	String url = "https://52.19.21.68:9292/mpesa/transactiondetail";
 
 	 						SSLContext sslContext = null;
 	 						try {
