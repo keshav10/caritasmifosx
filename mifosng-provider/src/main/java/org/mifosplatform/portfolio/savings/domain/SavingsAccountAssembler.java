@@ -302,7 +302,7 @@ public class SavingsAccountAssembler {
                 product.interestPostingPeriodType(), product.interestCalculationType(), product.interestCalculationDaysInYearType(),
                 product.minRequiredOpeningBalance(), product.lockinPeriodFrequency(), product.lockinPeriodFrequencyType(),
                 product.isWithdrawalFeeApplicableForTransfer(), charges, product.isAllowOverdraft(), product.overdraftLimit(),
-                product.isMinRequiredBalanceEnforced(), product.minRequiredBalance(), product.isAccrualBasedAccountingEnabled() );
+                product.isMinRequiredBalanceEnforced(), product.minRequiredBalance(), product.isReleaseguarantor() );
         account.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
 
         account.validateNewApplicationState(DateUtils.getLocalDateOfTenant(), SAVINGS_ACCOUNT_RESOURCE_NAME);
