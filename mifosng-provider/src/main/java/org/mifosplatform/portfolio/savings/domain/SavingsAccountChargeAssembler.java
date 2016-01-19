@@ -137,9 +137,11 @@ public class SavingsAccountChargeAssembler {
             if (charge.getChargeTime() != null) {
                 chargeTime = ChargeTimeType.fromInt(charge.getChargeTime());
             }
-            if (chargeTime != null && chargeTime.isOnSpecifiedDueDate()) {
+            if (chargeTime != null && (chargeTime.isOnSpecifiedDueDate() || chargeTime.isLateDepositeFee())) {
                 continue;
             }
+            
+           
 
             ChargeCalculationType chargeCalculation = null;
             if (charge.getChargeCalculation() != null) {
