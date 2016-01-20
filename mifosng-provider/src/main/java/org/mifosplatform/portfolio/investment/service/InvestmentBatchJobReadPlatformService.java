@@ -20,4 +20,6 @@ public interface InvestmentBatchJobReadPlatformService {
 	InvestmentBatchJobData getLoanIdStatus(Long loanId);
 	
 	InvestmentBatchJobData getTotalInvestedAmount(Long loanId);
+	
+	InvestmentBatchJobData getTotalLoanChargeAmount(Long loanId);
 }

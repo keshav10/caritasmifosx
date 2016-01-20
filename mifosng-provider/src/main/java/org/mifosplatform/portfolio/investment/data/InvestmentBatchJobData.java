@@ -26,10 +26,9 @@ public class InvestmentBatchJobData {
     BigDecimal totalInvestedAmount;
     Date loanStartDate;
     
-   /* public InvestmentBatchJobData(BigDecimal totalInvestedAmount){
-    	this.totalInvestedAmount = totalInvestedAmount;
-    }*/
-   
+    BigDecimal sumOfLoanCharge;
+    
+  
  
 
 	public InvestmentBatchJobData(int loanStatusId, Date loanMaturityDate){
@@ -194,4 +193,35 @@ public class InvestmentBatchJobData {
 			public void setLoanStartDate(Date loanStartDate) {
 				this.loanStartDate = loanStartDate;
 			}
+			
+			
+			  
+		    public BigDecimal getSumOfLoanCharge() {
+				return this.sumOfLoanCharge;
+			}
+
+
+
+			public void setSumOfLoanCharge(BigDecimal sumOfLoanCharge) {
+				this.sumOfLoanCharge = sumOfLoanCharge;
+			}
+
+
+
+			public Long getPaymentType() {
+				return this.paymentType;
+			}
+
+
+
+			public void setPaymentType(Long paymentType) {
+				this.paymentType = paymentType;
+			}
+
+
+
+			public InvestmentBatchJobData(BigDecimal sumOfLoanCharge){
+		    	this.sumOfLoanCharge = sumOfLoanCharge;
+		    }
+		   		
 }
