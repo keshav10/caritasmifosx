@@ -1278,16 +1278,30 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         		BigDecimal investedAmountByGroup = investmentBatchJobData.getInvestmetAmount().setScale(5);
         		InvestmentBatchJobData loanData = this.investmentBatchJobReadPlatformService.getLoanClosedDate(loanId);
         		Date loanCloseOn = loanData.getLoanCloseDate();
+        		
         		LocalDate investmentStart = new LocalDate(investmentStartDate);
         		LocalDate investmentClose = new LocalDate(investmentCloseDate);
         		LocalDate loanClose = new LocalDate(loanCloseOn);
         		LocalDate transactionDate = new LocalDate();
         		StringBuilder dB = new StringBuilder();
+        		
         	    DateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy"); 
         	    String interestPostingDate = dateFormat.format(transactionDate.toDate());
                 String postingDateOfInvestment = df.format(transactionDate.toDate());
                 
-                BigDecimal totalInterestAmountOfLoan = loanData.getTotalInterest();
+                
+                //Calculate the total charge here itself
+            	InvestmentBatchJobData getTotalLoanCharge = this.investmentBatchJobReadPlatformService.getTotalLoanChargeAmount(loanId);
+        		BigDecimal sumOfLoanChargeAmount = getTotalLoanCharge.getSumOfLoanCharge();
+                
+                
+                BigDecimal interestAmountOfLoan = loanData.getTotalInterest();
+              
+                
+                //New Total Earning = total earning - total Charge
+                BigDecimal interestAmountAfterRemovedLoanCharges = interestAmountOfLoan.subtract(sumOfLoanChargeAmount) ;
+               
+                         
                 BigDecimal totalInvestedAmount = loanData.getTotalInvestedAmount();  
                 
                 Date loanStartDate = loanData.getLoanStartDate();
@@ -1331,13 +1345,12 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         		
         		BigDecimal ratioOfInvestmentAmount = investedAmountByGroup.divide(totalInvestedAmount, 10, RoundingMode.HALF_EVEN);
         		BigDecimal ratioOfDaysInvested = numberOfDaysOfInvestment.divide(totalNumberOfInvestment, 10, RoundingMode.HALF_EVEN);
-        		BigDecimal interestEarn = ratioOfInvestmentAmount.multiply(ratioOfDaysInvested).multiply(totalInterestAmountOfLoan).setScale(05, RoundingMode.HALF_EVEN);
+        		BigDecimal interestEarn = ratioOfInvestmentAmount.multiply(ratioOfDaysInvested).multiply(interestAmountAfterRemovedLoanCharges).setScale(05, RoundingMode.HALF_EVEN);
         		
         		BigDecimal transactionAmount = interestEarn.multiply((groupPercentage.divide(bigDecimalHundred))).setScale(05, RoundingMode.HALF_EVEN);
+        	
         		
         
-        		
-        		
         		
         		//following the method and constructor reused for getting the long value result of 
         		InvestmentBatchJobData paymentData = this.investmentBatchJobReadPlatformService.getPaymentType();

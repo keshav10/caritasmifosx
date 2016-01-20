@@ -389,5 +389,35 @@ public class InvestmentBatchJobReadPlatformServiceImpl implements InvestmentBatc
 			return null;
 		}
 	}
+
+	@Override
+	public InvestmentBatchJobData getTotalLoanChargeAmount(Long loanId) {
+	
+		GetTotalLoanCharge rm = new GetTotalLoanCharge();
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append(" SELECT SUM(mlc.amount) as totalLoanChargeAmount FROM m_loan_charge mlc ");
+		sb.append(" WHERE mlc.loan_id = " + loanId);
+	    sb.append(" AND mlc.waived = 0 ");
+		
+		InvestmentBatchJobData data = this.jdbcTemplate.queryForObject(sb.toString(), rm , new Object[]{});
+		return data;
+	}
+	
+	private static final class GetTotalLoanCharge implements RowMapper<InvestmentBatchJobData>{
+
+		@Override
+		public InvestmentBatchJobData mapRow(ResultSet rs, int rowNum)
+				throws SQLException {
+			final BigDecimal sumOfLoanCharge = rs.getBigDecimal("totalLoanChargeAmount");
+			
+			InvestmentBatchJobData data = new InvestmentBatchJobData(sumOfLoanCharge);
+			
+			return data;
+		}
+		
+	}
+	
+	
 	
 }

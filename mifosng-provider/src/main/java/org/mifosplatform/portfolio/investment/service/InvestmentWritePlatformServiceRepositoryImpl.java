@@ -477,9 +477,12 @@ public class InvestmentWritePlatformServiceRepositoryImpl implements InvestmentW
         
         for (int i = 0; i < newSavingId.size(); i++) {
         	  SavingsAccount account = this.savingAccount.findOne(newSavingId.get(i));
-              BigDecimal availableMinBal = account.getMinRequiredBalance();
+              
+               if(!(account.getMinRequiredBalance()==null)){
+            	   minRequiredBalance = account.getMinRequiredBalance();
+                }
               BigDecimal investementAmount = new BigDecimal(newInvestedAmount.get(i));
-              BigDecimal newMinBal = availableMinBal.add(investementAmount);
+              BigDecimal newMinBal = minRequiredBalance.add(investementAmount);
               account.setMinRequiredBalance(newMinBal);
              
         	
