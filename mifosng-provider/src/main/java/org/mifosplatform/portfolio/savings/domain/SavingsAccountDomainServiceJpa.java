@@ -321,13 +321,12 @@ public class SavingsAccountDomainServiceJpa implements
 
 				}
 
-				/*
-				 * if (amountLeft.compareTo(BigDecimal.ZERO) == 1) {
-				 * calculateAndRelaseGuarantorFunds(selfGuarantorList,
-				 * selfGuarantee, amountLeft, deposit,
-				 * accountOnHoldTransactions);
-				 * externalGuarantorList.addAll(selfGuarantorList); }
-				 */
+				
+				 if (amountLeft.compareTo(BigDecimal.ZERO) == 1){
+				 
+					 externalGuarantorList.addAll(selfGuarantorList); 
+				 }
+				 
 
 				if (allowToInsert == true) {
 					calculateAndIncrementSelfGuarantorFunds(selfGuarantorList,
@@ -335,9 +334,10 @@ public class SavingsAccountDomainServiceJpa implements
 				}
 
 				if (!externalGuarantorList.isEmpty()) {
-					this.guarantorFundingRepository.save(externalGuarantorList);
 					this.depositAccountOnHoldTransactionRepository
-							.save(accountOnHoldTransactions);
+					.save(accountOnHoldTransactions);
+					this.guarantorFundingRepository.save(externalGuarantorList);
+					
 					
 
 				}
