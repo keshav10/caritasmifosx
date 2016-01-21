@@ -58,7 +58,7 @@ public class AfricasTalkingGateway
     	data.put("username", _username);
     	data.put("to", to_);
     	data.put("message", message_);
-	
+    	data.put("from", "CaritasNRB");
     	return sendMessageImpro(to_, message_, data);
     }
     

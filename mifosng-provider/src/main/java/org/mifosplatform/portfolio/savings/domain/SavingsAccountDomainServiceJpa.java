@@ -335,9 +335,10 @@ public class SavingsAccountDomainServiceJpa implements
 				}
 
 				if (!externalGuarantorList.isEmpty()) {
+					this.guarantorFundingRepository.save(externalGuarantorList);
 					this.depositAccountOnHoldTransactionRepository
 							.save(accountOnHoldTransactions);
-					this.guarantorFundingRepository.save(externalGuarantorList);
+					
 
 				}
 
