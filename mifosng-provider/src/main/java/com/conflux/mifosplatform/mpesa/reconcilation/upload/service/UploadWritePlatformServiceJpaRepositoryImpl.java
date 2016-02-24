@@ -11,10 +11,16 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 
 
+
+
 import com.conflux.mifosplatform.mpesa.reconcilation.upload.command.FileCommand;
+
+
+import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.apache.http.NameValuePair;
+
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -39,6 +45,7 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 	 @Override
 	 	    public String uploadDetails(FileCommand fileCommand,InputStream inputStream) {
 	 		 StringBuffer result  =null;
+	 		 ArrayList conflictMpesaCode = new ArrayList();
 	 		
 	 			try {
 	 				 BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -106,7 +113,7 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 			        	}
 	 
 	  
-	 SimpleDateFormat source = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+	 SimpleDateFormat source = new SimpleDateFormat("dd-MM-yyyy HH:mm");
 	 SimpleDateFormat target = new SimpleDateFormat("MM/dd/yyyy");
 	 
 	 
@@ -134,15 +141,24 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 			        	post.setEntity(new UrlEncodedFormEntity(urlParameters));
 	 
 	 			        	HttpResponse response = client.execute(post);
+	 			        	
+	 			        	
 	 
-	 			       	BufferedReader rd = new BufferedReader(
+	 			         	BufferedReader rd = new BufferedReader(
 	 			        	        new InputStreamReader(response.getEntity().getContent()));
 	 
 	 			        	 result = new StringBuffer();
 	 			        	 line = "";
+	 			        	 
+	 			        	
+	 			       
 	 			        while ((line = rd.readLine()) != null) {
+	 			        	if(line.indexOf("CONFLICT:") > -1){
+	 			        		String[] temp = line.split(":");
+	 			        		conflictMpesaCode.add(temp[1]);
+	 			        	}
 	 	
-	 	        		result.append(line);
+	 	        		      result.append(line);
 	 			        	}
 	 			        	
 	 		            }
@@ -163,7 +179,15 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 				// TODO Auto-generated catch block
 	 				e.printStackTrace();
 	 			}
-	 			return result.toString(); 
+	 			
+	 			String mpesaCode = null;
+	 			if(conflictMpesaCode.size() >0 ){
+	 				mpesaCode = "CONFLICT:" + conflictMpesaCode.toString();
+	 			}else{
+	 				mpesaCode = result.toString();
+	 			}
+	 			
+	 			return mpesaCode; 
 	 		 
 	 	 }
 	 

@@ -50,7 +50,7 @@ public class UploadApiResource {
 	
 			 final String result = this.uploadWritePlatformService.uploadDetails(fileCommand, inputStream);
 	    	
-	       return result;
+	         return result;
 	    
 	    }
 	
