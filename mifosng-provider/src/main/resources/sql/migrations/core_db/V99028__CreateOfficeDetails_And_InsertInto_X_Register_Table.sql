@@ -1,4 +1,4 @@
-CREATE TABLE `officedetails` (
+CREATE TABLE `OfficeDetails` (
 	`office_id` BIGINT(20) NOT NULL,
 	`sms_enabled` BIT(1) NOT NULL,
 	PRIMARY KEY (`office_id`),

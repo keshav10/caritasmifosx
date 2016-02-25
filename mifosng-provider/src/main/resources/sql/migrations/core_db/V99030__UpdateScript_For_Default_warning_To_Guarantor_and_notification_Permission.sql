@@ -1,4 +1,4 @@
-INSERT INTO `stretchy_report` (`report_name`, `report_type`, `report_subtype`, `report_category`, `report_sql`, `description`, `core_report`, `use_report`) VALUES ('Payment Receipts', 'Pentaho', NULL, 'Client', NULL, 'Payment Receipts', 0, 1);
+INSERT INTO `stretchy_report` (`report_name`, `report_type`, `report_subtype`, `report_category`, `report_sql`, `description`, `core_report`, `use_report`) VALUES ('Payment Receipts', 'Pentaho', NULL, 'Client', NULL, 'Payment Receipts', 0, 1) ON DUPLICATE KEY UPDATE report_sql=NULL;
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES ('special', 'SEND_NOTIFICATION', 'NOTIFICATION', 'SEND', 0);
 update  stretchy_report set report_sql= 'select a .client_name,a.Guarantor_name,a.Guarantor_Branch,a.client_mobile_no,a.loan_id,a.client_id,productshort_Name,a.Guarantor_mobile_no,a.comitted_Shares
 from
