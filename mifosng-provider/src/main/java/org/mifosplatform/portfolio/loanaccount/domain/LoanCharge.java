@@ -597,6 +597,12 @@ public class LoanCharge extends AbstractPersistable<Long> {
         return this.amountOutstanding;
     }
 
+    
+    public Money getAmountOutstanding(MonetaryCurrency currency) {
+           return Money.of(currency, this.amountOutstanding);
+    }
+    
+    
     public boolean hasNotLoanIdentifiedBy(final Long loanId) {
         return !hasLoanIdentifiedBy(loanId);
     }
