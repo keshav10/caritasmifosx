@@ -942,7 +942,20 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             }
             this.noteRepository.save(note);
         }
-        this.accountTransfersWritePlatformService.reverseTransfersWithFromAccountType(loanId, PortfolioAccountType.LOAN);
+       // this.accountTransfersWritePlatformService.reverseTransfersWithFromAccountType(loanId, PortfolioAccountType.LOAN);
+        
+        Collection<Long> transactionIds = new ArrayList<>();
+                for (LoanTransaction transaction : loan.getLoanTransactions()) {
+                    if (transaction.isRefund() && transaction.isNotReversed()) {
+                        transactionIds.add(transaction.getId());
+                    }
+                }
+               
+                if (!transactionIds.isEmpty()) {
+                    this.accountTransfersWritePlatformService
+                            .reverseTransfersWithFromAccountTransactions(transactionIds, PortfolioAccountType.LOAN);
+                    loan.updateLoanSummarAndStatus();
+                }
 
         postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
 

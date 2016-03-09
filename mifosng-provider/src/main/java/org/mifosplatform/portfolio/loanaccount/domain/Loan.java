@@ -1165,6 +1165,13 @@ public class Loan extends AbstractPersistable<Long> {
             updateLoanOutstandingBalaces();
         }
     }
+    
+    public void updateLoanSummarAndStatus() {
+          updateLoanSummaryDerivedFields();
+          doPostLoanTransactionChecks(getLastUserTransactionDate(), loanLifecycleStateMachine);
+    }
+    
+    
 
     public Map<String, Object> loanApplicationModification(final JsonCommand command, final Set<LoanCharge> possiblyModifedLoanCharges,
             final Set<LoanCollateral> possiblyModifedLoanCollateralItems, final AprCalculator aprCalculator, boolean isChargesModified) {
