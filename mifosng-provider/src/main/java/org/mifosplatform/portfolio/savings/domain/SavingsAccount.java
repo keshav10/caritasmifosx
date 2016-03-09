@@ -977,6 +977,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             } else if (transaction.isNotReversed() && transaction.isDebit()) {
                 runningBalance = runningBalance.minus(transaction.getAmount(this.currency));
             }
+        }  
 
             // enforceMinRequiredBalance
          
@@ -992,7 +993,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                     if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
                 }
 
-            }
+      
       
     }
 
