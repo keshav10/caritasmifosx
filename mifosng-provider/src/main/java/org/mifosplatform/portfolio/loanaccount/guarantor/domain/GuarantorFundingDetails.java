@@ -131,6 +131,7 @@ public class GuarantorFundingDetails extends AbstractPersistable<Long> {
         for (GuarantorFundingTransaction fundingTransaction : this.guarantorFundingTransactions) {
             fundingTransaction.reverseTransaction();
         }
+        accountAssociations.setActive(false);
     }
 
   
