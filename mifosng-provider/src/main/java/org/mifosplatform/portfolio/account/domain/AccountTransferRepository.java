@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.util.Collection;
 
 public interface AccountTransferRepository extends JpaRepository<AccountTransferTransaction, Long>, JpaSpecificationExecutor<AccountTransferTransaction> {
 
@@ -22,4 +23,8 @@ public interface AccountTransferRepository extends JpaRepository<AccountTransfer
 
     @Query("from AccountTransferTransaction att where att.toLoanTransaction.id= :loanTransactionId and att.reversed=false")
     AccountTransferTransaction findByToLoanTransactionId(@Param("loanTransactionId") Long loanTransactionId);
+    
+    
+    @Query("from AccountTransferTransaction att where att.fromLoanTransaction.id IN :loanTransactions and att.reversed=false")
+    List<AccountTransferTransaction> findByFromLoanTransactions(@Param("loanTransactions") Collection<Long> loanTransactions);
 }
