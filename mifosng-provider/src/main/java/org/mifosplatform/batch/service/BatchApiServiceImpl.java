@@ -163,7 +163,7 @@ public class BatchApiServiceImpl implements BatchApiService {
     }
 
     @Override
-    public List<BatchResponse> handleBatchRequestsWithEnclosingTransaction(final List<BatchRequest> requestList, final UriInfo uriInfo) {
+    public List<BatchResponse> handleBatchRequestsWithEnclosingTransaction(final List<BatchRequest> requestList, final UriInfo uriInfo){
 
         try {
         	
@@ -191,20 +191,34 @@ public class BatchApiServiceImpl implements BatchApiService {
             });
         } catch (TransactionException ex) {
             ErrorInfo e = ErrorHandler.handler(ex);
-            BatchResponse errResponse = new BatchResponse();
-            errResponse.setStatusCode(e.getStatusCode());
+            List<BatchResponse> errResponseList = new ArrayList<>();
+            
 
             for (BatchResponse res : checkList) {
                 if (!res.getStatusCode().equals(200)) {
-                    errResponse.setBody("Transaction is being rolled back. First erroneous request: \n" + new Gson().toJson(res));
+                	BatchResponse errResponse = new BatchResponse();
+                    errResponse.setStatusCode(200);
+                	errResponse.setRequestId(res.getRequestId());
+                	errResponse.setHeaders(res.getHeaders());
+                	
+                	
+                    errResponse.setBody( res.getBody().replaceAll("\\\"", "\""));
+                    errResponseList.add(errResponse);
                     break;
-                }
+                } /*else {
+                	BatchResponse errResponse = new BatchResponse();
+                    errResponse.setStatusCode(res.getStatusCode());
+                	errResponse.setRequestId(res.getRequestId());
+                	errResponse.setHeaders(res.getHeaders());
+                    errResponse.setBody( "{\"officeId\":1,\"clientId\":17096,\"loanId\":5741,\"resourceId\":45428,\"changes\":{\"transactionDate\":\"03 March 2016\",\"transactionAmount\":\"100\",\"locale\":\"en\",\"dateFormat\":\"dd MMMM yyyy\",\"paymentTypeId\":\"15\",\"receiptNumber\":\"xasddqw\",\"bankNumber\":\"ERROR\"}}");
+                    errResponseList.add(errResponse);
+                }*/
             }
 
-            checkList.clear();
-            List<BatchResponse> errResponseList = new ArrayList<>();
-            errResponseList.add(errResponse);
-
+            //checkList.clear();
+            
+            
+          
             return errResponseList;
         }
 
