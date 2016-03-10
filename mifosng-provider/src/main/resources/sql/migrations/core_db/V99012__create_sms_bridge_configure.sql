@@ -1,4 +1,4 @@
-CREATE TABLE `sms_bridge_config` (
+CREATE TABLE IF NOT EXISTS `sms_bridge_config` (
 	`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
 	`tenant_id` VARCHAR(32) NOT NULL,
 	`api_key` VARCHAR(32) NOT NULL,

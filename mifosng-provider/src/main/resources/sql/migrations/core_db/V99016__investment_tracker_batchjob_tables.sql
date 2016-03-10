@@ -1,5 +1,5 @@
 
-CREATE TABLE `ct_investment_split` (
+CREATE TABLE IF NOT EXISTS  `ct_investment_split` (
 	`id` INT(11) NOT NULL AUTO_INCREMENT,
 	`date` DATE NULL DEFAULT NULL,
 	`caritas_percentage` DECIMAL(10,1) NULL DEFAULT NULL,
@@ -12,7 +12,7 @@ ENGINE=InnoDB
 
 
 
-CREATE TABLE `ct_investment_status` (
+CREATE TABLE IF NOT EXISTS  `ct_investment_status` (
 	`id` INT(11) NOT NULL AUTO_INCREMENT,
 	`loan_id` INT(11) NULL DEFAULT NULL,
 	`earning_status` VARCHAR(50) NULL DEFAULT NULL,
@@ -24,7 +24,7 @@ ENGINE=InnoDB
 ;
 
 
-CREATE TABLE `ct_posted_investment_earnings` (
+CREATE TABLE IF NOT EXISTS  `ct_posted_investment_earnings` (
 	`id` INT(11) NOT NULL AUTO_INCREMENT,
 	`loan_id` INT(11) NULL DEFAULT NULL,
 	`saving_id` INT(11) NULL DEFAULT NULL,

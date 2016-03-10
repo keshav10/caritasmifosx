@@ -1,4 +1,4 @@
-CREATE TABLE `event_sourcing_details` (
+CREATE TABLE  IF NOT EXISTS `event_sourcing_details` (
 	`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
 	`event_id` BIGINT(20) NOT NULL DEFAULT '0',
 	`tenant_id` VARCHAR(32) NOT NULL,
