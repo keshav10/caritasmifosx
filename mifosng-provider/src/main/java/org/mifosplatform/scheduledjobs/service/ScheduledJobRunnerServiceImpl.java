@@ -820,7 +820,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                         sb.append(",");
                         sb.append(chargId);
                         sb.append(",");
-                        sb.append("0");
+                        sb.append("1");
                         sb.append(",");
                         sb.append("12");
                         sb.append(",'");

@@ -977,6 +977,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             } else if (transaction.isNotReversed() && transaction.isDebit()) {
                 runningBalance = runningBalance.minus(transaction.getAmount(this.currency));
             }
+        }  
 
             // enforceMinRequiredBalance
          
@@ -992,9 +993,46 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                     if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
                 }
 
-            }
       
     }
+    
+    
+    public void validateAccountBalanceDoesNotBecomeNegative(final String transactionAction, final SavingsAccountTransaction savingsTransaction) {
+    	
+    	        final List<SavingsAccountTransaction> transactionsSortedByDate = retreiveListOfTransactions();
+    	        Money runningBalance = Money.zero(this.currency);
+    	        
+    	        Money minRequiredBalance = minRequiredBalanceDerived(getCurrency());
+    	        for (final SavingsAccountTransaction transaction : transactionsSortedByDate) {
+    	        	if(transaction.transactionLocalDate().isAfter(savingsTransaction.transactionLocalDate()) || transaction.transactionLocalDate().isEqual(savingsTransaction.transactionLocalDate())){
+    		            if (transaction.isNotReversed() && transaction.isCredit()) {
+    		                runningBalance = runningBalance.plus(transaction.getAmount(this.currency));
+    		            } else if (transaction.isNotReversed() && transaction.isDebit()) {
+    		                runningBalance = runningBalance.minus(transaction.getAmount(this.currency));
+    		            }
+    		
+    		            // enforceMinRequiredBalance
+    		                if (runningBalance.minus(minRequiredBalance).isLessThanZero()) {
+    		                    final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+    		                    final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
+    		                            .resource(depositAccountType().resourceName() + transactionAction);
+    		                    if (this.allowOverdraft) {
+    		                        baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("results.in.balance.exceeding.overdraft.limit");
+    		                    } else {
+    		                        baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("results.in.balance.going.negative");
+    		                    }
+    		                    if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+    		                }
+    		        	}else {
+    		        		if (transaction.isNotReversed() && transaction.isCredit()) {
+    			                runningBalance = runningBalance.plus(transaction.getAmount(this.currency));
+    			            } else if (transaction.isNotReversed() && transaction.isDebit()) {
+    			                runningBalance = runningBalance.minus(transaction.getAmount(this.currency));
+    			            }
+    	        	}
+    	        } 
+    	    }
+    
 
     protected boolean isAccountLocked(final LocalDate transactionDate) {
         boolean isLocked = false;

@@ -211,11 +211,15 @@ public class SavingsAccountDomainServiceJpa implements
 
 		Long loanId = this.loanReadPlatformService
 				.retriveLoanAccountId(clientId);
+		
 	    BigDecimal totalTransactionAmount = null;
 
 		if (!(loanId == null) && isReleaseGuarantor == 1) {
 
 			final Loan loan = this.loanAssembler.assembleFrom(loanId);
+			
+			if(loan.isDisbursed() == true){
+			
 			final List<Guarantor> existGuarantorList = this.guarantorRepository
 					.findByLoan(loan);
 			boolean allowToInsert = false;
@@ -337,15 +341,14 @@ public class SavingsAccountDomainServiceJpa implements
 					this.depositAccountOnHoldTransactionRepository
 					.save(accountOnHoldTransactions);
 					this.guarantorFundingRepository.save(externalGuarantorList);
-					
-					
 
 				}
-
-			}
+			  }
 	    	}
+		  }	
 		}		
 
+	  	
 		this.savingsAccountRepository.save(account);
 		return deposit;
 	}

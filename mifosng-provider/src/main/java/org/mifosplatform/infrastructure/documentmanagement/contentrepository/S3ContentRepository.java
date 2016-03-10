@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 
+import org.apache.poi.util.IOUtils;
 import org.mifosplatform.infrastructure.core.domain.Base64EncodedImage;
 import org.mifosplatform.infrastructure.documentmanagement.command.DocumentCommand;
 import org.mifosplatform.infrastructure.documentmanagement.data.DocumentData;
@@ -17,6 +18,7 @@ import org.mifosplatform.infrastructure.documentmanagement.data.ImageData;
 import org.mifosplatform.infrastructure.documentmanagement.domain.StorageType;
 import org.mifosplatform.infrastructure.documentmanagement.exception.ContentManagementException;
 import org.mifosplatform.infrastructure.documentmanagement.exception.DocumentNotFoundException;
+import org.mifosplatform.portfolio.client.exception.ImageNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,8 +123,13 @@ public class S3ContentRepository implements ContentRepository {
 
     @Override
     public ImageData fetchImage(final ImageData imageData) {
-        final S3Object s3object = this.s3Client.getObject(new GetObjectRequest(this.s3BucketName, imageData.location()));
-        imageData.updateContent(s3object.getObjectContent());
+    	 try {
+    		    final S3Object s3object = this.s3Client.getObject(new GetObjectRequest(this.s3BucketName, imageData.location()));
+    		    imageData.updateContent(IOUtils.toByteArray(s3object.getObjectContent()));
+    		 } catch (Exception e) {
+    		    logger.error(e.getMessage());
+    		    throw new ImageNotFoundException(imageData.getEntityDisplayName(), imageData.getImageId());
+    		 }
         return imageData;
     }
 
