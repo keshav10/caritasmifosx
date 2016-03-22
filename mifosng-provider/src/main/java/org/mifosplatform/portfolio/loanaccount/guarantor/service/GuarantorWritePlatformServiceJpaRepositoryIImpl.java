@@ -80,7 +80,23 @@ public class GuarantorWritePlatformServiceJpaRepositoryIImpl implements Guaranto
         this.guarantorDomainService = guarantorDomainService;
     }
 
-    @Override
+    public GuarantorWritePlatformServiceJpaRepositoryIImpl() {
+		
+    	
+    	 this.loanRepositoryWrapper = null;
+         this.clientRepositoryWrapper = null;
+         this.fromApiJsonDeserializer = null;
+         this.guarantorRepository = null;
+         this.staffRepositoryWrapper = null;
+         this.codeValueRepositoryWrapper = null;
+         this.savingsAccountAssembler = null;
+         this.accountAssociationsRepository = null;
+         this.guarantorDomainService = null;    	
+	}
+    
+    
+
+	@Override
     @Transactional
     public CommandProcessingResult createGuarantor(final Long loanId, final JsonCommand command) {
         final GuarantorCommand guarantorCommand = this.fromApiJsonDeserializer.commandFromApiJson(command.json());
@@ -266,7 +282,7 @@ public class GuarantorWritePlatformServiceJpaRepositoryIImpl implements Guaranto
         return commandProcessingResultBuilder.build();
     }
 
-    private void removeguarantorFundDetails(final Guarantor guarantorForDelete, final DataValidatorBuilder baseDataValidator,
+    public void removeguarantorFundDetails(final Guarantor guarantorForDelete, final DataValidatorBuilder baseDataValidator,
             GuarantorFundingDetails guarantorFundingDetails) {
         if (!guarantorFundingDetails.getStatus().isActive()) {
             baseDataValidator.failWithCodeNoParameterAddedToErrorCode(GuarantorConstants.GUARANTOR_NOT_ACTIVE_ERROR);

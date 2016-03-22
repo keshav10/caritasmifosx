@@ -40,6 +40,7 @@ import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFunding
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingTransaction;
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingTransactionRepository;
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorRepository;
+import org.mifosplatform.portfolio.loanaccount.guarantor.exception.GuarantorNotFoundException;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductGuaranteeDetails;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
@@ -285,13 +286,22 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
      */
     private void reverseAllFundTransaction(final Loan loan) {
 
+    	Long loanId = loan.getId();
+    	 final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+    	  final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("Guarantor");
+    	
         if (loan.getGuaranteeAmount().compareTo(BigDecimal.ZERO) == 1) {
             final List<Guarantor> existGuarantorList = this.guarantorRepository.findByLoan(loan);
             List<GuarantorFundingDetails> guarantorFundingDetailList = new ArrayList<>();
             for (Guarantor guarantor : existGuarantorList) {
+            	
                 final List<GuarantorFundingDetails> fundingDetails = guarantor.getGuarantorFundDetails();
                 for (GuarantorFundingDetails guarantorFundingDetails : fundingDetails) {
-                    guarantorFundingDetails.undoAllTransactions();
+                
+                
+                	deleteGuarantorOnUndoApproved(guarantor,baseDataValidator,guarantorFundingDetails,loanId);
+                	
+                	guarantorFundingDetails.undoAllTransactions();
                     guarantorFundingDetailList.add(guarantorFundingDetails);
                 }
             }
@@ -303,6 +313,36 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
         }
     }
 
+    
+    /**
+     * Following method for deleting the guarantor after undo the loan approved*/
+    
+    private void deleteGuarantorOnUndoApproved(final Guarantor guarantorForDelete, final DataValidatorBuilder baseDataValidator,
+            GuarantorFundingDetails guarantorFundingDetails, Long loanId){
+    	
+    	  final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+    	  Long guarantorFundingId = guarantorFundingDetails.getId();
+        
+          GuarantorWritePlatformServiceJpaRepositoryIImpl guarantorWritePlatformServiceImpl = new GuarantorWritePlatformServiceJpaRepositoryIImpl();
+    	
+    	      if (guarantorFundingId == null) {
+                 if (!guarantorForDelete.isActive()) {
+                    baseDataValidator.failWithCodeNoParameterAddedToErrorCode(GuarantorConstants.GUARANTOR_NOT_ACTIVE_ERROR);
+                 }
+                 guarantorForDelete.updateStatus(false);
+               } else {
+        
+             if (guarantorFundingDetails == null) { throw new GuarantorNotFoundException(loanId, guarantorForDelete.getId(),
+                     guarantorFundingId); }
+             guarantorWritePlatformServiceImpl.removeguarantorFundDetails(guarantorForDelete, baseDataValidator, guarantorFundingDetails);
+         }
+         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
+                 "Validation errors exist.", dataValidationErrors); }
+         this.guarantorRepository.saveAndFlush(guarantorForDelete); 	
+    }
+    
+    
+    
     /**
      * Method holds all guarantor's guarantee amount for a loan account.
      * example: hold funds on approval of loan account.
