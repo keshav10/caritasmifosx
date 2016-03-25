@@ -78,7 +78,7 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 		            if((count == 1)&&(!tokens[1].equals(" "))){		  
 	 		            	String[] senderandmobilenumber = {"null","null"} ;
 	 		            	
-	 			        	String url = "https://52.19.21.68:9292/mpesa/transactiondetail";
+	 			        	String url = "https://localhost:9292/mpesa/transactiondetail";
 
 	 						SSLContext sslContext = null;
 	 						try {
@@ -95,14 +95,36 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 						}
 	  		        	HttpClient client = HttpClientBuilder.create().setSSLContext(sslContext).setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build();
 	 			        	HttpPost post = new HttpPost(url);
-	 			        	if(tokens[9].equals(" ")){
+	 			        	
+	 			     /*   	
+	 			        	for(int i=0;i<tokens.length;i++){
+	 			        		
+	 			        		if(tokens[i].equalsIgnoreCase("Other Party Info")){
+	 			        			
+	 			        			if(tokens[i].equals(" ")){
+	 			        				
+	 			        				senderandmobilenumber[0] = " ";
+	 		 			        		senderandmobilenumber[1] = " ";
+	 			        			}else{
+	 			        				senderandmobilenumber = tokens[i].split(" - ");
+	 			        			}
+	 			        			
+	 			        		}
+	 			        	}
+	 			        	*/
+	 			       
+	 			        	if(tokens[10].equals(" ")){
 	 			        		senderandmobilenumber[0] = " ";
 	 			        		senderandmobilenumber[1] = " ";
 	 			      
 	 			        	}else{
-	 			        		  senderandmobilenumber = tokens[9].split(" - ");
+	 			        		  senderandmobilenumber = tokens[10].split(" - ");
 	 			        		
 	 			        	}
+	 			      
+	 			        	
+	 			        	
+	 			        	
 	 			        	if(tokens[5].equals(" ")){
 	 			        		amount =tokens[6].substring(1);
 	 			        		type = "WithDraw";
@@ -113,12 +135,34 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 			        	}
 	 
 	  
-	 SimpleDateFormat source = new SimpleDateFormat("dd-MM-yyyy HH:mm");
-	 SimpleDateFormat target = new SimpleDateFormat("MM/dd/yyyy");
+	                        SimpleDateFormat[] source = new SimpleDateFormat[]{new SimpleDateFormat("dd-MM-yyyy HH:mm"), new SimpleDateFormat("dd-MM-yyyy HH:mm:ss"),
+	                        		new SimpleDateFormat("dd/MM/yyyy HH:mm"), new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"),
+	                        		new SimpleDateFormat("yyyy-MM-dd HH:mm")
+	                        };
+	                        
+	                        SimpleDateFormat target = new SimpleDateFormat("MM/dd/yyyy");
+	                        Date date = null;
+	                        for(int i=0; i<source.length; i++){
+	                        	boolean dateFormated = true;
+	                        	try{
+	                        		
+	                        		 date = source[i].parse(tokens[1]);
+	                        		
+	                        	}catch(Exception e){
+	                        		dateFormated = false;
+	                        		continue;
+	                        		
+	                        	}    
+	                        	
+	                        	if(dateFormated == true){
+	                        		break;
+	                        	}
+	                        	
+	                        }
+	                        
 	 
-	 
-	 Date date = source.parse(tokens[1]);
-	 targetDate = target.format(date);
+	                        
+	                         targetDate = target.format(date);
 	 			        
 	 			        	List<NameValuePair> urlParameters = new ArrayList<>();
 	 			        	urlParameters.add(new BasicNameValuePair("id", destination));
