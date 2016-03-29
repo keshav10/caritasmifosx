@@ -53,7 +53,7 @@ and   a.days<5' where report_name ='Loan Second Overdue Repayment Reminder'	;
 update  stretchy_report set report_sql='select a .client_name,a.Guarantor_name,a.Guarantor_Branch,a.client_mobile_no,a.loan_id,a.client_id,productshort_Name,a.Guarantor_mobile_no
 from
 (select cl.display_name as client_name
-,ifnull(go.display_name,concat(gu.firstname,' ',gu.lastname)) as Guarantor_name
+,ifnull(go.display_name, CONCAT(gu.firstname,\' \',gu.lastname)) as Guarantor_name
 ,ifnull(o.name,\'NA \') as Guarantor_Branch
 ,ifnull(go.mobile_no,gu.mobile_number) as Guarantor_mobile_no
 ,co.name as Client_Branch
@@ -82,7 +82,7 @@ group by gu.id
  
 update  stretchy_report set report_sql='select a .client_name,a.Guarantor_name,a.Guarantor_Branch,a.client_mobile_no,a.loan_id,a.client_id,a.productshort_Name,a.Guarantor_mobile_no  from
 (select cl.display_name as client_name
-,ifnull(go.display_name,concat(gu.firstname,' ',gu.lastname)) as Guarantor_name
+,ifnull(go.display_name,concat(gu.firstname,\' \',gu.lastname)) as Guarantor_name
 ,ifnull(o.name,\'NA \') as Guarantor_Branch
 ,ifnull(go.mobile_no,gu.mobile_number) as Guarantor_mobile_no
 ,co.name as Client_Branch
@@ -112,7 +112,7 @@ and a.days<5' where report_name ='Loan Fourth Overdue Repayment Reminder';
 update  stretchy_report set report_sql='select a .client_name,a.Guarantor_name,a.Guarantor_Branch,a.client_mobile_no,a.loan_id,a.client_id,productshort_Name,a.Guarantor_mobile_no,a.comitted_Shares
 from
 (select cl.display_name as client_name
-,ifnull(go.display_name,concat(gu.firstname,' ',gu.lastname)) as Guarantor_name
+,ifnull(go.display_name,concat(gu.firstname,\' \',gu.lastname)) as Guarantor_name
 ,ifnull(o.name,\'NA \') as Guarantor_Branch
 ,ifnull(go.mobile_no,gu.mobile_number) as Guarantor_mobile_no
 ,co.name as Client_Branch
@@ -175,6 +175,6 @@ cl.sub_status =27
 and sa.status_enum=300
 and od.sms_enabled=true
 group by sa.account_no)a
-where TIMESTAMPDIFF (MONTH,a.last_transaction_date,\'${startDate}\')=4' where report_name ='DormancyWarning - Clients';		 
+where TIMESTAMPDIFF (MONTH,a.last_transaction_date,\'${startDate}\')=4' where report_name like 'DormancyWarning - Clients';		 
 	  
 	  
