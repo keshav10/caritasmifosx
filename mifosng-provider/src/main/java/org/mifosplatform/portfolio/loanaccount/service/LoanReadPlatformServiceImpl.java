@@ -251,9 +251,10 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     final String sql = " select ml.id from m_portfolio_account_associations mps "
                                       + " left join m_savings_account msa on mps.linked_savings_account_id = msa.id "
                                       + " left join m_loan ml on mps.loan_account_id = ml.id "
-                                      + " left join m_client mc on msa.client_id = mc.id and ml.client_id = mc.id "
+                                      + " inner join m_client mc on msa.client_id = mc.id and ml.client_id = mc.id "
 
                                       + " where ml.loan_status_id = 300 "
+                                      + " and msa.client_id = ml.client_id "
                                       + " and mps.linked_savings_account_id =" + savingId ;
                     		
                     		
