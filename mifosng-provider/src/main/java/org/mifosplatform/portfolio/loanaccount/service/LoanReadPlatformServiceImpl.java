@@ -255,6 +255,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
                                       + " where ml.loan_status_id = 300 "
                                       + " and msa.client_id = ml.client_id "
+                                      + " and mps.association_type_enum = 2 "
                                       + " and mps.linked_savings_account_id =" + savingId ;
                     		
                     		
