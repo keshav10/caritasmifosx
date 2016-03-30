@@ -203,14 +203,19 @@ public class SavingsAccountDomainServiceJpa implements
 		postJournalEntries(account, existingTransactionIds,
 				existingReversedTransactionIds, isAccountTransfer);
 
-		Long clientId = account.clientId();
-		long savingId = account.getId();
+	//	Long clientId = account.clientId();
+		Long savingId = account.getId();
 
 		long isReleaseGuarantor = this.savingsAccountReadPlatformService
 				.getIsReleaseGuarantor(savingId);
 
-		Long loanId = this.loanReadPlatformService
-				.retriveLoanAccountId(clientId);
+		Long loanId = null;
+		
+		if(isReleaseGuarantor == 1){
+			loanId = this.loanReadPlatformService
+					.retriveLoanAccountId(savingId);
+		}
+				
 		
 	    BigDecimal totalTransactionAmount = null;
 

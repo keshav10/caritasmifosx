@@ -28,7 +28,7 @@ import org.mifosplatform.portfolio.loanaccount.loanschedule.data.OverdueLoanSche
 public interface LoanReadPlatformService {
 
     LoanAccountData retrieveOne(Long loanId);
-    Long retriveLoanAccountId(Long clientId);
+    Long retriveLoanAccountId(Long savingId);
     LoanScheduleData retrieveRepaymentSchedule(Long loanId, RepaymentScheduleRelatedLoanData repaymentScheduleRelatedData,
             Collection<DisbursementData> disbursementData, boolean isInterestRecalculationEnabled);
 
