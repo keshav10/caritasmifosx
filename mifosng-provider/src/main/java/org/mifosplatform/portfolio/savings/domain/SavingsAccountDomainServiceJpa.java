@@ -214,7 +214,9 @@ public class SavingsAccountDomainServiceJpa implements
 		if(isReleaseGuarantor == 1){
 			totalLoanId = this.loanReadPlatformService
 					.retriveLoanAccountId(savingId);
-			loanId = totalLoanId.get(0);
+			if(!totalLoanId.isEmpty()){
+			   loanId = totalLoanId.get(0);
+			}
 		}
 				
 		
