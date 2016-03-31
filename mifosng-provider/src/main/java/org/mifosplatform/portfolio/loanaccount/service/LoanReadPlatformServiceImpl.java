@@ -245,21 +245,25 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
     
     @Override
-    public Long retriveLoanAccountId(final Long savingId) {
+    public List<Long> retriveLoanAccountId(final Long savingId) {
 
             try {
                     final String sql = " select ml.id from m_portfolio_account_associations mps "
-                                      + " left join m_savings_account msa on mps.linked_savings_account_id = msa.id "
-                                      + " left join m_loan ml on mps.loan_account_id = ml.id "
-                                      + " inner join m_client mc on msa.client_id = mc.id and ml.client_id = mc.id "
-
-                                      + " where ml.loan_status_id = 300 "
-                                      + " and msa.client_id = ml.client_id "
-                                      + " and mps.association_type_enum = 2 "
-                                      + " and mps.linked_savings_account_id =" + savingId ;
+                                     + " left join m_guarantor mg on mps.loan_account_id = mg.loan_id "
+                                     + " left join m_guarantor_funding_details mgfd on mgfd.guarantor_id = mg.id " 
+				                     + " and mgfd.account_associations_id = mps.id "
+                                     + " left join m_savings_account msa on mps.linked_savings_account_id = msa.id " 
+                                     + " left join m_loan ml on mps.loan_account_id = ml.id " 
+                                     + " inner join m_client mc on msa.client_id = mc.id and ml.client_id = mc.id " 
+                                     + " where ml.loan_status_id = 300 "              //300 is loan should be active 
+                                     + " and msa.client_id = ml.client_id "
+                                     + " and mps.association_type_enum = 2 "          // 2 is account association should be with respect to guarantor 
+                                     + " and mg.is_active = 1 "                       // 1 is guarantor has to be active state
+                                     + " and mgfd.status_enum = 100 "                 // 100 guarantor funding details should be reaming funds to be release
+                                     + " and mps.linked_savings_account_id =" + savingId + " order by ml.id asc " ;
                     		
                     		
-                    return this.jdbcTemplate.queryForLong(sql);
+                    return this.jdbcTemplate.queryForList(sql, Long.class);
             } catch (final EmptyResultDataAccessException e) {
                     return null;
             }

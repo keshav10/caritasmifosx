@@ -7,6 +7,7 @@ package org.mifosplatform.portfolio.loanaccount.service;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.service.Page;
@@ -28,7 +29,7 @@ import org.mifosplatform.portfolio.loanaccount.loanschedule.data.OverdueLoanSche
 public interface LoanReadPlatformService {
 
     LoanAccountData retrieveOne(Long loanId);
-    Long retriveLoanAccountId(Long savingId);
+    List<Long> retriveLoanAccountId(Long savingId);
     LoanScheduleData retrieveRepaymentSchedule(Long loanId, RepaymentScheduleRelatedLoanData repaymentScheduleRelatedData,
             Collection<DisbursementData> disbursementData, boolean isInterestRecalculationEnabled);
 
