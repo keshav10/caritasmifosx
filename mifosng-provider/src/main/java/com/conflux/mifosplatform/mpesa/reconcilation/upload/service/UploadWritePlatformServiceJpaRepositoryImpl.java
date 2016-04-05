@@ -78,7 +78,7 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 		            if((count == 1)&&(!tokens[1].equals(" "))){		  
 	 		            	String[] senderandmobilenumber = {"null","null"} ;
 	 		            	
-	 			        	String url = "https://localhost:9292/mpesa/transactiondetail";
+	 			        	String url = "http://localhost:9292/caritasmpesa/mpesa/transactiondetail";
 
 	 						SSLContext sslContext = null;
 	 						try {
@@ -93,7 +93,8 @@ public class UploadWritePlatformServiceJpaRepositoryImpl implements UploadWriteP
 	 							// TODO Auto-generated catch block
 	 							e1.printStackTrace();
 	 						}
-	  		        	HttpClient client = HttpClientBuilder.create().setSSLContext(sslContext).setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build();
+	  		        	//HttpClient client = HttpClientBuilder.create().setSSLContext(sslContext).setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build();
+	 						HttpClient client = HttpClientBuilder.create().build();
 	 			        	HttpPost post = new HttpPost(url);
 	 			        	
 	 			     /*   	

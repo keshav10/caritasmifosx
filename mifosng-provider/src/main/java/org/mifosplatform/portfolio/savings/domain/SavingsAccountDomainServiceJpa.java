@@ -209,11 +209,14 @@ public class SavingsAccountDomainServiceJpa implements
 		long isReleaseGuarantor = this.savingsAccountReadPlatformService
 				.getIsReleaseGuarantor(savingId);
 
+		List<Long> totalLoanId = null;  // list of loan id is for to get total loan account associated for this self guarantee
 		Long loanId = null;
-		
 		if(isReleaseGuarantor == 1){
-			loanId = this.loanReadPlatformService
+			totalLoanId = this.loanReadPlatformService
 					.retriveLoanAccountId(savingId);
+			if(!totalLoanId.isEmpty()){
+			   loanId = totalLoanId.get(0);
+			}
 		}
 				
 		
