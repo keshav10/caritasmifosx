@@ -231,7 +231,7 @@ public class SavingsAccountDomainServiceJpa implements
 			final List<Guarantor> existGuarantorList = this.guarantorRepository
 					.findByLoan(loan);
 			boolean allowToInsert = false;
-			boolean allowToOnHold = false;
+			boolean allowToOnHold = false;  // this flag is for checking to allow on hold self saving account on specific condition. 
 			BigDecimal loanAmount = loan.getApprovedPrincipal();
 			BigDecimal onHoldAmount = account.getOnHoldFunds();
 			if(onHoldAmount.compareTo(loanAmount)<1){
@@ -240,15 +240,43 @@ public class SavingsAccountDomainServiceJpa implements
 			List<GuarantorFundingDetails> selfGuarantorList = new ArrayList<>();
 			BigDecimal selfGuarantee = BigDecimal.ZERO;
 			BigDecimal guarantorGuarantee = BigDecimal.ZERO;
+			BigDecimal remainingAmount = BigDecimal.ZERO;
 			List<DepositAccountOnHoldTransaction> accountOnHoldTransactions = new ArrayList<>();
 
+			
+			// following checking if any external guarantor's are there
+			//if yes - then check the the remaining balance to be release, if its zero then allow to onhold self saving account becomes false
+			
 			for (Guarantor guarantor1 : existGuarantorList) {
 				
-				if (guarantor1.isExistingCustomer()) {
-					allowToOnHold = true;
-				}
-			}
+				
+				   final List<GuarantorFundingDetails> fundingDetails = guarantor1.getGuarantorFundDetails();
+				 
+				   
+				   for(GuarantorFundingDetails guarantorFD : fundingDetails){
+					   
+					   if(!(guarantorFD.getLinkedSavingsAccount().accountNumber.equals(account.accountNumber))){
+				    	 remainingAmount = guarantorFD.getAmountRemaining();
+				    
+				    	 if(remainingAmount.compareTo(BigDecimal.ZERO)==0){
+						     allowToOnHold = false;
+						}else{
+							
+							allowToOnHold = true;
+							
+						}
+				  	
+				     }
+				   }	   
+				   
+				   if(allowToOnHold == true){
+					   break;
+				   }
+			 }
+ 
 
+		 
+		if(allowToOnHold == true){	
 			for (Guarantor guarantor : existGuarantorList) {
 				final List<GuarantorFundingDetails> fundingDetails = guarantor
 						.getGuarantorFundDetails();
@@ -307,7 +335,8 @@ public class SavingsAccountDomainServiceJpa implements
 
 				}
 			}
-			if (transactionAmount != null) {
+		}	
+			if (transactionAmount != null && allowToOnHold == true) {
 
 				BigDecimal amountLeft = calculateAndRelaseGuarantorFunds(
 						externalGuarantorList, guarantorGuarantee,

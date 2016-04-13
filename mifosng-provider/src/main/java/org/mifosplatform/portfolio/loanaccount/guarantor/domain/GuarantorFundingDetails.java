@@ -106,7 +106,8 @@ public class GuarantorFundingDetails extends AbstractPersistable<Long> {
         this.amountRemaining = getAmountRemaining().subtract(amount);
         if (this.amountRemaining.setScale(2, RoundingMode.FLOOR).compareTo(BigDecimal.ZERO) == 0) {
             this.updateStatus(GuarantorFundStatusType.COMPLETED);
-            accountAssociations.setActive(false);
+         //  accountAssociations.setActive(false);  added comment if guarantor release totally then its going to inactive and not appearing on transaction list of guarantor 
+        //it has to be true value. 
         }
     }
 
