@@ -22,4 +22,5 @@ public interface InvestmentBatchJobReadPlatformService {
 	InvestmentBatchJobData getTotalInvestedAmount(Long loanId);
 	
 	InvestmentBatchJobData getTotalLoanChargeAmount(Long loanId);
+	Long getOfficeIdOfSavingAccount(Long savingId);
 }

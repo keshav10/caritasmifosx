@@ -1266,6 +1266,8 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         InvestmentBatchJobData interestDetails = this.investmentBatchJobReadPlatformService.getInterestDetails();
         
         BigDecimal groupPercentage = interestDetails.getGroupPercentage();
+        BigDecimal caritasPercentage = interestDetails.getCaritasPercentage();
+        
         for(Long loanId : investmentIds ){
         	
         
@@ -1273,6 +1275,8 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         	for(InvestmentBatchJobData investmentBatchJobData : maturedInvestmentData){
         		
         		Long savingId = investmentBatchJobData.getSavingId();
+        		Long officeId = this.investmentBatchJobReadPlatformService.getOfficeIdOfSavingAccount(savingId);
+        		
         		Date investmentStartDate = investmentBatchJobData.getInvestmentStartDate();
         		Date investmentCloseDate = investmentBatchJobData.getInvestmentCloseDate();
         		BigDecimal investedAmountByGroup = investmentBatchJobData.getInvestmetAmount().setScale(5);
@@ -1345,12 +1349,19 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         		
         		BigDecimal ratioOfInvestmentAmount = investedAmountByGroup.divide(totalInvestedAmount, 10, RoundingMode.HALF_EVEN);
         		BigDecimal ratioOfDaysInvested = numberOfDaysOfInvestment.divide(totalNumberOfInvestment, 10, RoundingMode.HALF_EVEN);
-        		BigDecimal interestEarn = ratioOfInvestmentAmount.multiply(ratioOfDaysInvested).multiply(interestAmountAfterRemovedLoanCharges).setScale(05, RoundingMode.HALF_EVEN);
+        		//BigDecimal interestEarn = ratioOfInvestmentAmount.multiply(ratioOfDaysInvested).multiply(interestAmountAfterRemovedLoanCharges).setScale(05, RoundingMode.HALF_EVEN);
         		
-        		BigDecimal transactionAmount = interestEarn.multiply((groupPercentage.divide(bigDecimalHundred))).setScale(05, RoundingMode.HALF_EVEN);
+        	//	BigDecimal transactionAmount = interestEarn.multiply((groupPercentage.divide(bigDecimalHundred))).setScale(05, RoundingMode.HALF_EVEN);
         	
+        		BigDecimal totalInterestEarnFromIvestment = ratioOfInvestmentAmount.multiply(ratioOfDaysInvested).multiply(interestAmountOfLoan).setScale(05, RoundingMode.HALF_EVEN);
+        		BigDecimal interestEarnAmountAfterChagreDeduction = totalInterestEarnFromIvestment.subtract(sumOfLoanChargeAmount);
         		
-        
+        		BigDecimal groupInterestEarn = interestEarnAmountAfterChagreDeduction.multiply((groupPercentage.divide(bigDecimalHundred))).setScale(05, RoundingMode.HALF_EVEN);
+        		BigDecimal caritasInterestEarn = interestEarnAmountAfterChagreDeduction.multiply((caritasPercentage.divide(bigDecimalHundred)).setScale(05,RoundingMode.HALF_EVEN));
+        		        		
+        		BigDecimal transactionAmount = groupInterestEarn;
+        		
+        		
         		
         		//following the method and constructor reused for getting the long value result of 
         		InvestmentBatchJobData paymentData = this.investmentBatchJobReadPlatformService.getPaymentType();
@@ -1388,14 +1399,16 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                 result = doDepositeTransaction(savingId,apiJson);
          	    
      
-        		String insertSqlStmt = "INSERT INTO `ct_posted_investment_earnings` (`loan_id`, `saving_id`, `number_of_days`, "
-        				+ " `invested_amount`, `gorup_interest_rate`, `gorup_interest_earned`, `interest_earned`, `date_of_interest_posting`, "
-        				+ "`investment_start_date`, `investment_close_date`) VALUES ";
+                String insertSqlStmt = "INSERT INTO `ct_posted_investment_earnings` (`loan_id`, `saving_id`, `office_id`, `number_of_days`, "
+             			+ " `invested_amount`, `gorup_interest_rate`, `gorup_interest_earned`, `caritas_interest_earned`, `interest_earned`, `date_of_interest_posting`, "
+                		+ " `investment_start_date`, `investment_close_date`) VALUES ";
         		
         		dB.append("( ");
         		dB.append(loanId);
         		dB.append(",");
         		dB.append(savingId);
+        		dB.append(",");
+        		dB.append(officeId);
         		dB.append(",");
         		dB.append(dayDiff);
         		dB.append(",");
@@ -1405,7 +1418,9 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         		dB.append(",");
         		dB.append(transactionAmount);
         		dB.append(",");
-        		dB.append(interestEarn);
+        		dB.append(caritasInterestEarn);
+        		dB.append(",");
+        		dB.append(totalInterestEarnFromIvestment);
         		dB.append(",'");
         		dB.append(postingDateOfInvestment);
         		dB.append("','");
