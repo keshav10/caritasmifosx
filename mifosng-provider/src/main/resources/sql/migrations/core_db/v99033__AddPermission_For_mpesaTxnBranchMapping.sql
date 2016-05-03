@@ -1,28 +1,28 @@
 
 
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES
- ('datatable', 'CREATE_MpesaTxnBranchMapping', 'MpesaTxnBranchMapping', 'CREATE', 1);
+ ('datatable', 'CREATE_mpesa_txn_branch_mapping', 'mpesa_txn_branch_mapping', 'CREATE', 1);
 
  INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES 
- ('datatable', 'CREATE_MpesaTxnBranchMapping_CHECKER', 'MpesaTxnBranchMapping', 'CREATE', 0);
+ ('datatable', 'CREATE_mpesa_txn_branch_mapping_CHECKER', 'mpesa_txn_branch_mapping', 'CREATE', 0);
  
  
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES 
-('datatable', 'READ_MpesaTxnBranchMapping', 'MpesaTxnBranchMapping', 'READ', 0);
+('datatable', 'READ_mpesa_txn_branch_mapping', 'mpesa_txn_branch_mapping', 'READ', 0);
 
 
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES 
-('datatable', 'UPDATE_MpesaTxnBranchMapping', 'MpesaTxnBranchMapping', 'UPDATE', 1);
+('datatable', 'UPDATE_mpesa_txn_branch_mapping', 'mpesa_txn_branch_mapping', 'UPDATE', 1);
 
 
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES 
-('datatable', 'UPDATE_MpesaTxnBranchMapping_CHECKER', 'MpesaTxnBranchMapping', 'UPDATE', 0);
+('datatable', 'UPDATE_mpesa_txn_branch_mapping_CHECKER', 'mpesa_txn_branch_mapping', 'UPDATE', 0);
 
 
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES 
-('datatable', 'DELETE_MpesaTxnBranchMapping', 'MpesaTxnBranchMapping', 'DELETE', 1);
+('datatable', 'DELETE_mpesa_txn_branch_mapping', 'mpesa_txn_branch_mapping', 'DELETE', 1);
 
 
 
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`) VALUES 
-('datatable', 'DELETE_MpesaTxnBranchMapping_CHECKER', 'MpesaTxnBranchMapping', 'DELETE', 0);
+('datatable', 'DELETE_mpesa_txn_branch_mapping_CHECKER', 'mpesa_txn_branch_mapping', 'DELETE', 0);

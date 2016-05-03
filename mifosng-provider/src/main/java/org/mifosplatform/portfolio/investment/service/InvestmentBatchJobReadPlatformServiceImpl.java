@@ -418,6 +418,16 @@ public class InvestmentBatchJobReadPlatformServiceImpl implements InvestmentBatc
 		
 	}
 	
+	@Override
+		public Long getOfficeIdOfSavingAccount(Long savingId) {
+			
+			String sql = " select ifnull(cl.office_id,mg.office_id) as office_id from m_savings_account sa "
+	                   +  " left join m_client cl on sa.client_id = cl.id "
+	                   +  " left join m_group mg on sa.group_id = mg.id "
+	                   +  " where sa.id = " + savingId;
+			
+			return this.jdbcTemplate.queryForLong(sql);
+		}
 	
 	
 }
