@@ -161,7 +161,7 @@ public class SavingsAccountDomainServiceJpa implements
 			final LocalDate transactionDate,
 			final BigDecimal transactionAmount,
 			final PaymentDetail paymentDetail, final boolean isAccountTransfer,
-			final boolean isRegularTransaction) {
+			final boolean isRegularTransaction, final boolean isEarningFromInvestment) {
 
 		AppUser user = getAppUserIfPresent();
 		final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
@@ -182,8 +182,14 @@ public class SavingsAccountDomainServiceJpa implements
 		final SavingsAccountTransactionDTO transactionDTO = new SavingsAccountTransactionDTO(
 				fmt, transactionDate, transactionAmount, paymentDetail,
 				new Date(), user);
-		final SavingsAccountTransaction deposit = account
-				.deposit(transactionDTO);
+		
+		//following code change from transaction type earning from investment 
+		 SavingsAccountTransaction deposit = null;
+		if(isEarningFromInvestment == true){
+			deposit = account.earningFromInvestment(transactionDTO);
+		}else{
+			deposit = account.deposit(transactionDTO);
+		}
 
 		final MathContext mc = MathContext.DECIMAL64;
 		if (account.isBeforeLastPostingPeriod(transactionDate)) {

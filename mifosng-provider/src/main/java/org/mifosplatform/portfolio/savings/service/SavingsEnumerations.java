@@ -166,6 +166,11 @@ public class SavingsEnumerations {
                 optionData = new SavingsAccountTransactionEnumData(SavingsAccountTransactionType.OVERDRAFT_INTEREST.getValue().longValue(),
                         SavingsAccountTransactionType.OVERDRAFT_INTEREST.getCode(), "Overdraft Interest");
             break;
+            
+            case EARNINGS_FROM_INVESTMENT:
+            	optionData = new SavingsAccountTransactionEnumData(SavingsAccountTransactionType.EARNINGS_FROM_INVESTMENT.getValue().longValue(),
+            			SavingsAccountTransactionType.EARNINGS_FROM_INVESTMENT.getCode(), "Earning From Investment");
+            break;	
         }
         return optionData;
     }

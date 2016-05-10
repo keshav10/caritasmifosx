@@ -114,6 +114,13 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
         return new SavingsAccountTransaction(savingsAccount, office, paymentDetail, SavingsAccountTransactionType.DEPOSIT.getValue(), date,
                 createdDate, amount, isReversed, appUser);
     }
+    
+    public static SavingsAccountTransaction earningFromInvestment(final SavingsAccount savingsAccount, final Office office,
+            final PaymentDetail paymentDetail, final LocalDate date, final Money amount, Date createdDate, final AppUser appUser){
+    	final boolean isReversed = false;
+    	return new SavingsAccountTransaction(savingsAccount, office, paymentDetail, SavingsAccountTransactionType.EARNINGS_FROM_INVESTMENT.getValue(), date,
+                createdDate, amount, isReversed, appUser);
+    }
 
     public static SavingsAccountTransaction withdrawal(final SavingsAccount savingsAccount, final Office office,
             final PaymentDetail paymentDetail, final LocalDate date, final Money amount, Date createdDate, final AppUser appUser) {
@@ -235,6 +242,11 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
         return SavingsAccountTransactionType.fromInt(this.typeOf).isDeposit();
     }
 
+    public boolean isEarningFromInvestment(){
+    	return SavingsAccountTransactionType.fromInt(typeOf).isEarningsFromInvestment();
+    }
+    
+    
     public boolean isDepositAndNotReversed() {
         return SavingsAccountTransactionType.fromInt(this.typeOf).isDeposit() && isNotReversed();
     }

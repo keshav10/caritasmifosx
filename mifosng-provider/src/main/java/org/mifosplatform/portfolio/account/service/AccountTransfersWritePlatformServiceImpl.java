@@ -110,6 +110,8 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         boolean isAccountTransfer = true;
         Long fromLoanAccountId = null;
         boolean isWithdrawBalance = false;
+        //following for eaning from investment tranction type as it is not coming from batch job it is false in this case
+        boolean isEarningFromInvestment = false;
 
         if (isSavingsToSavingsAccountTransfer(fromAccountType, toAccountType)) {
 
@@ -125,7 +127,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             final SavingsAccount toSavingsAccount = this.savingsAccountAssembler.assembleFrom(toSavingsId);
 
             final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(toSavingsAccount, fmt,
-                    transactionDate, transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction);
+                    transactionDate, transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction,isEarningFromInvestment);
 
             final AccountTransferDetails accountTransferDetails = this.accountTransferAssembler.assembleSavingsToSavingsTransfer(command,
                     fromSavingsAccount, toSavingsAccount, withdrawal, deposit);
@@ -169,7 +171,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             final SavingsAccount toSavingsAccount = this.savingsAccountAssembler.assembleFrom(toSavingsAccountId);
 
             final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(toSavingsAccount, fmt,
-                    transactionDate, transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction);
+                    transactionDate, transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction,isEarningFromInvestment);
 
             final AccountTransferDetails accountTransferDetails = this.accountTransferAssembler.assembleLoanToSavingsTransfer(command,
                     fromLoanAccount, toSavingsAccount, deposit, loanRefundTransaction);
@@ -247,6 +249,10 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         Long transferTransactionId = null;
         final boolean isAccountTransfer = true;
         final boolean isRegularTransaction = accountTransferDTO.isRegularTransaction();
+        //following change for transaction type earning from investment here it is false
+        
+        boolean isEarningFromInvestment = false;
+        
         AccountTransferDetails accountTransferDetails = accountTransferDTO.getAccountTransferDetails();
         if (isSavingsToLoanAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
             //
@@ -334,7 +340,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
 
             final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(toSavingsAccount,
                     accountTransferDTO.getFmt(), accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
-                    accountTransferDTO.getPaymentDetail(), isAccountTransfer, isRegularTransaction);
+                    accountTransferDTO.getPaymentDetail(), isAccountTransfer, isRegularTransaction,isEarningFromInvestment);
 
             accountTransferDetails = this.accountTransferAssembler.assembleSavingsToSavingsTransfer(accountTransferDTO, fromSavingsAccount,
                     toSavingsAccount, withdrawal, deposit);
@@ -373,7 +379,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
 
             final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(toSavingsAccount,
                     accountTransferDTO.getFmt(), accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
-                    accountTransferDTO.getPaymentDetail(), isAccountTransfer, isRegularTransaction);
+                    accountTransferDTO.getPaymentDetail(), isAccountTransfer, isRegularTransaction,isEarningFromInvestment);
             accountTransferDetails = this.accountTransferAssembler.assembleLoanToSavingsTransfer(accountTransferDTO, fromLoanAccount,
                     toSavingsAccount, deposit, loanTransaction);
             this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
@@ -438,7 +444,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         final SavingsAccount toSavingsAccount = this.savingsAccountAssembler.assembleFrom(toSavingsAccountId);
 
         final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(toSavingsAccount, fmt, transactionDate,
-                transactionAmount, paymentDetail, true, true);
+                transactionAmount, paymentDetail, true, true, false); //false passed as it is not earning from investment 
 
         final AccountTransferDetails accountTransferDetails = this.accountTransferAssembler.assembleLoanToSavingsTransfer(command,
                 fromLoanAccount, toSavingsAccount, deposit, loanRefundTransaction);

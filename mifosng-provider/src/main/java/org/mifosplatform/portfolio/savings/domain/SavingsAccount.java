@@ -2615,4 +2615,59 @@ public class SavingsAccount extends AbstractPersistable<Long> {
   	public void setMinRequiredBalance(BigDecimal minRequiredBalance) {
   		this.minRequiredBalance = minRequiredBalance;
   	}
+  	
+  	
+  //following code change for making transaction type Earning from investment
+    public SavingsAccountTransaction earningFromInvestment(final SavingsAccountTransactionDTO transactionDTO){
+    	
+    	 final String resourceTypeName = depositAccountType().resourceName();
+         if (isNotActive()) {
+             final String defaultUserMessage = "Transaction is not allowed. Account is not active.";
+             final ApiParameterError error = ApiParameterError.parameterError("error.msg." + resourceTypeName
+                     + ".transaction.account.is.not.active", defaultUserMessage, "transactionDate", transactionDTO.getTransactionDate()
+                     .toString(transactionDTO.getFormatter()));
+
+             final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+             dataValidationErrors.add(error);
+
+             throw new PlatformApiDataValidationException(dataValidationErrors);
+         }
+
+         if (isDateInTheFuture(transactionDTO.getTransactionDate())) {
+             final String defaultUserMessage = "Transaction date cannot be in the future.";
+             final ApiParameterError error = ApiParameterError.parameterError(
+                     "error.msg." + resourceTypeName + ".transaction.in.the.future", defaultUserMessage, "transactionDate", transactionDTO
+                             .getTransactionDate().toString(transactionDTO.getFormatter()));
+
+             final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+             dataValidationErrors.add(error);
+
+             throw new PlatformApiDataValidationException(dataValidationErrors);
+         }
+
+         if (transactionDTO.getTransactionDate().isBefore(getActivationLocalDate())) {
+             final Object[] defaultUserArgs = Arrays.asList(transactionDTO.getTransactionDate().toString(transactionDTO.getFormatter()),
+                     getActivationLocalDate().toString(transactionDTO.getFormatter())).toArray();
+             final String defaultUserMessage = "Transaction date cannot be before accounts activation date.";
+             final ApiParameterError error = ApiParameterError.parameterError("error.msg." + resourceTypeName
+                     + ".transaction.before.activation.date", defaultUserMessage, "transactionDate", defaultUserArgs);
+
+             final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+             dataValidationErrors.add(error);
+
+             throw new PlatformApiDataValidationException(dataValidationErrors);
+         }
+         
+         final Money amount = Money.of(this.currency, transactionDTO.getTransactionAmount());
+
+         SavingsAccountTransaction transaction = SavingsAccountTransaction.earningFromInvestment(this, office(), transactionDTO.getPaymentDetail(),
+                 transactionDTO.getTransactionDate(), amount, transactionDTO.getCreatedDate(), transactionDTO.getAppUser());
+         this.transactions.add(transaction);
+
+         this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
+
+         return transaction;
+    	
+    }
+  	
 }
