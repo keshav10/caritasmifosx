@@ -210,8 +210,11 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         boolean isRegularTransaction = false;
         if (amountForDeposit.isGreaterThanZero()) {
             boolean isAccountTransfer = false;
+            //following for checking is from investment, here it is false as it is not coming from investment batch job
+            boolean isEarningFromInvestment = false;
+            
             this.savingsAccountDomainService.handleDeposit(account, fmt, account.getActivationLocalDate(), amountForDeposit.getAmount(),
-                    null, isAccountTransfer, isRegularTransaction);
+                    null, isAccountTransfer, isRegularTransaction, isEarningFromInvestment);
             updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
         }
         account.processAccountUponActivation(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, user, null);
@@ -222,10 +225,13 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     @Override
     public CommandProcessingResult deposit(final Long savingsId, final JsonCommand command) {
 
-    	String isFromBatchJob = command.stringValueOfParameterNamed("isFromBatchJob");
-    	if(isFromBatchJob.isEmpty()){
-             this.context.authenticatedUser();
-     	} 
+    	boolean isFromBatchJob = command.booleanPrimitiveValueOfParameterNamed("isFromBatchJob");
+    	 boolean isEarningFromInvestment = false;
+    	if(isFromBatchJob == true){
+            isEarningFromInvestment = true;
+     	}else{
+     		 this.context.authenticatedUser();
+     	}
 
         this.savingsAccountTransactionDataValidator.validate(command);
 
@@ -244,7 +250,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         boolean isAccountTransfer = false;
         boolean isRegularTransaction = true;
         final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(account, fmt, transactionDate,
-                transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction);
+                transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction, isEarningFromInvestment);
 
         return new CommandProcessingResultBuilder() //
                 .withEntityId(deposit.getId()) //
@@ -527,6 +533,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         SavingsAccountTransaction transaction = null;
         boolean isInterestTransfer = false;
+        
         final SavingsAccountTransactionDTO transactionDTO = new SavingsAccountTransactionDTO(fmt, transactionDate, transactionAmount,
                 paymentDetail, savingsAccountTransaction.createdDate(), user);
         if (savingsAccountTransaction.isDeposit()) {

@@ -89,6 +89,7 @@ import org.mifosplatform.portfolio.savings.data.SavingsIdOfChargeData;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountAssembler;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountDomainService;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountRepository;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
 import org.mifosplatform.portfolio.savings.service.DepositAccountReadPlatformService;
 import org.mifosplatform.portfolio.savings.service.DepositAccountWritePlatformService;
@@ -129,6 +130,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     private final SavingsAccountTransactionsApiResource savingsAccountTransactionsApiResource;
     private final PlatformSecurityContext context;
     private final FromJsonHelper fromApiJsonHelper;
+    private final SavingsAccountRepository savingAccount;
     
 
 
@@ -152,7 +154,8 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
             			final PaymentDetailRepository paymentDetailRepository,
             			final SavingsAccountTransactionsApiResource savingsAccountTransactionsApiResource,
             			final PlatformSecurityContext context,
-            			final FromJsonHelper fromApiJsonHelper) {
+            			final FromJsonHelper fromApiJsonHelper,
+            			final SavingsAccountRepository savingAccount) {
         this.dataSourceServiceFactory = dataSourceServiceFactory;
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
         this.savingsAccountChargeReadPlatformService = savingsAccountChargeReadPlatformService;
@@ -173,6 +176,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         this.savingsAccountTransactionsApiResource = savingsAccountTransactionsApiResource;
         this.context = context;
         this.fromApiJsonHelper = fromApiJsonHelper;
+        this.savingAccount = savingAccount;
     }
       
 
@@ -1314,6 +1318,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                 
                 LocalDate startInvestment = new LocalDate();
                 LocalDate closeInvestment = new LocalDate();
+                //if investment is not close until loan matured then at time of investment distribution it will get close and update min-enforce balace for that saving account.
+                
+                LocalDate closingOfInvestmentOnLoanMature = new LocalDate();
+                
                 
                 int dayDiff = 0;
                 if(!(investmentCloseDate == null)){
@@ -1321,10 +1329,12 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                 		    dayDiff = Days.daysBetween(loanStart, investmentClose).getDays();
                 		    startInvestment = loanStart;
                 		    closeInvestment = investmentClose;
+                		    closingOfInvestmentOnLoanMature = null;
                 		}else{
                 			dayDiff = Days.daysBetween(investmentStart, investmentClose).getDays();	
                 			startInvestment = investmentStart;
                 			closeInvestment = investmentClose;
+                			closingOfInvestmentOnLoanMature = null;
                 		}
                 	
                 }else{
@@ -1332,10 +1342,12 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
             	 	    dayDiff = Days.daysBetween(loanStart, loanClose).getDays();
             	 	    startInvestment = loanStart;
             	 	    closeInvestment = loanClose;
+            	 	   closingOfInvestmentOnLoanMature = closeInvestment;
             		}else{
             	 		dayDiff = Days.daysBetween(investmentStart, loanClose).getDays();
             	 		startInvestment = investmentStart;
             	 		closeInvestment = loanClose;
+            	 		closingOfInvestmentOnLoanMature = closeInvestment;
             		}    
                 }
         		
@@ -1353,12 +1365,34 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         		
         	//	BigDecimal transactionAmount = interestEarn.multiply((groupPercentage.divide(bigDecimalHundred))).setScale(05, RoundingMode.HALF_EVEN);
         	
+        		//following for the group investment charge deduction = group amount / total investment amount * charge amount 
+        		
+        		
+        		BigDecimal chargeAmountOfGroup = ratioOfInvestmentAmount.multiply(sumOfLoanChargeAmount);
+        		
+        		
         		BigDecimal totalInterestEarnFromIvestment = ratioOfInvestmentAmount.multiply(ratioOfDaysInvested).multiply(interestAmountOfLoan).setScale(05, RoundingMode.HALF_EVEN);
-        		BigDecimal interestEarnAmountAfterChagreDeduction = totalInterestEarnFromIvestment.subtract(sumOfLoanChargeAmount);
+        		BigDecimal interestEarnAmountAfterChagreDeduction = totalInterestEarnFromIvestment.subtract(chargeAmountOfGroup);
         		
         		BigDecimal groupInterestEarn = interestEarnAmountAfterChagreDeduction.multiply((groupPercentage.divide(bigDecimalHundred))).setScale(05, RoundingMode.HALF_EVEN);
-        		BigDecimal caritasInterestEarn = interestEarnAmountAfterChagreDeduction.multiply((caritasPercentage.divide(bigDecimalHundred)).setScale(05,RoundingMode.HALF_EVEN));
-        		        		
+        		BigDecimal caritasInterestEarn = BigDecimal.ZERO; 
+        		       
+        		caritasInterestEarn = interestEarnAmountAfterChagreDeduction.multiply((caritasPercentage.divide(bigDecimalHundred)).setScale(05,RoundingMode.HALF_EVEN));
+        	
+        		//following code run if group invested money for limited time e.g total investment is 91 days and group investment for 45 days.
+        		if(!(numberOfDaysOfInvestment.equals(totalNumberOfInvestment))){
+        	    	BigDecimal cariatasInterestEarnInInvestment = caritasInterestEarn;
+        	    	BigDecimal caritasInterestForRemainingDays = BigDecimal.ZERO;
+        	    	caritasInterestEarn = BigDecimal.ZERO;
+        			BigDecimal oneDayInterest = totalInterestEarnFromIvestment.divide(numberOfDaysOfInvestment,10,RoundingMode.HALF_EVEN).setScale(05, RoundingMode.HALF_EVEN);
+        			BigDecimal numberOfDayDiffInInvestment = totalNumberOfInvestment.subtract(numberOfDaysOfInvestment).setScale(05, RoundingMode.HALF_EVEN);
+        			caritasInterestForRemainingDays = oneDayInterest.multiply(numberOfDayDiffInInvestment).setScale(05, RoundingMode.HALF_EVEN);
+        		   
+        			caritasInterestEarn = caritasInterestForRemainingDays.add(cariatasInterestEarnInInvestment).setScale(05,RoundingMode.HALF_EVEN);
+        	    
+        	    }
+        		
+        		
         		BigDecimal transactionAmount = groupInterestEarn;
         		
         		
@@ -1400,7 +1434,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
          	    
      
                 String insertSqlStmt = "INSERT INTO `ct_posted_investment_earnings` (`loan_id`, `saving_id`, `office_id`, `number_of_days`, "
-             			+ " `invested_amount`, `gorup_interest_rate`, `gorup_interest_earned`, `caritas_interest_earned`, `interest_earned`, `date_of_interest_posting`, "
+             			+ " `invested_amount`, `gorup_interest_rate`, `gorup_interest_earned`, `group_charge_applied` , `caritas_interest_earned`, `interest_earned`, `date_of_interest_posting`, "
                 		+ " `investment_start_date`, `investment_close_date`) VALUES ";
         		
         		dB.append("( ");
@@ -1417,6 +1451,8 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         		dB.append(groupPercentage);
         		dB.append(",");
         		dB.append(transactionAmount);
+        		dB.append(",");
+        		dB.append(chargeAmountOfGroup);
         		dB.append(",");
         		dB.append(caritasInterestEarn);
         		dB.append(",");
@@ -1440,9 +1476,45 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
          	    if(update.length() > 0){
          		   jdbcTemplate.update(updateString + update.toString());
          	    }
-        	  }
-        	}
-        	
+         	    
+         	    
+         	    if(closingOfInvestmentOnLoanMature!=null){
+         	    StringBuilder updateCloseDate = new StringBuilder();
+         	    updateCloseDate.append(" update m_investment mi ");
+         	    updateCloseDate.append(" set mi.close_date =  ");
+         	    updateCloseDate.append("'");
+         	    updateCloseDate.append(closingOfInvestmentOnLoanMature);
+         	    updateCloseDate.append("'");
+         	    updateCloseDate.append(" where  mi.saving_id = ");
+         	    updateCloseDate.append(savingId);
+         	    updateCloseDate.append(" and mi.loan_id = ");
+         	    updateCloseDate.append(loanId);
+         	    updateCloseDate.append(" and mi.start_date = '");
+         	    updateCloseDate.append(startInvestment);
+         	    updateCloseDate.append("'");
+         	    
+         	    
+         	    if(update.length() >0 ){
+         	    	jdbcTemplate.update(updateCloseDate.toString());
+         	     }
+         	    
+         	    //following code for updating saving account minimum balance
+         	   SavingsAccount account = this.savingAccount.findOne(savingId);
+   	           BigDecimal availableMinRequiredBal = account.getMinRequiredBalance();
+   	           BigDecimal newMinBal = availableMinRequiredBal.subtract(investedAmountByGroup);
+               Long minBal = newMinBal.longValue();
+   	        
+   	           if(minBal>=0){
+   	             account.setMinRequiredBalance(newMinBal);
+   	             this.savingAccount.save(account);
+   	             }else{
+   	            	 newMinBal = null;
+   	              	 account.setMinRequiredBalance(newMinBal);
+      	             this.savingAccount.save(account); 
+   	             }   	                	    
+         	 }
+            }
+           }
           }
 	      
         return result;
