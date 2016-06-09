@@ -2365,10 +2365,11 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                 throw new PlatformApiDataValidationException(dataValidationErrors);
             }
 
-            if (!annualFeeDueDate.equals(transactionDate)) {
+           /* if (!annualFeeDueDate.equals(transactionDate)) {
+            *  //this code is throwing exception if charge due date is 15 Jan and trying to pay 15 Feb. In general case it should allow to pay the charge
                 baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("invalid.date");
                 throw new PlatformApiDataValidationException(dataValidationErrors);
-            }
+            }*/
 
             Date currentAnnualFeeNextDueDate = findLatestAnnualFeeTransactionDueDate();
             if (currentAnnualFeeNextDueDate != null && new LocalDate(currentAnnualFeeNextDueDate).isEqual(transactionDate)) {
