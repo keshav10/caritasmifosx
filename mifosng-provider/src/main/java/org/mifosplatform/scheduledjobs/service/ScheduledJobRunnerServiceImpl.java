@@ -879,7 +879,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_REPAYMENT_SMS_REMINDER_TO_CLIENT)
     public void loanRepaymentSmsReminder() {
-            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String payLoadUrl = "http://54.72.21.49:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
@@ -921,7 +921,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_FIRST_OVERDUE_REPAYMENT_REMINDER_SMS)
     public void loanFirstOverdueRepaymentReminder() {
-            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String payLoadUrl = "http://54.72.21.49:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
@@ -960,7 +960,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_SECOND_OVERDUE_REPAYMENT_REMINDER_SMS)
     public void loanSecondOverdueRepaymentReminder() {
-            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String payLoadUrl = "http://54.72.21.49:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
@@ -1000,7 +1000,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_THIRD_OVERDUE_REPAYMENT_REMINDER_SMS)
     public void loanThirdOverdueRepaymentReminder() {
-            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String payLoadUrl = "http://54.72.21.49:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
@@ -1038,7 +1038,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.LOAN_FOURTH_OVERDUE_REPAYMENT_REMINDER_SMS)
     public void loanFourthOverdueRepaymentReminder() {
-            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String payLoadUrl = "http://54.72.21.49:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
@@ -1077,7 +1077,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.DEFAULT_WARNING_SMS_TO_CLIENT)
     public void defaultWarningToClients() {
-            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String payLoadUrl = "http://54.72.21.49:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
@@ -1116,7 +1116,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.DEFAULT_WARNING_SMS_TO_GURANTOR)
     public void defaultWarningToGuarantors() {
-            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String payLoadUrl = "http://54.72.21.49:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
@@ -1155,7 +1155,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     @Override
     @CronTarget(jobName = JobName.DORMANCY_WARNING_SMS_TO_CLIENT)
     public void dormancyWarningToClients() {
-            String payLoadUrl = "http://localhost:9191/modules/sms";
+            String payLoadUrl = "http://54.72.21.49:9191/modules/sms";
             String apikey = hookRepository.retriveApiKey();
             final String tenantIdentifier = ThreadLocalContextUtil.getTenant()
                             .getTenantIdentifier();
