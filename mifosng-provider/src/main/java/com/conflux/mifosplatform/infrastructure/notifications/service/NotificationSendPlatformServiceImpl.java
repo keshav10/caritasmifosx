@@ -67,11 +67,12 @@ public class NotificationSendPlatformServiceImpl implements NotificationSendPlat
         this.fromApiJsonDeserializer.validateForSend(command.json());
         
         final String type = command.stringValueOfParameterNamed(NotificationApiConstants.type);
-        final String target = command.stringValueOfParameterNamed(NotificationApiConstants.target);
+        final String targetValueFromJson = command.stringValueOfParameterNamed(NotificationApiConstants.target);
         final String subject = command.stringValueOfParameterNamed(NotificationApiConstants.subject);
         final String message = command.stringValueOfParameterNamed(NotificationApiConstants.message);
         final Long officeId=   command.longValueOfParameterNamed(NotificationApiConstants.entitiyId);
         final String tenantIdentifier = ThreadLocalContextUtil.getTenant().getTenantIdentifier();
+        final String target = targetValueFromJson.replaceAll("\\r\\n|\\r|\\n",""); // this is added to removed new line from the number list.
         Boolean enabled =false;
         if (type.equalsIgnoreCase("email")) {
         	emailSender.sendEmail(target, subject, message);
