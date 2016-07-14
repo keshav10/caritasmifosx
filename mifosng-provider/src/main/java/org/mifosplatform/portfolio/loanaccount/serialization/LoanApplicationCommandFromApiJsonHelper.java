@@ -246,16 +246,18 @@ public final class LoanApplicationCommandFromApiJsonHelper {
         if (this.fromApiJsonHelper.parameterExists(interestChargedFromDateParameterName, element)) {
             final LocalDate interestChargedFromDate = this.fromApiJsonHelper.extractLocalDateNamed(interestChargedFromDateParameterName,
                     element);
-            baseDataValidator.reset().parameter(interestChargedFromDateParameterName).value(interestChargedFromDate).ignoreIfNull()
-                    .notNull();
-        }
+            	baseDataValidator.reset().parameter(interestChargedFromDateParameterName).value(interestChargedFromDate).notNull();
+           }else{
+        	   baseDataValidator.reset().parameter(interestChargedFromDateParameterName).notNull();
+           }
 
         final String repaymentsStartingFromDateParameterName = "repaymentsStartingFromDate";
         if (this.fromApiJsonHelper.parameterExists(repaymentsStartingFromDateParameterName, element)) {
             final LocalDate repaymentsStartingFromDate = this.fromApiJsonHelper.extractLocalDateNamed(
                     repaymentsStartingFromDateParameterName, element);
-            baseDataValidator.reset().parameter(repaymentsStartingFromDateParameterName).value(repaymentsStartingFromDate).ignoreIfNull()
-                    .notNull();
+            	baseDataValidator.reset().parameter(repaymentsStartingFromDateParameterName).value(repaymentsStartingFromDate).notNull();       
+        }else{
+        	 baseDataValidator.reset().parameter(repaymentsStartingFromDateParameterName).notNull();
         }
 
         final String inArrearsToleranceParameterName = "inArrearsTolerance";
@@ -591,7 +593,9 @@ public final class LoanApplicationCommandFromApiJsonHelper {
             atLeastOneParameterPassedForUpdate = true;
             final LocalDate interestChargedFromDate = this.fromApiJsonHelper.extractLocalDateNamed(interestChargedFromDateParameterName,
                     element);
-            baseDataValidator.reset().parameter(interestChargedFromDateParameterName).value(interestChargedFromDate).ignoreIfNull();
+            baseDataValidator.reset().parameter(interestChargedFromDateParameterName).value(interestChargedFromDate).notNull();
+        }else{
+        	baseDataValidator.reset().parameter(interestChargedFromDateParameterName).notNull();
         }
 
         final String repaymentsStartingFromDateParameterName = "repaymentsStartingFromDate";
@@ -599,7 +603,9 @@ public final class LoanApplicationCommandFromApiJsonHelper {
             atLeastOneParameterPassedForUpdate = true;
             final LocalDate repaymentsStartingFromDate = this.fromApiJsonHelper.extractLocalDateNamed(
                     repaymentsStartingFromDateParameterName, element);
-            baseDataValidator.reset().parameter(repaymentsStartingFromDateParameterName).value(repaymentsStartingFromDate).ignoreIfNull();
+            baseDataValidator.reset().parameter(repaymentsStartingFromDateParameterName).value(repaymentsStartingFromDate).notNull();
+        }else{
+        	baseDataValidator.reset().parameter(repaymentsStartingFromDateParameterName).notNull();
         }
 
         final String submittedOnDateParameterName = "submittedOnDate";
