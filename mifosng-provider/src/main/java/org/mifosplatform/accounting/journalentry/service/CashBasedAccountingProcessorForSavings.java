@@ -222,10 +222,12 @@ public class CashBasedAccountingProcessorForSavings implements AccountingProcess
                         CASH_ACCOUNTS_FOR_SAVINGS.OVERDRAFT_PORTFOLIO_CONTROL.getValue(), savingsProductId, paymentTypeId, savingsId,
                         transactionId, transactionDate, amount, isReversal);
             } else if (savingsTransactionDTO.getTransactionType().isOverdraftFee()) {
-                this.helper.createCashBasedJournalEntriesAndReversalsForSavingsCharges(office, currencyCode,
-                        CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_REFERENCE, CASH_ACCOUNTS_FOR_SAVINGS.INCOME_FROM_FEES, savingsProductId,
-                        paymentTypeId, savingsId, transactionId, transactionDate, amount, isReversal, feePayments);
-            }
+            	if(feePayments.size() > 0){
+            		  this.helper.createCashBasedJournalEntriesAndReversalsForSavingsCharges(office, currencyCode,
+                              CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_REFERENCE, CASH_ACCOUNTS_FOR_SAVINGS.INCOME_FROM_FEES, savingsProductId,
+                              paymentTypeId, savingsId, transactionId, transactionDate, amount, isReversal, feePayments);
+            	}
+             }
         }
     }
 }
