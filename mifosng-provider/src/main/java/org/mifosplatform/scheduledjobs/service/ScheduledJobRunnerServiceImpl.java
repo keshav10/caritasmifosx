@@ -1501,6 +1501,9 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
          	    //following code for updating saving account minimum balance
          	   SavingsAccount account = this.savingAccount.findOne(savingId);
    	           BigDecimal availableMinRequiredBal = account.getMinRequiredBalance();
+   	           if(availableMinRequiredBal == null){
+   	        	   availableMinRequiredBal = BigDecimal.ZERO;
+   	        	   }
    	           BigDecimal newMinBal = availableMinRequiredBal.subtract(investedAmountByGroup);
                Long minBal = newMinBal.longValue();
    	        

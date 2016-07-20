@@ -513,7 +513,7 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
     }
 
     public boolean isCredit() {
-        return isDeposit() || isInterestPostingAndNotReversed();
+        return isDeposit() || isInterestPostingAndNotReversed() || isEarningFromInvestment();
     }
 
     public boolean isDebit() {
