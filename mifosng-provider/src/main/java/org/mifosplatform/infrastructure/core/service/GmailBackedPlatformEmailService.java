@@ -22,7 +22,7 @@ public class GmailBackedPlatformEmailService implements PlatformEmailService {
         final String authuserName = "support@cloudmicrofinance.com";
 
         final String authuser = "support@cloudmicrofinance.com";
-        final String authpwd = "support80";
+        final String authpwd = "support81";
 
         // Very Important, Don't use email.setAuthentication()
         email.setAuthenticator(new DefaultAuthenticator(authuser, authpwd));
