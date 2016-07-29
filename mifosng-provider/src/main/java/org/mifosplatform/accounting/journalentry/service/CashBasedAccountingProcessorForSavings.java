@@ -16,6 +16,7 @@ import org.mifosplatform.accounting.journalentry.data.ChargePaymentDTO;
 import org.mifosplatform.accounting.journalentry.data.SavingsDTO;
 import org.mifosplatform.accounting.journalentry.data.SavingsTransactionDTO;
 import org.mifosplatform.organisation.office.domain.Office;
+import org.mifosplatform.portfolio.savings.SavingsAccountTransactionType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -222,10 +223,12 @@ public class CashBasedAccountingProcessorForSavings implements AccountingProcess
                         CASH_ACCOUNTS_FOR_SAVINGS.OVERDRAFT_PORTFOLIO_CONTROL.getValue(), savingsProductId, paymentTypeId, savingsId,
                         transactionId, transactionDate, amount, isReversal);
             } else if (savingsTransactionDTO.getTransactionType().isOverdraftFee()) {
-            	if(feePayments.size() > 0){
-            		  this.helper.createCashBasedJournalEntriesAndReversalsForSavingsCharges(office, currencyCode,
-                              CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_REFERENCE, CASH_ACCOUNTS_FOR_SAVINGS.INCOME_FROM_FEES, savingsProductId,
-                              paymentTypeId, savingsId, transactionId, transactionDate, amount, isReversal, feePayments);
+            	if(savingsTransactionDTO.getTransactionType().getId() !=  SavingsAccountTransactionType.WAIVE_CHARGES.getValue().intValue()){
+            		if(feePayments.size() > 0){
+              		  this.helper.createCashBasedJournalEntriesAndReversalsForSavingsCharges(office, currencyCode,
+                                CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_REFERENCE, CASH_ACCOUNTS_FOR_SAVINGS.INCOME_FROM_FEES, savingsProductId,
+                                paymentTypeId, savingsId, transactionId, transactionDate, amount, isReversal, feePayments);
+              	    }	
             	}
              }
         }
