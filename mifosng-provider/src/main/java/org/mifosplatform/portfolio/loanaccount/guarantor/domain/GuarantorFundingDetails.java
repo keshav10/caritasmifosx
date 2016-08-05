@@ -89,7 +89,11 @@ public class GuarantorFundingDetails extends AbstractPersistable<Long> {
         return this.amount;
     }
 
-    public BigDecimal getAmountReleased() {
+    public void setAmountRemaining(BigDecimal amountRemaining) {
+		this.amountRemaining = amountRemaining;
+	}
+
+	public BigDecimal getAmountReleased() {
         return this.amountReleased == null ? BigDecimal.ZERO : this.amountReleased;
     }
 
@@ -142,12 +146,18 @@ public class GuarantorFundingDetails extends AbstractPersistable<Long> {
     		BigDecimal tempRemainingAmount = getAmountRemaining().add(amount);
     		if(tempRemainingAmount.compareTo(loanAmount) == 1){
     			this.amountRemaining = loanAmount;
-    			this.amount = loanAmount;
     		} else {
     			this.amountRemaining = getAmountRemaining().add(amount);
-    			this.amount = getAmount().add(amount);
     		}
             
             	}
 	     }
+
+	public AccountAssociations getAccountAssociations() {
+		return this.accountAssociations;
+	}
+
+	public void setAccountAssociations(AccountAssociations accountAssociations) {
+		this.accountAssociations = accountAssociations;
+	}
 }

@@ -41,12 +41,15 @@ import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFunding
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingTransactionRepository;
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorRepository;
 import org.mifosplatform.portfolio.loanaccount.guarantor.exception.GuarantorNotFoundException;
+import org.mifosplatform.portfolio.loanaccount.guarantor.exception.UndoReleasedGuarantorNotAllowed;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductGuaranteeDetails;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
 import org.mifosplatform.portfolio.savings.domain.DepositAccountOnHoldTransaction;
 import org.mifosplatform.portfolio.savings.domain.DepositAccountOnHoldTransactionRepository;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountRepository;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
 import org.mifosplatform.portfolio.savings.exception.InsufficientAccountBalanceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.AbstractPersistable;
@@ -63,6 +66,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
     private final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository;
     private final Map<Long, Long> releaseLoanIds = new HashMap<>(2);
     private final RoundingMode roundingMode = RoundingMode.HALF_EVEN;
+    private final SavingsAccountRepository savingsAccountRepositoy;
 
     @Autowired
     public GuarantorDomainServiceImpl(final GuarantorRepository guarantorRepository,
@@ -70,13 +74,15 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             final GuarantorFundingTransactionRepository guarantorFundingTransactionRepository,
             final AccountTransfersWritePlatformService accountTransfersWritePlatformService,
             final BusinessEventNotifierService businessEventNotifierService,
-            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository) {
+            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+            final SavingsAccountRepository savingsAccountRepositoy) {
         this.guarantorRepository = guarantorRepository;
         this.guarantorFundingRepository = guarantorFundingRepository;
         this.guarantorFundingTransactionRepository = guarantorFundingTransactionRepository;
         this.accountTransfersWritePlatformService = accountTransfersWritePlatformService;
         this.businessEventNotifierService = businessEventNotifierService;
         this.depositAccountOnHoldTransactionRepository = depositAccountOnHoldTransactionRepository;
+        this.savingsAccountRepositoy = savingsAccountRepositoy;
     }
 
     @PostConstruct
@@ -93,6 +99,8 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
         this.businessEventNotifierService.addBusinessEventPostListners(BUSINESS_EVENTS.LOAN_WRITTEN_OFF, new ReleaseAllFunds());
         this.businessEventNotifierService.addBusinessEventPostListners(BUSINESS_EVENTS.LOAN_UNDO_WRITTEN_OFF,
                 new ReverseFundsOnBusinessEvent());
+        this.businessEventNotifierService.addBusinessEventPostListners(BUSINESS_EVENTS.SAVINGS_UNDO_TRANSACTION,
+        		        		new UndoReleaseFundIfUndoDeposit());
     }
 
     @Override
@@ -169,7 +177,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction.hold(savingsAccount,
                     guarantorFundingDetails.getAmount(), transactionDate);
             GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(guarantorFundingDetails, null,
-                    onHoldTransaction);
+                    onHoldTransaction,null);
             guarantorFundingDetails.addGuarantorFundingTransactions(guarantorFundingTransaction);
             this.depositAccountOnHoldTransactionRepository.save(onHoldTransaction);
         }
@@ -188,7 +196,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             DepositAccountOnHoldTransaction onHoldTransaction = DepositAccountOnHoldTransaction.release(savingsAccount, amoutForWithdraw,
                     transactionDate);
             GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(guarantorFundingDetails, null,
-                    onHoldTransaction);
+                    onHoldTransaction,null);
             guarantorFundingDetails.addGuarantorFundingTransactions(guarantorFundingTransaction);
             guarantorFundingDetails.releaseFunds(amoutForWithdraw);
             guarantorFundingDetails.withdrawFunds(amoutForWithdraw);
@@ -366,7 +374,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
                                 guarantorFundingDetails.getAmount(), loan.getApprovedOnDate());
                         onHoldTransactions.add(onHoldTransaction);
                         GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(guarantorFundingDetails,
-                                null, onHoldTransaction);
+                                null, onHoldTransaction,null);
                         guarantorFundingDetails.addGuarantorFundingTransactions(guarantorFundingTransaction);
                         guarantorFundingDetailList.add(guarantorFundingDetails);
                         if (savingsAccount.getWithdrawableBalance().compareTo(BigDecimal.ZERO) == -1) {
@@ -469,7 +477,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
                                 amoutForRelease, loanTransaction.getTransactionDate());
                         onHoldTransactions.add(onHoldTransaction);
                         GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(guarantorFundingDetails,
-                                loanTransaction, onHoldTransaction);
+                                loanTransaction, onHoldTransaction,null);
                         guarantorFundingDetails.addGuarantorFundingTransactions(guarantorFundingTransaction);
                         guarantorFundingDetails.releaseFunds(amoutForRelease);
                         saveGuarantorFundingDetails.add(guarantorFundingDetails);
@@ -523,7 +531,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
                     loanTransaction.getTransactionDate());
             accountOnHoldTransactions.add(onHoldTransaction);
             GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(fundingDetails, loanTransaction,
-                    onHoldTransaction);
+                    onHoldTransaction,null);
             fundingDetails.addGuarantorFundingTransactions(guarantorFundingTransaction);
             amountLeft = amountLeft.subtract(guarantorAmount);
         }
@@ -776,5 +784,82 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             
         }
     }
+    
+    /**
+       * 
+       * Following method reverse the fund release transactions in case of deposit transaction revered
+       *
+       */
+    
+    private void reverseTransactionIfDepositUndoTxn(final List<Long> savingsTransactionIds, SavingsAccountTransaction transaction){
+    	    	List<GuarantorFundingTransaction> fundingTransactions = this.guarantorFundingTransactionRepository
+    	    			.fetchGuarantorFundingTransactionsForSavingsTxnId(savingsTransactionIds);
+    	    	
+    	    	Long savingTransactionSavingAccId = transaction.getSavingsAccount().getId();
+    	    	for(GuarantorFundingTransaction fundingTransaction : fundingTransactions){
+    	    	  Long fundingTxnSavingAccountId = fundingTransaction.getDepositAccountOnHoldTransaction().getSavingsAccount().getId();
+    	    	  Loan guarantorLoanAccount = fundingTransaction.getGuarantorFundingDetails().getAccountAssociations().getLoanAccount();
+    	    	  SavingsAccount savingsAccount = this.savingsAccountRepositoy.findOne(fundingTxnSavingAccountId);
+      	    	  BigDecimal savingAccountBalance = savingsAccount.getSummary().getAccountBalance();
+    	    	  BigDecimal undoTxnAmount = fundingTransaction.getDepositAccountOnHoldTransaction().getAmount();
+    	    	  if((savingAccountBalance.longValue() > undoTxnAmount.longValue()) && (guarantorLoanAccount.isOpen())){
+    	    		  if(savingTransactionSavingAccId == fundingTxnSavingAccountId){
+      	    			fundingTransaction.undoDepositSavingAccTxnThenUndoOnhold(undoTxnAmount);
+      	    		}else{
+      	    			fundingTransaction.reverseTransactionIfDepositUndoTxn();
+      	    		}  
+    	    	  }else{
+    	    		  throw new UndoReleasedGuarantorNotAllowed(guarantorLoanAccount.getId());
+    	    	  }
+    	    	}
+    	    	
+    	    	if(!fundingTransactions.isEmpty()){
+    	    		this.guarantorFundingTransactionRepository.save(fundingTransactions);
+    	    	}
+    	    
+    	    }
+    
+    
+    //following change for undo deposit transaction need to undo release guarantor
+        
+        private class UndoReleaseFundIfUndoDeposit implements BusinessEventListner{
+    
+    		@Override
+    		public void businessEventToBeExecuted(
+    				Map<BUSINESS_ENTITY, Object> businessEventEntity) {
+    			// TODO Auto-generated method stub
+    			
+    		}
+    
+    		@Override
+    		public void businessEventWasExecuted(
+    				Map<BUSINESS_ENTITY, Object> businessEventEntity) {
+    			// TODO Auto-generated method stub
+    			
+    			  Object savingTransactionEntity = businessEventEntity.get(BUSINESS_ENTITY.SAVINGS_TRANSACTION);
+    	            if(savingTransactionEntity != null && savingTransactionEntity instanceof SavingsAccountTransaction){
+    	            	SavingsAccountTransaction savingTransaction = (SavingsAccountTransaction) savingTransactionEntity; 
+    	            	List<Long> reversedTransactions = new ArrayList<>(1);
+    	            	reversedTransactions.add(savingTransaction.getId());
+    	            	reverseTransactionIfDepositUndoTxn(reversedTransactions,savingTransaction);
+    	            }
+    	            
+    		}
+    
+    		@Override
+    		public void businessEventToBeExecuted(
+    				AbstractPersistable<Long> businessEventEntity) {
+    			// TODO Auto-generated method stub
+    			
+    		}
+   
+    		@Override
+    		public void businessEventWasExecuted(
+    				AbstractPersistable<Long> businessEventEntity) {
+    			// TODO Auto-generated method stub
+    			
+    		}
+        	
+        }
 
 }

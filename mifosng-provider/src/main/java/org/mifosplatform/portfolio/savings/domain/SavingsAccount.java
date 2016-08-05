@@ -2670,5 +2670,25 @@ public class SavingsAccount extends AbstractPersistable<Long> {
          return transaction;
     	
     }
-  	
+    
+  //following code change for undoing the on-hold amount if deposit txn undo (other guarantor)
+    public void undoOnHoldAmountIfDepositTxnUndo(BigDecimal undoTxnAmount){
+    		BigDecimal totalOnHoldAmount = this.onHoldFunds;
+    		BigDecimal newOnHoldAmount = BigDecimal.ZERO;
+     		newOnHoldAmount = totalOnHoldAmount.add(undoTxnAmount);
+     		this.onHoldFunds = newOnHoldAmount;
+    }
+    
+    //following code is to subtract the onhold amount if onhold amount transaction get undo (self guarantor)
+    public void removedOnholdsFundsWithTxnAmount(BigDecimal transactionAmount) {
+    	 		BigDecimal totalOnHoldAmount = this.onHoldFunds;
+    	 		BigDecimal newOnholdAmount = BigDecimal.ZERO;
+    	 		newOnholdAmount = totalOnHoldAmount.subtract(transactionAmount);
+    	 		if(newOnholdAmount.longValue() > 0){
+    	 			this.onHoldFunds = newOnholdAmount;
+    	 		}else{
+    	 			this.onHoldFunds = BigDecimal.ZERO;
+    	 		}
+    	 		
+    	  	}  	
 }

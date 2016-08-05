@@ -94,5 +94,36 @@ public class DepositAccountOnHoldTransaction extends AbstractPersistable<Long> {
         return DepositAccountOnHoldTransactionType.fromInt(this.transactionType);
 
     }
+    
+    public boolean isReversed() {
+    		return this.reversed;
+    }
+    
+    public void setReversed(boolean reversed) {
+    		this.reversed = reversed;
+   	}
+    	
+    
+    public void reverseTxnIfUndoDepositTxn(BigDecimal releaseAmount){
+       	this.reversed = true;
+      //following if self saving account undo deposit then other guarantor has to be undo release and onhond has to be increase
+      //other guarantor onhod amount
+       	this.savingsAccount.undoOnHoldAmountIfDepositTxnUndo(releaseAmount);
+       }
+        
+    //following code change if undo the saving deposit on hold transaction self saving account onhold
+    
+    public void removedOnholdsFundsWithTxnAmount(BigDecimal releaseAmount){
+    	this.reversed = true;
+    	this.savingsAccount.removedOnholdsFundsWithTxnAmount(releaseAmount);
+    }
+
+	public SavingsAccount getSavingsAccount() {
+		return this.savingsAccount;
+	}
+
+	public void setSavingsAccount(SavingsAccount savingsAccount) {
+		this.savingsAccount = savingsAccount;
+	}
 
 }

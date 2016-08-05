@@ -10,6 +10,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,11 +25,15 @@ import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext
 import org.mifosplatform.organisation.monetary.domain.ApplicationCurrency;
 import org.mifosplatform.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
 import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
+import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants.BUSINESS_ENTITY;
+import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants.BUSINESS_EVENTS;
+import org.mifosplatform.portfolio.common.service.BusinessEventNotifierService;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.Guarantor;
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingDetails;
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingRepository;
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingTransaction;
+import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingTransactionRepository;
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorRepository;
 import org.mifosplatform.portfolio.loanaccount.service.LoanAssembler;
 import org.mifosplatform.portfolio.loanaccount.service.LoanReadPlatformService;
@@ -60,6 +65,8 @@ public class SavingsAccountDomainServiceJpa implements
 	private final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository;
 	private final GuarantorFundingRepository guarantorFundingRepository;
 	private final SavingsAccountReadPlatformService savingsAccountReadPlatformService;
+	private final BusinessEventNotifierService businessEventNotifierService;
+	private final GuarantorFundingTransactionRepository guarantorFundingTransactionRepository;
 
 	@Autowired
 	public SavingsAccountDomainServiceJpa(
@@ -74,7 +81,9 @@ public class SavingsAccountDomainServiceJpa implements
 			GuarantorRepository guarantorRepository,
 			DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
 			GuarantorFundingRepository guarantorFundingRepository,
-			SavingsAccountReadPlatformService savingsAccountReadPlatformService) {
+			SavingsAccountReadPlatformService savingsAccountReadPlatformService,
+			BusinessEventNotifierService businessEventNotifierService,
+			GuarantorFundingTransactionRepository guarantorFundingTransactionRepository) {
 		super();
 		this.context = context;
 		this.savingsAccountRepository = savingsAccountRepository;
@@ -88,6 +97,8 @@ public class SavingsAccountDomainServiceJpa implements
 		this.depositAccountOnHoldTransactionRepository = depositAccountOnHoldTransactionRepository;
 		this.guarantorFundingRepository = guarantorFundingRepository;
 		this.savingsAccountReadPlatformService = savingsAccountReadPlatformService;
+		this.businessEventNotifierService = businessEventNotifierService;
+		this.guarantorFundingTransactionRepository = guarantorFundingTransactionRepository;
 	}
 
 	@Transactional
@@ -209,7 +220,7 @@ public class SavingsAccountDomainServiceJpa implements
 		postJournalEntries(account, existingTransactionIds,
 				existingReversedTransactionIds, isAccountTransfer);
 
-	//	Long clientId = account.clientId();
+		
 		Long savingId = account.getId();
 
 		long isReleaseGuarantor = this.savingsAccountReadPlatformService
@@ -228,7 +239,7 @@ public class SavingsAccountDomainServiceJpa implements
 		
 	    BigDecimal totalTransactionAmount = null;
 
-		if (!(loanId == null) && isReleaseGuarantor == 1) {
+		if (!(loanId == null) && isReleaseGuarantor == 1 && isEarningFromInvestment == false) {
 
 			final Loan loan = this.loanAssembler.assembleFrom(loanId);
 			
@@ -261,7 +272,14 @@ public class SavingsAccountDomainServiceJpa implements
 				   
 				   for(GuarantorFundingDetails guarantorFD : fundingDetails){
 					   
-					   if(!(guarantorFD.getLinkedSavingsAccount().accountNumber.equals(account.accountNumber))){
+					   if(guarantor1.isSelfGuarantee()){
+						   selfGuarantee = selfGuarantee.add(guarantorFD.getAmountRemaining());
+					   }else if(guarantor1.isExistingCustomer()){
+						   guarantorGuarantee = guarantorGuarantee.add(guarantorFD.getAmountRemaining());
+					   }
+					   
+					  //following code to check other guarantor on hold amount is greater than zero
+					  if(!(guarantorFD.getLinkedSavingsAccount().accountNumber.equals(account.accountNumber))){
 				    	 remainingAmount = guarantorFD.getAmountRemaining();
 				    
 				    	 if(remainingAmount.compareTo(BigDecimal.ZERO)==0){
@@ -271,13 +289,8 @@ public class SavingsAccountDomainServiceJpa implements
 							allowToOnHold = true;
 							
 						}
-				  	
 				     }
 				   }	   
-				   
-				   if(allowToOnHold == true){
-					   break;
-				   }
 			 }
  
 
@@ -293,13 +306,11 @@ public class SavingsAccountDomainServiceJpa implements
 						if (guarantor.isSelfGuarantee() ) {
 							if(guarantorFundingDetails.getLinkedSavingsAccount().accountNumber.equals(account.accountNumber)){	
 								selfGuarantorList.add(guarantorFundingDetails);
-								selfGuarantee = selfGuarantee
-										.add(guarantorFundingDetails
-												.getAmountRemaining());
-								BigDecimal  totalOnHoldAmount = account.getOnHoldFunds();
-								BigDecimal remainingOnHoldAmount = loanAmount.subtract(totalOnHoldAmount);
+								BigDecimal  selfGuarantorOnHoldAmount = account.getOnHoldFunds();
+								BigDecimal totalOnHoldAmountOfLoan = selfGuarantee.add(guarantorGuarantee);
+								BigDecimal remainingOnHoldAmount = totalOnHoldAmountOfLoan.subtract(selfGuarantorOnHoldAmount);
 								boolean allowToAddOnHold = false;
-							    if(totalOnHoldAmount.compareTo(loanAmount)<1){
+							    if(selfGuarantorOnHoldAmount.compareTo(loanAmount)<1){
 							    	allowToAddOnHold = true;
 							    }
 							    
@@ -323,7 +334,7 @@ public class SavingsAccountDomainServiceJpa implements
 											.add(onHoldTransaction);
 									GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(
 											guarantorFundingDetails, null,
-											onHoldTransaction);
+											onHoldTransaction, deposit);
 									guarantorFundingDetails
 											.addGuarantorFundingTransactions(guarantorFundingTransaction);
 								}
@@ -331,11 +342,7 @@ public class SavingsAccountDomainServiceJpa implements
 
 						} else if (guarantor.isExistingCustomer()) {
 							externalGuarantorList.add(guarantorFundingDetails);
-							guarantorGuarantee = guarantorGuarantee
-									.add(guarantorFundingDetails
-											.getAmountRemaining());
 							allowToInsert = true;
-
 						}
 					}
 
@@ -346,25 +353,16 @@ public class SavingsAccountDomainServiceJpa implements
 
 				BigDecimal amountLeft = calculateAndRelaseGuarantorFunds(
 						externalGuarantorList, guarantorGuarantee,
-						transactionAmount, deposit, accountOnHoldTransactions);
+						totalTransactionAmount, deposit, accountOnHoldTransactions);
 
 				BigDecimal totalGuaranteeAmount = selfGuarantee
 						.add(guarantorGuarantee);
-				BigDecimal availableOnHoladAmount = account.getOnHoldFunds();
-
-				// BigDecimal addRemainingAmount =
-				// loanAmount.subtract(totalGuaranteeAmount);
 
 				if (transactionAmount.longValue() > totalGuaranteeAmount
 						.longValue()) {
-					BigDecimal newOnHoldAmount = totalGuaranteeAmount
-							.subtract(availableOnHoladAmount);
-					account.holdFunds(newOnHoldAmount);
+					account.holdFunds(totalGuaranteeAmount);
 				} else {
-					if (availableOnHoladAmount.longValue() <= totalGuaranteeAmount
-							.longValue()) {
 						account.holdFunds(totalTransactionAmount);
-					}
 
 				}
 
@@ -392,7 +390,7 @@ public class SavingsAccountDomainServiceJpa implements
 		}		
 
 	  	
-		this.savingsAccountRepository.save(account);
+		this.savingsAccountRepository.saveAndFlush(account);
 		return deposit;
 	}
 
@@ -427,7 +425,7 @@ public class SavingsAccountDomainServiceJpa implements
 							deposite.transactionLocalDate());
 			accountOnHoldTransactions.add(onHoldTransaction);
 			GuarantorFundingTransaction guarantorFundingTransaction = new GuarantorFundingTransaction(
-					fundingDetails, null, onHoldTransaction);
+					fundingDetails, null, onHoldTransaction, deposite);
 			fundingDetails
 					.addGuarantorFundingTransactions(guarantorFundingTransaction);
 			amountLeft = amountLeft.subtract(guarantorAmount);
@@ -476,5 +474,68 @@ public class SavingsAccountDomainServiceJpa implements
 		postJournalEntries(account, existingTransactionIds,
 				existingReversedTransactionIds, isAccountTransfer);
 	}
+	
+	@Transactional
+	@Override
+		public void handleUndoTransaction(
+				SavingsAccount account, SavingsAccountTransaction transactionDetail) {
+			// TODO Auto-generated method stub
+			
+			Long savingId = account.getId();
+			Long txnId = transactionDetail.getId();
+			BigDecimal onHoldAmount = account.getOnHoldFunds();
+			List<Long> transactionIds  = new ArrayList();
+			transactionIds.add(txnId);
+					
+			long isReleaseGuarantor = this.savingsAccountReadPlatformService
+					.getIsReleaseGuarantor(savingId);
+			
+			List<Long> totalLoanId = null;  // list of loan id is for to get total loan account associated for this self guarantee
+			Long loanId = null;
+			if(isReleaseGuarantor == 1){
+				totalLoanId = this.loanReadPlatformService
+						.retriveLoanAccountId(savingId);
+				if(!totalLoanId.isEmpty()){
+				   loanId = totalLoanId.get(0);
+				}
+			}
+			
+			if (!(loanId == null) && isReleaseGuarantor == 1) {
+				
+				final Loan loan = this.loanAssembler.assembleFrom(loanId);
+				if(loan.isDisbursed() == true){
+					
+					final List<Guarantor> existGuarantorList = this.guarantorRepository
+							.findByLoan(loan);
+					
+					if(onHoldAmount.compareTo(BigDecimal.ZERO)>0){
+						
+						for(Guarantor guarantor : existGuarantorList){
+							
+							final List<GuarantorFundingDetails> fundingDetails = guarantor
+									.getGuarantorFundDetails();
+							
+							for(GuarantorFundingDetails guarantorFundingDetail : fundingDetails){
+								
+								if(guarantor.isSelfGuarantee()){
+									if(guarantorFundingDetail.getLinkedSavingsAccount().accountNumber.equals(account.accountNumber)){
+																	
+										this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.SAVINGS_UNDO_TRANSACTION,
+							                    constructEntityMap(BUSINESS_ENTITY.SAVINGS_TRANSACTION, transactionDetail)); 
+								      }
+								  }		
+							  }	
+						   }
+					    }
+					}
+			    }			
+		   }
+	
+		
+		  private Map<BUSINESS_ENTITY, Object> constructEntityMap(final BUSINESS_ENTITY entityEvent, Object entity) {
+		        Map<BUSINESS_ENTITY, Object> map = new HashMap<>(1);
+		        map.put(entityEvent, entity);
+		        return map;
+		    }
 
 }

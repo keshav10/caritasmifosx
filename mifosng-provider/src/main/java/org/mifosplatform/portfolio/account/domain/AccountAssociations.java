@@ -77,4 +77,12 @@ public class AccountAssociations extends AbstractPersistable<Long> {
    	public void setActive(boolean active) {
     			this.active = active;
    	}
+
+	public Loan getLoanAccount() {
+		return this.loanAccount;
+	}
+
+	public void setLoanAccount(Loan loanAccount) {
+		this.loanAccount = loanAccount;
+	}
 }
