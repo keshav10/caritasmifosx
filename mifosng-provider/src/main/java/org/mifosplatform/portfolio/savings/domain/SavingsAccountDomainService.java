@@ -22,4 +22,5 @@ public interface SavingsAccountDomainService {
             BigDecimal transactionAmount, PaymentDetail paymentDetail, boolean isAccountTransfer, boolean isRegularTransaction, boolean isEarningFromInvestment);
 
     void postJournalEntries(SavingsAccount savingsAccount, Set<Long> existingTransactionIds, Set<Long> existingReversedTransactionIds);
+    void handleUndoTransaction(SavingsAccount account, SavingsAccountTransaction transactionDetail);
 }

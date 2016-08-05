@@ -49,7 +49,7 @@ import org.springframework.util.CollectionUtils;
 @Table(name = "m_savings_account_transaction")
 public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
 
-    @ManyToOne(optional = false)
+	@ManyToOne(optional = false)
     @JoinColumn(name = "savings_account_id", nullable = false)
     private SavingsAccount savingsAccount;
 
@@ -620,4 +620,11 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
     public BigDecimal getAmount() {
         return this.amount;
     }
+    public SavingsAccount getSavingsAccount() {
+  		return this.savingsAccount;
+  	}
+
+  	public void setSavingsAccount(SavingsAccount savingsAccount) {
+  		this.savingsAccount = savingsAccount;
+  	}
 }
