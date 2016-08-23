@@ -307,8 +307,7 @@ public class SavingsAccountDomainServiceJpa implements
 							if(guarantorFundingDetails.getLinkedSavingsAccount().accountNumber.equals(account.accountNumber)){	
 								selfGuarantorList.add(guarantorFundingDetails);
 								BigDecimal  selfGuarantorOnHoldAmount = account.getOnHoldFunds();
-								BigDecimal totalOnHoldAmountOfLoan = selfGuarantee.add(guarantorGuarantee);
-								BigDecimal remainingOnHoldAmount = totalOnHoldAmountOfLoan.subtract(selfGuarantorOnHoldAmount);
+								BigDecimal remainingOnHoldAmount = guarantorGuarantee.subtract(transactionAmount);
 								boolean allowToAddOnHold = false;
 							    if(selfGuarantorOnHoldAmount.compareTo(loanAmount)<1){
 							    	allowToAddOnHold = true;
