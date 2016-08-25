@@ -354,8 +354,7 @@ public class SavingsAccountDomainServiceJpa implements
 						externalGuarantorList, guarantorGuarantee,
 						totalTransactionAmount, deposit, accountOnHoldTransactions);
 
-				BigDecimal totalGuaranteeAmount = selfGuarantee
-						.add(guarantorGuarantee);
+				BigDecimal totalGuaranteeAmount = guarantorGuarantee;
 
 				if (transactionAmount.longValue() > totalGuaranteeAmount
 						.longValue()) {
