@@ -5,9 +5,12 @@
  */
 package org.mifosplatform.portfolio.account.service;
 
+import java.util.Collection;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
+import org.mifosplatform.portfolio.account.PortfolioAccountType;
+import org.mifosplatform.portfolio.account.domain.StandingInstructionType;
 
 public interface StandingInstructionWritePlatformService {
 
@@ -19,4 +22,5 @@ public interface StandingInstructionWritePlatformService {
 
     CommandProcessingResult delete(Long id);
 
+	Collection<Long> delete(Long loanId, PortfolioAccountType loan);
 }

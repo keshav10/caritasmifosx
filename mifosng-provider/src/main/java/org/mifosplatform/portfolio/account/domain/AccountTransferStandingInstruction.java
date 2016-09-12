@@ -278,4 +278,9 @@ public class AccountTransferStandingInstruction extends AbstractPersistable<Long
     public void updateStatus(Integer status){
         this.status = status;
     }
+    
+    public void delete() { 
+            this.status = StandingInstructionStatus.DELETED.getValue(); 
+            this.name = this.name + "_deleted_" + this.getId(); 
+    	     } 
 }

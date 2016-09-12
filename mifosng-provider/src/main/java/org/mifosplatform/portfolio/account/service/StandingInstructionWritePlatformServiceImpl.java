@@ -11,9 +11,12 @@ import static org.mifosplatform.portfolio.account.AccountDetailConstants.toAccou
 import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.statusParamName;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
@@ -36,12 +39,14 @@ import org.mifosplatform.portfolio.account.domain.AccountTransferDetailRepositor
 import org.mifosplatform.portfolio.account.domain.AccountTransferDetails;
 import org.mifosplatform.portfolio.account.domain.AccountTransferRecurrenceType;
 import org.mifosplatform.portfolio.account.domain.AccountTransferStandingInstruction;
+import org.mifosplatform.portfolio.account.domain.AccountTransferTransaction;
 import org.mifosplatform.portfolio.account.domain.StandingInstructionAssembler;
 import org.mifosplatform.portfolio.account.domain.StandingInstructionRepository;
 import org.mifosplatform.portfolio.account.domain.StandingInstructionStatus;
 import org.mifosplatform.portfolio.account.domain.StandingInstructionType;
 import org.mifosplatform.portfolio.account.exception.StandingInstructionNotFoundException;
 import org.mifosplatform.portfolio.common.domain.PeriodFrequencyType;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.DefaultScheduledDateGenerator;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.ScheduledDateGenerator;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
@@ -165,7 +170,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
     @Override
     public CommandProcessingResult delete(final Long id) {
         AccountTransferStandingInstruction standingInstructionsForUpdate = this.standingInstructionRepository.findOne(id);
-        standingInstructionsForUpdate.updateStatus(StandingInstructionStatus.DELETED.getValue());
+        standingInstructionsForUpdate.delete();
         final Map<String, Object> actualChanges = new HashMap<>();
         actualChanges.put(statusParamName, StandingInstructionStatus.DELETED.getValue());
         return new CommandProcessingResultBuilder() //
@@ -279,4 +284,27 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
         this.jdbcTemplate.update(updateQuery.toString());
 
     }
-}
+
+	
+	@Override
+	public Collection<Long> delete(Long loanId, PortfolioAccountType type) {
+		List<AccountTransferStandingInstruction> standingInstructions = null;
+		final List<Long> deletedStandingInstructionIds = new ArrayList<>();
+
+		if (type.isLoanAccount()) {
+			standingInstructions = this.standingInstructionRepository.findAllByLoanId(loanId,
+					StandingInstructionStatus.ACTIVE.getValue());
+		}
+
+		if (standingInstructions != null) {
+			for (AccountTransferStandingInstruction instruction : standingInstructions) {
+				instruction.delete();
+				deletedStandingInstructionIds.add(instruction.getId());
+			}
+			this.standingInstructionRepository.save(standingInstructions);
+		}
+		
+		return deletedStandingInstructionIds;
+	}
+ }
+	
