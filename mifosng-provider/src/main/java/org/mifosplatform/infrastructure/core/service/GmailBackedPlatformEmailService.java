@@ -19,10 +19,10 @@ public class GmailBackedPlatformEmailService implements PlatformEmailService {
     public void sendToUserAccount(final EmailDetail emailDetail, final String unencodedPassword) {
         final Email email = new SimpleEmail();
 
-        final String authuserName = "support@cloudmicrofinance.com";
+        final String authuserName = "it.caritas.nairobi@gmail.com";
 
-        final String authuser = "support@cloudmicrofinance.com";
-        final String authpwd = "support81";
+        final String authuser = "it.caritas.nairobi@gmail.com";
+        final String authpwd = "downbytheR123";
 
         // Very Important, Don't use email.setAuthentication()
         email.setAuthenticator(new DefaultAuthenticator(authuser, authpwd));
@@ -32,19 +32,33 @@ public class GmailBackedPlatformEmailService implements PlatformEmailService {
             email.getMailSession().getProperties().put("mail.smtp.starttls.enable", "true");
             email.setFrom(authuser, authuserName);
 
-            final StringBuilder subjectBuilder = new StringBuilder().append("MifosX Prototype Demo: ").append(emailDetail.getContactName())
-                    .append(" user account creation.");
-
+            final StringBuilder subjectBuilder = new StringBuilder().append("Caritas Nairobi Mifos X Credentials");
+            
             email.setSubject(subjectBuilder.toString());
 
             final String sendToEmail = emailDetail.getAddress();
-
-            final StringBuilder messageBuilder = new StringBuilder().append("You are receiving this email as your email account: ")
-                    .append(sendToEmail).append(" has being used to create a user account for an organisation named [")
-                    .append(emailDetail.getOrganisationName()).append("] on MifosX Prototype Demo.")
-                    .append("You can login using the following credentials: username: ").append(emailDetail.getUsername())
-                    .append(" password: ").append(unencodedPassword);
-
+            
+            final StringBuilder messageBuilder = new StringBuilder().append("Hello ").append(emailDetail.getContactName()).append(",")
+            		 .append("\n\n")
+            		 .append("You are receiving this email as your email account: ")
+            		 .append(sendToEmail).append(" has being used to create a user account for a group named ")
+            		 .append(emailDetail.getOrganisationName())
+            		 .append(" on Caritas Nairobi MifosX.")
+            		 .append("\n\n")
+            		 .append("You can login using the following credentials:")
+            		 .append("\n\n")
+            		 .append("URL Link: https://livemis.caritasnairobi.org ")
+            		 .append("\n")
+            		 .append("Username: ").append(emailDetail.getUsername())
+            		 .append("\n")
+            		 .append("Password: ").append(unencodedPassword)
+            		 .append("\n\n")
+            		 .append("For any queries please email it@caritasnairobi.org ")
+            		 .append("\n\n\n")
+            		 .append("Thanks,")
+            		 .append("\n")
+            		 .append("Caritas Nairobi IT Team");
+            
             email.setMsg(messageBuilder.toString());
 
             email.addTo(sendToEmail, emailDetail.getContactName());
