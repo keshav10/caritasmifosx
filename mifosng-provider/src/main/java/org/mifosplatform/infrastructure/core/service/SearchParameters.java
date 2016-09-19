@@ -27,6 +27,7 @@ public final class SearchParameters {
     private final Long loanId;
 
     private final Long savingsId;
+    private final Long clientStatus;
 
     public static SearchParameters from(final String sqlSearch, final Long officeId, final String externalId, final String name,
             final String hierarchy) {
@@ -35,12 +36,12 @@ public final class SearchParameters {
         final Long loanId = null;
         final Long savingsId = null;
         return new SearchParameters(sqlSearch, officeId, externalId, name, hierarchy, null, null, null, null, null, null, staffId,
-                accountNo, loanId, savingsId);
+                accountNo, loanId, savingsId, null);
     }
 
     public static SearchParameters forClients(final String sqlSearch, final Long officeId, final String externalId,
             final String displayName, final String firstname, final String lastname, final String hierarchy, final Integer offset,
-            final Integer limit, final String orderBy, final String sortOrder) {
+            final Integer limit, final String orderBy, final String sortOrder, final Long clientStatus) {
 
         final Integer maxLimitAllowed = getCheckedLimit(limit);
         final Long staffId = null;
@@ -49,7 +50,7 @@ public final class SearchParameters {
         final Long savingsId = null;
 
         return new SearchParameters(sqlSearch, officeId, externalId, displayName, hierarchy, firstname, lastname, offset, maxLimitAllowed,
-                orderBy, sortOrder, staffId, accountNo, loanId, savingsId);
+                orderBy, sortOrder, staffId, accountNo, loanId, savingsId, clientStatus);
     }
 
     public static SearchParameters forGroups(final String sqlSearch, final Long officeId, final Long staffId, final String externalId,
@@ -62,11 +63,11 @@ public final class SearchParameters {
         final Long savingsId = null;
 
         return new SearchParameters(sqlSearch, officeId, externalId, name, hierarchy, null, null, offset, maxLimitAllowed, orderBy,
-                sortOrder, staffId, accountNo, loanId, savingsId);
+                sortOrder, staffId, accountNo, loanId, savingsId, null);
     }
 
     public static SearchParameters forOffices(final String orderBy, final String sortOrder) {
-        return new SearchParameters(null, null, null, null, null, null, null, null, null, orderBy, sortOrder, null, null, null, null);
+        return new SearchParameters(null, null, null, null, null, null, null, null, null, orderBy, sortOrder, null, null, null, null, null);
     }
 
     public static SearchParameters forLoans(final String sqlSearch, final String externalId, final Integer offset, final Integer limit,
@@ -78,7 +79,7 @@ public final class SearchParameters {
         final Long savingsId = null;
 
         return new SearchParameters(sqlSearch, null, externalId, null, null, null, null, offset, maxLimitAllowed, orderBy, sortOrder,
-                staffId, accountNo, loanId, savingsId);
+                staffId, accountNo, loanId, savingsId, null);
     }
 
     public static SearchParameters forJournalEntries(final Long officeId, final Integer offset, final Integer limit, final String orderBy,
@@ -88,7 +89,7 @@ public final class SearchParameters {
         final Long staffId = null;
 
         return new SearchParameters(null, officeId, null, null, null, null, null, offset, maxLimitAllowed, orderBy, sortOrder, staffId,
-                null, loanId, savingsId);
+                null, loanId, savingsId, null);
     }
 
     public static SearchParameters forPagination(final Integer offset, final Integer limit, final String orderBy, final String sortOrder) {
@@ -99,7 +100,7 @@ public final class SearchParameters {
         final Long savingsId = null;
 
         return new SearchParameters(null, null, null, null, null, null, null, offset, maxLimitAllowed, orderBy, sortOrder, staffId, null,
-                loanId, savingsId);
+                loanId, savingsId, null);
     }
 
     public static SearchParameters forSavings(final String sqlSearch, final String externalId, final Integer offset, final Integer limit,
@@ -112,7 +113,7 @@ public final class SearchParameters {
         final Long savingsId = null;
 
         return new SearchParameters(sqlSearch, null, externalId, null, null, null, null, offset, maxLimitAllowed, orderBy, sortOrder,
-                staffId, accountNo, loanId, savingsId);
+                staffId, accountNo, loanId, savingsId, null);
     }
 
     public static SearchParameters forAccountTransfer(final String sqlSearch, final String externalId, final Integer offset,
@@ -125,13 +126,13 @@ public final class SearchParameters {
         final Long savingsId = null;
 
         return new SearchParameters(sqlSearch, null, externalId, null, null, null, null, offset, maxLimitAllowed, orderBy, sortOrder,
-                staffId, accountNo, loanId, savingsId);
+                staffId, accountNo, loanId, savingsId, null);
     }
 
     private SearchParameters(final String sqlSearch, final Long officeId, final String externalId, final String name,
             final String hierarchy, final String firstname, final String lastname, final Integer offset, final Integer limit,
             final String orderBy, final String sortOrder, final Long staffId, final String accountNo, final Long loanId,
-            final Long savingsId) {
+            final Long savingsId, final Long clientStatus) {
         this.sqlSearch = sqlSearch;
         this.officeId = officeId;
         this.externalId = externalId;
@@ -147,6 +148,7 @@ public final class SearchParameters {
         this.accountNo = accountNo;
         this.loanId = loanId;
         this.savingsId = savingsId;
+        this.clientStatus = clientStatus;
     }
 
     public boolean isOrderByRequested() {
@@ -259,5 +261,13 @@ public final class SearchParameters {
 
     public Long getSavingsId() {
         return this.savingsId;
+    }
+    
+    public boolean isclientStatusPassed() {
+        return this.clientStatus != null && this.clientStatus != 0;
+    }
+    
+    public Long getclientStatus() {
+        return this.clientStatus;
     }
 }

@@ -158,6 +158,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
         final String displayName = searchParameters.getName();
         final String firstname = searchParameters.getFirstname();
         final String lastname = searchParameters.getLastname();
+        final Long clientStatus = searchParameters.getclientStatus();
 
         String extraCriteria = "";
         if (sqlSearch != null) {
@@ -185,6 +186,10 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
 
         if (lastname != null) {
             extraCriteria += " and c.lastname like " + ApiParameterHelper.sqlEncodeString(lastname);
+        }
+        
+        if (clientStatus != null) {
+            extraCriteria += " and c.status_enum = " + clientStatus;
         }
 
         if (searchParameters.isScopedByOfficeHierarchy()) {

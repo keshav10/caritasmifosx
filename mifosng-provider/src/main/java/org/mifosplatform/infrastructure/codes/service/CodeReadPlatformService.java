@@ -8,6 +8,7 @@ package org.mifosplatform.infrastructure.codes.service;
 import java.util.Collection;
 
 import org.mifosplatform.infrastructure.codes.data.CodeData;
+import org.mifosplatform.infrastructure.codes.data.CodeValueData;
 
 public interface CodeReadPlatformService {
 
@@ -16,4 +17,6 @@ public interface CodeReadPlatformService {
     CodeData retrieveCode(Long codeId);
 
     CodeData retriveCode(String codeName);
+    
+    Collection<CodeValueData> retrieveAllCodeValuesForCode(final String codeName);
 }
