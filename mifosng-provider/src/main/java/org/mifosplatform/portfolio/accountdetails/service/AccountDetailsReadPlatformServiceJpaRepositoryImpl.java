@@ -35,6 +35,8 @@ import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
 import org.mifosplatform.portfolio.loanaccount.service.LoanChargeReadPlatformServiceImpl;
 import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
 import org.mifosplatform.portfolio.paymentdetail.PaymentDetailConstants;
+import org.mifosplatform.portfolio.paymenttype.data.PaymentTypeData;
+import org.mifosplatform.portfolio.paymenttype.service.PaymentTypeReadPlatformService;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountApplicationTimelineData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountStatusEnumData;
 import org.mifosplatform.portfolio.savings.data.SavingsChargesSummaryData;
@@ -57,6 +59,8 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
     private final LoanRepository loanRepository;
     private final LoanChargeReadPlatformServiceImpl loanChargeReadPlatformServiceImpl;
     private final SavingsAccountChargeReadPlatformServiceImpl savingsAccountChargeReadPlatformServiceImpl;
+    private final PaymentTypeReadPlatformService paymentTypeReadPlatformService;
+
 
     @Autowired
     public AccountDetailsReadPlatformServiceJpaRepositoryImpl(final ClientReadPlatformService clientReadPlatformService,
@@ -65,7 +69,8 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             final SavingsAccountRepository savingsAccountRepository,
             final LoanRepository loanRepository,
             final LoanChargeReadPlatformServiceImpl loanChargeReadPlatformServiceImpl,
-            final SavingsAccountChargeReadPlatformServiceImpl savingsAccountChargeReadPlatformServiceImpl) {
+            final SavingsAccountChargeReadPlatformServiceImpl savingsAccountChargeReadPlatformServiceImpl,
+            final PaymentTypeReadPlatformService paymentTypeReadPlatformService) {
         this.clientReadPlatformService = clientReadPlatformService;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.groupReadPlatformService = groupReadPlatformService;
@@ -74,6 +79,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
         this.loanRepository=loanRepository;
         this.loanChargeReadPlatformServiceImpl= loanChargeReadPlatformServiceImpl;
         this.savingsAccountChargeReadPlatformServiceImpl=savingsAccountChargeReadPlatformServiceImpl;
+        this.paymentTypeReadPlatformService =paymentTypeReadPlatformService;
     }
 
     @Override
@@ -84,8 +90,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
         final String savingswhereClause = " where sa.client_id = ?  group by sa.account_no order by sa.status_enum ASC, sa.account_no ASC ";
         final List<LoanAccountSummaryData> loanAccounts = retrieveLoanAccountDetails(loanwhereClause, new Object[] { clientId });
         final List<SavingsAccountSummaryData> savingsAccounts = retrieveAccountDetails(savingswhereClause, new Object[] { clientId });
-        final Collection<CodeValueData> paymentTypeOptions = this.codeValueReadPlatformService
-                .retrieveCodeValuesByCode(PaymentDetailConstants.paymentTypeCodeName);
+        final Collection<PaymentTypeData> paymentTypeOptions = this.paymentTypeReadPlatformService.retrieveAllPaymentTypes();
         return new AccountSummaryCollectionData(loanAccounts, savingsAccounts, paymentTypeOptions);
     }
 
@@ -621,8 +626,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 	        	Collection<SavingsChargesSummaryData> savingChargesList = savingsAccountChargeReadPlatformServiceImpl.retriveCharge(savingId,chargeonDate);
 	        	savingsCharges.addAll(savingChargesList);
 	        }
-	        final Collection<CodeValueData> paymentTypeOptions = this.codeValueReadPlatformService
-	                .retrieveCodeValuesByCode(PaymentDetailConstants.paymentTypeCodeName);
+	        final Collection<PaymentTypeData> paymentTypeOptions = this.paymentTypeReadPlatformService.retrieveAllPaymentTypes();
 	        return new AccountSummaryCollectionData(loanAccounts, savingsAccounts, paymentTypeOptions,loanCharges,savingsCharges,null,null);
 
 	}
