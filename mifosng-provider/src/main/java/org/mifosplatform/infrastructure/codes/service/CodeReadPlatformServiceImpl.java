@@ -10,6 +10,9 @@ import java.sql.SQLException;
 import java.util.Collection;
 
 import org.mifosplatform.infrastructure.codes.data.CodeData;
+import org.mifosplatform.infrastructure.codes.data.CodeValueData;
+import org.mifosplatform.infrastructure.codes.domain.Code;
+import org.mifosplatform.infrastructure.codes.domain.CodeRepository;
 import org.mifosplatform.infrastructure.codes.exception.CodeNotFoundException;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
@@ -25,11 +28,16 @@ public class CodeReadPlatformServiceImpl implements CodeReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
     private final PlatformSecurityContext context;
+    private final CodeValueReadPlatformService readPlatformService;
+    private final CodeRepository codeRepository;
 
     @Autowired
-    public CodeReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource) {
+    public CodeReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource,
+            final CodeValueReadPlatformService readPlatformService, final CodeRepository codeRepository) {
         this.context = context;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.readPlatformService = readPlatformService;
+        this.codeRepository = codeRepository;
     }
 
     private static final class CodeMapper implements RowMapper<CodeData> {
@@ -86,5 +94,19 @@ public class CodeReadPlatformServiceImpl implements CodeReadPlatformService {
         } catch (final EmptyResultDataAccessException e) {
             throw new CodeNotFoundException(codeName);
         }
+    }
+
+    @Override
+    public Collection<CodeValueData> retrieveAllCodeValuesForCode(String codeName) {
+        try {
+            this.context.authenticatedUser();
+
+            final Code code = codeRepository.findOneByName(codeName);
+            return this.readPlatformService.retrieveAllCodeValues(code.getId());
+
+        } catch (final NullPointerException e) {
+            throw new CodeNotFoundException(codeName);
+        }
+        
     }
 }
