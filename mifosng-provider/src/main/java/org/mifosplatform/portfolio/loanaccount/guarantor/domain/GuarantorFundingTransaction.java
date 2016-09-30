@@ -7,6 +7,7 @@ package org.mifosplatform.portfolio.loanaccount.guarantor.domain;
 
 import java.math.BigDecimal;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
@@ -35,7 +36,7 @@ public class GuarantorFundingTransaction extends AbstractPersistable<Long> {
     @JoinColumn(name = "saving_transaction_id", nullable = true)
     private SavingsAccountTransaction savingTransaction;
 
-	@OneToOne
+	@OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "deposit_on_hold_transaction_id", nullable = false)
     private DepositAccountOnHoldTransaction depositAccountOnHoldTransaction;
 
