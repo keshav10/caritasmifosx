@@ -111,8 +111,8 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             LoanProductGuaranteeDetails guaranteeData = loanProduct.getLoanProductGuaranteeDetails();
             final List<Guarantor> existGuarantorList = this.guarantorRepository.findByLoan(loan);
             BigDecimal mandatoryAmount = principal.multiply(guaranteeData.getMandatoryGuarantee()).divide(BigDecimal.valueOf(100));
-            BigDecimal minSelfAmount = principal.multiply(guaranteeData.getMinimumGuaranteeFromOwnFunds()).divide(BigDecimal.valueOf(100));
-            BigDecimal minExtGuarantee = principal.multiply(guaranteeData.getMinimumGuaranteeFromGuarantor()).divide(
+            BigDecimal minSelfAmount = principal.multiply(retrunZeroIfNull(guaranteeData.getMinimumGuaranteeFromOwnFunds())).divide(BigDecimal.valueOf(100));
+            BigDecimal minExtGuarantee = principal.multiply(retrunZeroIfNull(guaranteeData.getMinimumGuaranteeFromGuarantor())).divide(
                     BigDecimal.valueOf(100));
 
             BigDecimal actualAmount = BigDecimal.ZERO;
@@ -156,6 +156,10 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
         }
 
     }
+    
+	private BigDecimal retrunZeroIfNull(BigDecimal amount) {
+		return (amount == null) ? BigDecimal.ZERO : amount;
+	}
 
     /**
      * Method assigns a guarantor to loan and blocks the funds on guarantor's
