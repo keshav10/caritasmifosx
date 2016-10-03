@@ -466,9 +466,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
         }
+        this.savingsAccountDomainService.handleUndoTransaction(account, savingsAccountTransaction);
         account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.undoTransactionAction);
         account.activateAccountBasedOnBalance();
-        this.savingsAccountDomainService.handleUndoTransaction(account, savingsAccountTransaction);   
         this.savingAccountRepository.save(account);
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds);
 
