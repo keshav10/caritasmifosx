@@ -67,6 +67,7 @@ public class SavingsAccountDomainServiceJpa implements
 	private final SavingsAccountReadPlatformService savingsAccountReadPlatformService;
 	private final BusinessEventNotifierService businessEventNotifierService;
 	private final GuarantorFundingTransactionRepository guarantorFundingTransactionRepository;
+	private final SavingsProductRepository savingsProductRepository;
 
 	@Autowired
 	public SavingsAccountDomainServiceJpa(
@@ -83,7 +84,8 @@ public class SavingsAccountDomainServiceJpa implements
 			GuarantorFundingRepository guarantorFundingRepository,
 			SavingsAccountReadPlatformService savingsAccountReadPlatformService,
 			BusinessEventNotifierService businessEventNotifierService,
-			GuarantorFundingTransactionRepository guarantorFundingTransactionRepository) {
+			GuarantorFundingTransactionRepository guarantorFundingTransactionRepository,
+			SavingsProductRepository savingsProductRepository) {
 		super();
 		this.context = context;
 		this.savingsAccountRepository = savingsAccountRepository;
@@ -99,6 +101,7 @@ public class SavingsAccountDomainServiceJpa implements
 		this.savingsAccountReadPlatformService = savingsAccountReadPlatformService;
 		this.businessEventNotifierService = businessEventNotifierService;
 		this.guarantorFundingTransactionRepository = guarantorFundingTransactionRepository;
+		this.savingsProductRepository=savingsProductRepository;
 	}
 
 	@Transactional
@@ -145,8 +148,9 @@ public class SavingsAccountDomainServiceJpa implements
 					isSavingsInterestPostingAtCurrentPeriodEnd,
 					financialYearBeginningMonth);
 		}
+		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
 		account.validateAccountBalanceDoesNotBecomeNegative(transactionAmount,
-				transactionBooleanValues.isExceptionForBalanceCheck());
+				transactionBooleanValues.isExceptionForBalanceCheck(),account,accountName.getName());
 		saveTransactionToGenerateTransactionId(withdrawal);
 		this.savingsAccountRepository.save(account);
 

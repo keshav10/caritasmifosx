@@ -625,4 +625,13 @@ public class SavingsProduct extends AbstractPersistable<Long> {
         this.releaseguarantor = releaseguarantor;
     }
 
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+    
+
 }

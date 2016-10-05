@@ -93,6 +93,8 @@ import org.mifosplatform.portfolio.savings.domain.SavingsAccountRepository;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountStatusType;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransactionRepository;
+import org.mifosplatform.portfolio.savings.domain.SavingsProduct;
+import org.mifosplatform.portfolio.savings.domain.SavingsProductRepository;
 import org.mifosplatform.portfolio.savings.exception.DepositAccountTransactionNotAllowedException;
 import org.mifosplatform.portfolio.savings.exception.InsufficientAccountBalanceException;
 import org.mifosplatform.portfolio.savings.exception.SavingsAccountTransactionNotFoundException;
@@ -126,6 +128,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
     private final DepositAccountReadPlatformService depositAccountReadPlatformService;
     private final CalendarInstanceRepository calendarInstanceRepository;
     private final ConfigurationDomainService configurationDomainService;
+    private final SavingsProductRepository savingsProductRepository;
 
     @Autowired
     public DepositAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -145,7 +148,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
             final AccountTransfersWritePlatformService accountTransfersWritePlatformService,
             final DepositAccountReadPlatformService depositAccountReadPlatformService,
-            final CalendarInstanceRepository calendarInstanceRepository, final ConfigurationDomainService configurationDomainService) {
+            final CalendarInstanceRepository calendarInstanceRepository, final ConfigurationDomainService configurationDomainService,
+            final SavingsProductRepository savingsProductRepository) {
 
         this.context = context;
         this.savingAccountRepository = savingAccountRepository;
@@ -168,6 +172,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         this.depositAccountReadPlatformService = depositAccountReadPlatformService;
         this.calendarInstanceRepository = calendarInstanceRepository;
         this.configurationDomainService = configurationDomainService;
+        this.savingsProductRepository = savingsProductRepository;
     }
 
     @Transactional
@@ -233,7 +238,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             final boolean isPreMatureClosure = false;
             account.updateMaturityDateAndAmount(mc, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
-            account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name());
+    		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
+            account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name(),account,accountName.getName());
             this.savingAccountRepository.save(account);
         }
 
@@ -324,8 +330,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                 account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                         financialYearBeginningMonth);
             }
-
-            account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name());
+    		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
+            account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name(),account ,accountName.getName());
 
             this.savingAccountRepository.save(account);
         }
@@ -581,7 +587,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
         }
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.undoTransactionAction);
+		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.undoTransactionAction,account,accountName.getName());
         // account.activateAccountBasedOnBalance();
         final boolean isPreMatureClosure = false;
         account.updateMaturityDateAndAmount(mc, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
@@ -674,8 +681,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
         }
-
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.adjustTransactionAction);
+		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.adjustTransactionAction,account,accountName.getName());
         account.activateAccountBasedOnBalance();
 
         if (savingsAccountTransaction.isDeposit()) {
@@ -1110,8 +1117,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
         }
-
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.waiveChargeTransactionAction);
+		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.waiveChargeTransactionAction,account,accountName.getName());
 
         this.savingAccountRepository.saveAndFlush(account);
 
@@ -1239,8 +1246,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
         }
-
-        account.validateAccountBalanceDoesNotBecomeNegative("." + SavingsAccountTransactionType.PAY_CHARGE.getCode());
+		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
+        account.validateAccountBalanceDoesNotBecomeNegative("." + SavingsAccountTransactionType.PAY_CHARGE.getCode(),account,accountName.getName());
 
         this.savingAccountRepository.save(account);
 

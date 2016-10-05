@@ -81,6 +81,8 @@ import org.mifosplatform.portfolio.savings.domain.SavingsAccountRepositoryWrappe
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountStatusType;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransactionRepository;
+import org.mifosplatform.portfolio.savings.domain.SavingsProduct;
+import org.mifosplatform.portfolio.savings.domain.SavingsProductRepository;
 import org.mifosplatform.portfolio.savings.exception.SavingsAccountClosingNotAllowedException;
 import org.mifosplatform.portfolio.savings.exception.SavingsAccountTransactionNotFoundException;
 import org.mifosplatform.portfolio.savings.exception.SavingsOfficerAssignmentException;
@@ -118,6 +120,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     private final WorkingDaysWritePlatformService workingDaysWritePlatformService;
     private final ConfigurationDomainService configurationDomainService;
     private final InvestmentReadPlatformService invesetmentReadPlatformService;
+    private final SavingsProductRepository savingsProductRepository;
+
     @Autowired
     public SavingsAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
             final SavingsAccountRepository savingAccountRepository,
@@ -136,7 +140,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             final WorkingDaysWritePlatformService workingDaysWritePlatformService,
             final SavingsAccountDataValidator fromApiJsonDeserializer, final SavingsAccountRepositoryWrapper savingsRepository,
             final StaffRepositoryWrapper staffRepository, final ConfigurationDomainService configurationDomainService,
-            final InvestmentReadPlatformService invesetmentReadPlatformService) {
+            final InvestmentReadPlatformService invesetmentReadPlatformService,
+            final SavingsProductRepository savingsProductRepository
+            ) {
         this.context = context;
         this.savingAccountRepository = savingAccountRepository;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -159,6 +165,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.staffRepository = staffRepository;
         this.configurationDomainService = configurationDomainService;
         this.invesetmentReadPlatformService = invesetmentReadPlatformService;
+        this.savingsProductRepository=savingsProductRepository;
     }
 
     @Transactional
@@ -218,7 +225,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
         }
         account.processAccountUponActivation(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, user, null);
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name());
+		SavingsProduct accountName =savingsProductRepository.findOne(account.productId()); 
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name(),account,accountName.getName());
     }
 
     @Transactional
@@ -466,7 +474,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
         }
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.undoTransactionAction);
+		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.undoTransactionAction,account,accountName.getName());
         account.activateAccountBasedOnBalance();
         this.savingsAccountDomainService.handleUndoTransaction(account, savingsAccountTransaction);   
         this.savingAccountRepository.save(account);
@@ -901,8 +910,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
         }
-
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.waiveChargeTransactionAction);
+		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.waiveChargeTransactionAction,account,accountName.getName());
 
         this.savingAccountRepository.saveAndFlush(account);
 
@@ -1032,8 +1041,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
         }
-
-        account.validateAccountBalanceDoesNotBecomeNegative("." + SavingsAccountTransactionType.PAY_CHARGE.getCode());
+		SavingsProduct accountName =savingsProductRepository.findOne(account.productId());
+        account.validateAccountBalanceDoesNotBecomeNegative("." + SavingsAccountTransactionType.PAY_CHARGE.getCode(),account,accountName.getName());
 
         this.savingAccountRepository.save(account);
 
