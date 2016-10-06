@@ -5,11 +5,13 @@
  */
 package org.mifosplatform.batch.exception;
 
+import org.mifosplatform.infrastructure.core.exception.AbstractPlatformDomainRuleException;
 import org.mifosplatform.infrastructure.core.exception.AbstractPlatformResourceNotFoundException;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.mifosplatform.infrastructure.core.exception.PlatformInternalServerException;
 import org.mifosplatform.infrastructure.core.exception.UnsupportedParameterException;
+import org.mifosplatform.infrastructure.core.exceptionmapper.AbstractPlatformDomainRuleExceptionMapper;
 import org.mifosplatform.infrastructure.core.exceptionmapper.PlatformApiDataValidationExceptionMapper;
 import org.mifosplatform.infrastructure.core.exceptionmapper.PlatformDataIntegrityExceptionMapper;
 import org.mifosplatform.infrastructure.core.exceptionmapper.PlatformDomainRuleExceptionMapper;
@@ -107,7 +109,11 @@ public class ErrorHandler extends RuntimeException {
             final String errorBody = jsonHelper.toJson(mapper.toResponse((PlatformInternalServerException) exception).getEntity());
 
             return new ErrorInfo(500, 5001, errorBody);
-        }
+        }else if (exception instanceof AbstractPlatformDomainRuleException){
+       	 final AbstractPlatformDomainRuleExceptionMapper mapper = new AbstractPlatformDomainRuleExceptionMapper();
+         final String errorBody = jsonHelper.toJson(mapper.toResponse((AbstractPlatformDomainRuleException) exception).getEntity());
+         return new ErrorInfo(403, 3003, errorBody);             
+    }
 
         return new ErrorInfo(500, 9999, "{\"Exception\": " + exception.toString() + "}");
     }

@@ -146,7 +146,7 @@ public class SavingsAccountDomainServiceJpa implements
 					financialYearBeginningMonth);
 		}
 		account.validateAccountBalanceDoesNotBecomeNegative(transactionAmount,
-				transactionBooleanValues.isExceptionForBalanceCheck());
+				transactionBooleanValues.isExceptionForBalanceCheck(),account,account.product.getName());
 		saveTransactionToGenerateTransactionId(withdrawal);
 		this.savingsAccountRepository.save(account);
 

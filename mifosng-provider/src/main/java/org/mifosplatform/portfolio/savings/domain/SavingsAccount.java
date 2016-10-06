@@ -942,7 +942,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
         return transactionBeforeLastInterestPosting;
     }
 
-    public void validateAccountBalanceDoesNotBecomeNegative(final BigDecimal transactionAmount, final boolean isException) {
+    public void validateAccountBalanceDoesNotBecomeNegative(final BigDecimal transactionAmount, final boolean isException,final SavingsAccount account,final String accountName) {
         final List<SavingsAccountTransaction> transactionsSortedByDate = retreiveListOfTransactions();
         Money runningBalance = Money.zero(this.currency);
         Boolean canProcessBalance=false;
@@ -962,13 +962,13 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             // enforceMinRequiredBalance
             if (!isException && canProcessBalance) {
                 if (runningBalance.minus(minRequiredBalance).isLessThanZero()) { throw new InsufficientAccountBalanceException(
-                        "transactionAmount", getAccountBalance(), withdrawalFee, transactionAmount); }
+                		account.accountNumber,accountName); }
             }
 
         }
     
 
-    public void validateAccountBalanceDoesNotBecomeNegative(final String transactionAction) {
+    public void validateAccountBalanceDoesNotBecomeNegative(final String transactionAction,final SavingsAccount account,final String accountName) {
 
         final List<SavingsAccountTransaction> transactionsSortedByDate = retreiveListOfTransactions();
         Money runningBalance = Money.zero(this.currency);
@@ -990,7 +990,8 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                     if (this.allowOverdraft) {
                         baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("results.in.balance.exceeding.overdraft.limit");
                     } else {
-                        baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("results.in.balance.going.negative");
+                    	 throw new InsufficientAccountBalanceException(
+                          		account.accountNumber,accountName);                   
                     }
                     if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
                 }

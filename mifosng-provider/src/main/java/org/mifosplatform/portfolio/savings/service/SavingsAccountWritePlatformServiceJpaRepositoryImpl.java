@@ -218,7 +218,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
         }
         account.processAccountUponActivation(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, user, null);
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name());
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name(),account,account.savingsProduct().getName());
     }
 
     @Transactional
@@ -467,7 +467,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                     financialYearBeginningMonth);
         }
         this.savingsAccountDomainService.handleUndoTransaction(account, savingsAccountTransaction);
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.undoTransactionAction);
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.undoTransactionAction,account,account.savingsProduct().getName());
         account.activateAccountBasedOnBalance();
         this.savingAccountRepository.save(account);
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds);
@@ -902,7 +902,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                     financialYearBeginningMonth);
         }
 
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.waiveChargeTransactionAction);
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.waiveChargeTransactionAction,account,account.savingsProduct().getName());
 
         this.savingAccountRepository.saveAndFlush(account);
 
@@ -1033,7 +1033,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                     financialYearBeginningMonth);
         }
 
-        account.validateAccountBalanceDoesNotBecomeNegative("." + SavingsAccountTransactionType.PAY_CHARGE.getCode());
+        account.validateAccountBalanceDoesNotBecomeNegative("." + SavingsAccountTransactionType.PAY_CHARGE.getCode(),account,account.savingsProduct().getName());
 
         this.savingAccountRepository.save(account);
 

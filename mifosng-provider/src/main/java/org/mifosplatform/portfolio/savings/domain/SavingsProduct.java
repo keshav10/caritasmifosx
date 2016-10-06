@@ -77,9 +77,9 @@ import com.google.gson.JsonArray;
 @Inheritance
 @DiscriminatorColumn(name = "deposit_type_enum", discriminatorType = DiscriminatorType.INTEGER)
 @DiscriminatorValue("100")
-public class SavingsProduct extends AbstractPersistable<Long> {
+public class SavingsProduct extends AbstractPersistable<Long> {   
 
-    @Column(name = "name", nullable = false, unique = true)
+	@Column(name = "name", nullable = false, unique = true)
     protected String name;
 
     @Column(name = "short_name", nullable = false, unique = true)
@@ -624,5 +624,12 @@ public class SavingsProduct extends AbstractPersistable<Long> {
     public void setReleaseguarantor(boolean releaseguarantor) {
         this.releaseguarantor = releaseguarantor;
     }
+    public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
 
 }

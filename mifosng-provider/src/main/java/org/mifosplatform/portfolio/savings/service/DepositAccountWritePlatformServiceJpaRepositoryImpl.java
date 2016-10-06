@@ -233,7 +233,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             final boolean isPreMatureClosure = false;
             account.updateMaturityDateAndAmount(mc, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
-            account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name());
+            account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name(),account,account.savingsProduct().getName());
             this.savingAccountRepository.save(account);
         }
 
@@ -325,7 +325,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                         financialYearBeginningMonth);
             }
 
-            account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name());
+            account.validateAccountBalanceDoesNotBecomeNegative(SavingsAccountTransactionType.PAY_CHARGE.name(),account,account.savingsProduct().getName());
 
             this.savingAccountRepository.save(account);
         }
@@ -581,7 +581,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
         }
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.undoTransactionAction);
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.undoTransactionAction,account,account.savingsProduct().getName());
         // account.activateAccountBasedOnBalance();
         final boolean isPreMatureClosure = false;
         account.updateMaturityDateAndAmount(mc, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
@@ -675,7 +675,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                     financialYearBeginningMonth);
         }
 
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.adjustTransactionAction);
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.adjustTransactionAction,account,account.savingsProduct().getName());
         account.activateAccountBasedOnBalance();
 
         if (savingsAccountTransaction.isDeposit()) {
@@ -1111,7 +1111,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                     financialYearBeginningMonth);
         }
 
-        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.waiveChargeTransactionAction);
+        account.validateAccountBalanceDoesNotBecomeNegative(SavingsApiConstants.waiveChargeTransactionAction,account,account.savingsProduct().getName());
 
         this.savingAccountRepository.saveAndFlush(account);
 
@@ -1240,7 +1240,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                     financialYearBeginningMonth);
         }
 
-        account.validateAccountBalanceDoesNotBecomeNegative("." + SavingsAccountTransactionType.PAY_CHARGE.getCode());
+        account.validateAccountBalanceDoesNotBecomeNegative("." + SavingsAccountTransactionType.PAY_CHARGE.getCode(),account,account.savingsProduct().getName());
 
         this.savingAccountRepository.save(account);
 
